@@ -16,7 +16,34 @@ npm run format        # auto-format source files
 
 ---
 
-## 2. Naming
+## 2. Formatting
+
+Prettier handles all formatting automatically. You should never manually fix spacing, quotes, or indentation.
+
+Run this to format all files in `src/`:
+
+```bash
+npm run format
+```
+
+Run this to check formatting without writing any changes (used in CI):
+
+```bash
+npm run format:check
+```
+
+If Prettier and ESLint are both flagging the same file, always run lint first then format:
+
+```bash
+npm run lint:fix
+npm run format
+```
+
+The pre-commit hook runs both automatically on staged files before every commit, so if you forget, the commit will fix it or block it for you.
+
+---
+
+## 3. Naming
 
 | Thing | Convention | Example |
 |---|---|---|
@@ -36,7 +63,7 @@ isActive, hasPermission, canSignIn
 
 ---
 
-## 3. Folder Structure
+## 4. Folder Structure
 
 ```
 src/
@@ -102,7 +129,7 @@ export async function findUserById(id: number): Promise<User | null> {
 
 ---
 
-## 4. Async/Await
+## 5. Async/Await
 
 Always use `async/await`. Never use `.then()` or `.catch()` chains.
 
@@ -123,7 +150,7 @@ void start();
 
 ---
 
-## 5. TypeScript
+## 6. TypeScript
 
 Strict mode is on. Don't work around it.
 
@@ -158,7 +185,7 @@ Use `unknown` for caught errors, not `any`:
 
 ---
 
-## 6. Error Handling
+## 7. Error Handling
 
 Use `AppError` for all known errors. Always use the constants from `types/errorCodes.ts` — never hardcode error strings:
 
@@ -195,7 +222,7 @@ Never swallow errors silently:
 
 ---
 
-## 7. API Responses
+## 8. API Responses
 
 All responses follow the `ApiResponse<T>` shape:
 
@@ -231,7 +258,7 @@ Validate all incoming data with Zod in the controller. A `ZodError` is caught by
 
 ---
 
-## 8. Database
+## 9. Database
 
 All queries live in repository files inside `src/repositories/`. No SQL anywhere else.
 
@@ -263,7 +290,7 @@ try {
 
 ---
 
-## 9. Logging
+## 10. Logging
 
 Use `logger` from `config/logger.ts`. Never use `console.log`.
 
@@ -278,4 +305,4 @@ Never log sensitive data like passwords or tokens.
 
 ---
 
-## 10. Git
+## 11. Git

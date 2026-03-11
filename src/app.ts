@@ -40,7 +40,6 @@ app.get("/health", (_req, res) => {
 
 // Routes
 
-
 // 404 & error handler
 app.use(notFound);
 app.use(errorHandler);

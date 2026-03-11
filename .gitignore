@@ -6,4 +6,4 @@ dist/
 logs/
 coverage/
 .DS_Store
-
+package-lock.json
