@@ -1,0 +1,9 @@
+{
+  "src/**/*.ts": [
+    "eslint --fix --max-warnings 0",
+    "prettier --write"
+  ],
+  "database/**/*.sql": [
+    "prettier --write"
+  ]
+}
