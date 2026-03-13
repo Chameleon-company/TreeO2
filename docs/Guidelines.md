@@ -120,12 +120,7 @@ throw new AppError(404, ERROR_CODES.DATA_001);
 ```
 
 **Repositories** — SQL queries only. No business logic, no error throwing (return `null` for not found).
-```ts
-export async function findUserById(id: number): Promise<User | null> {
-  const result = await query<User>('SELECT * FROM users WHERE id = $1', [id]);
-  return result.rows[0] ?? null;
-}
-```
+
 
 ---
 
@@ -260,33 +255,9 @@ Validate all incoming data with Zod in the controller. A `ZodError` is caught by
 
 ## 9. Database
 
-All queries live in repository files inside `src/repositories/`. No SQL anywhere else.
+TODO by Database Team
 
-Always use parameterised queries:
 
-```ts
-// No — SQL injection risk
-await query(`SELECT * FROM users WHERE email = '${email}'`);
-
-// Yes
-await query('SELECT * FROM users WHERE email = $1', [email]);
-```
-
-Use a transaction for any operation that writes to more than one table:
-
-```ts
-const client = await pool.connect();
-try {
-  await client.query('BEGIN');
-  // ... multiple writes
-  await client.query('COMMIT');
-} catch (err) {
-  await client.query('ROLLBACK');
-  throw err;
-} finally {
-  client.release();
-}
-```
 
 ---
 
