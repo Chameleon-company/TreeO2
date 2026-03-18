@@ -277,3 +277,147 @@ Never log sensitive data like passwords or tokens.
 ---
 
 ## 11. Git
+
+### 11.1 Branching Strategy
+
+We follow a structured Git workflow with username-prefixed branches:
+
+Branch | Purpose
+--
+
+main | Stable shared branch
+<username>/feature/<name> | New features
+<username>/fix/<name> | Bug fixes
+<username>/chore/<name> | Maintenance tasks
+
+Examples:
+tina/feature/user-authentication  
+tina/fix/login-error  
+
+Rules:
+- Always prefix branch names with your username
+- Use lowercase letters and hyphens (-) only
+- Keep branch names short but descriptive
+- Never commit directly to main
+- Always create your branch from the latest main
+
+Example:
+git checkout main  
+git pull origin main  
+git checkout -b tina/feature/user-authentication  
+
+---
+
+### 11.2 Commit Messages
+
+Use clear and consistent commit messages:
+
+feat: add user authentication  
+fix: handle null user response  
+refactor: simplify user service logic  
+chore: update eslint config  
+docs: update API guidelines  
+
+---
+
+### 11.3 Pull Requests (PRs)
+
+All changes must go through a Pull Request into main.
+
+PR Requirements:
+- Must pass npm run validate
+- Must follow project structure and coding guidelines
+- Must not contain console.log statements or commented-out code
+- Must include a clear description of:
+  - what was done
+  - why it was done
+  - any important notes
+- Must include screenshots or proof of working functionality
+- Code must be running without errors before submission
+
+Example PR Description:
+
+### Summary
+Added user authentication with JWT.
+
+### Changes
+- Created auth controller and service
+- Added login endpoint
+- Integrated password hashing
+
+### Testing / Proof
+- Application runs without errors
+- Screenshots attached below
+
+### Notes
+Requires JWT_SECRET in environment variables
+
+---
+
+### 11.4 Code Review & Approval Flow
+
+All PRs must go through a structured review process before merging.
+
+Review Process:
+- Each PR must be reviewed by two reviewers:
+  1. Respective Team Lead or Co-Lead
+  2. GitHub Lead or Co-Lead
+
+Responsibilities:
+- Reviewers must check:
+  - Code quality and readability
+  - Naming conventions
+  - Error handling
+  - Whether the feature works correctly (based on screenshots/proof)
+
+Approval Flow:
+1. Developer creates PR with required details and screenshots  
+2. Two reviewers approve the PR  
+3. Once approved, Team Leads and GitHub Leads must notify the Project Lead by commenting on the PR  
+4. Only the Project Lead performs the final merge into main  
+
+---
+
+### 11.5 Merging
+
+- Only the Project Lead is allowed to merge PRs into main
+- Use squash and merge to keep commit history clean
+- Delete the branch after merging
+
+Example:
+git branch -d tina/feature/user-authentication  
+
+---
+
+### 11.6 Keeping Branches Updated
+
+Before opening a PR, pull the latest main and sync your branch:
+
+git checkout main  
+git pull origin main  
+git checkout tina/feature/your-branch  
+git merge main  
+
+Resolve conflicts locally before pushing.
+
+---
+
+### 11.7 Forbidden Practices
+
+Do not:
+- commit directly to main
+- push broken code
+- commit sensitive data such as API keys or passwords
+- use --force on shared branches
+- leave unused code or debug logs
+
+---
+
+### 11.8 Good Practices
+
+Always:
+- pull the latest changes before starting work
+- keep commits small and meaningful
+- use descriptive branch names
+- test your code before committing
+
