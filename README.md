@@ -1,77 +1,90 @@
-# TreeO2 Backend API
+# TreeO2 Backend
 
-RESTful API for the TreeO2 tree tracking platform — built for xpand Foundation.
+TreeO2 backend scaffold built with Node.js, TypeScript, Express, Prisma, PostgreSQL, Zod, Winston, and Swagger.
 
-## Stack
+## Current State
 
-- **Runtime**: Node.js + TypeScript
-- **Framework**: Express
-- **Database**: PostgreSQL (Docker for local dev)
-- **Auth**: JWT (Bearer token)
-- **Validation**: Zod
-- **Logging**: Winston
-- **Cloud**: AWS Elastic Beanstalk + SQS + S3
+This repository is a production-oriented scaffold, not a finished product. It currently provides:
+
+- Express app/bootstrap with security middleware
+- Prisma client setup for PostgreSQL
+- Zod-based environment validation
+- Winston logging
+- request/error middleware scaffolding
+- route aggregation and module starter folders
+- Swagger starter docs
+
+Not yet implemented:
+
+- real JWT login flow
+- business logic for TreeO2 modules
+- SQS/S3/AWS jobs
+- CI workflows
+- real tests
 
 ## Quick Start
 
 ```bash
-# 1. Install dependencies
 npm install
-
-# 2. Set up environment
 cp .env.example .env
-# Edit .env — at minimum set JWT_SECRET (min 32 chars)
-
-# 3. Start Postgres
 docker compose up -d
-
-# 4. Run migrations - TODO
-docker exec -i treeo2_postgres psql -U treeo2_user -d treeo2 \
-  < database/migrations/001_initial_schema.sql
-
-# 5. Seed data - TODO
-docker exec -i treeo2_postgres psql -U treeo2_user -d treeo2 \
-  < database/seeds/001_seed.sql
-
-# 6. Start dev server
+npx prisma generate
 npm run dev
 ```
 
-API is available at `http://localhost:3000`  
-Health check: `GET /health`
+API base URL: `http://localhost:3000/api/v1`
+
+Useful endpoints:
+
+- `GET /api/v1/health`
+- `GET /docs`
+
+## Prisma
+
+Generate Prisma client:
+
+```bash
+npx prisma generate
+```
+
+Create a migration during development:
+
+```bash
+npx prisma migrate dev --name init
+```
+
+Seed local data:
+
+```bash
+npm run prisma:seed
+```
 
 ## Project Structure
 
-```
+```text
 src/
-├── config/          # env, database pool, logger
-├── middleware/      # Express middleware (auth, error handler)
-├── routes/          # URL definitions and middleware attachment only
-├── controllers/     # Handle req/res, validate input, call services
-├── services/        # Business logic, call repositories
-├── repositories/    # All SQL queries — nothing else
-├── types/           # Shared TypeScript types and enums
-├── utils/           # Pure helper functions — no DB, no Express
 ├── app.ts
-└── index.ts
+├── server.ts
+├── config/
+├── common/
+├── lib/
+├── middlewares/
+├── modules/
+└── routes/
 
-database/
-├── migrations/    # SQL schema files
-└── seeds/         # Sample data
-
-tests/
-├── unit/
-└── integration/
+prisma/
+├── schema.prisma
+└── seed.ts
 ```
-
-
 
 ## Scripts
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Dev server with hot reload |
-| `npm run build` | Compile TypeScript |
-| `npm start` | Run compiled output |
-| `npm test` | Run Jest tests |
+- `npm run dev` starts the development server
+- `npm run build` compiles TypeScript to `dist/`
+- `npm run type-check` runs the TypeScript checker
+- `npm run prisma:seed` runs the Prisma seed script
 
+## Notes
+
+- `/auth/login` is intentionally not implemented yet and currently returns `501`.
+- The Prisma schema is still minimal and should be expanded with real TreeO2 entities before feature work continues.

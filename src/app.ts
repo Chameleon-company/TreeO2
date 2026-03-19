@@ -1,47 +1,35 @@
-import express from "express";
-import helmet from "helmet";
-import cors from "cors";
-import compression from "compression";
-import rateLimit from "express-rate-limit";
-import { env } from "./config/env";
-import { errorHandler, notFound } from "./middleware/errorHandler";
+import compression from 'compression';
+import express from 'express';
+import helmet from 'helmet';
+import { corsMiddleware } from './config/cors';
+import { env } from './config/env';
+import { apiRateLimit } from './config/rateLimit';
+import { swaggerMiddleware } from './config/swagger';
+import { requestLoggerMiddleware } from './middlewares/requestLogger.middleware';
+import { securityAuditMiddleware } from './middlewares/securityAudit.middleware';
+import { errorMiddleware } from './middlewares/error.middleware';
+import { notFoundMiddleware } from './middlewares/notFound.middleware';
+import routes from './routes';
 
 const app = express();
 
-// Security
+app.disable('x-powered-by');
 app.use(helmet());
-app.use(cors({ origin: env.NODE_ENV === "production" ? false : "*" }));
-
-// Rate limiting
-app.use(
-  rateLimit({
-    windowMs: env.RATE_LIMIT_WINDOW_MS,
-    max: env.RATE_LIMIT_MAX,
-    message: {
-      success: false,
-      message: "Too many requests, please try again later.",
-    },
-  }),
-);
-
-// Parsing
+app.use(corsMiddleware);
+app.use(requestLoggerMiddleware);
+app.use(securityAuditMiddleware);
+app.use(apiRateLimit);
 app.use(compression());
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health check
-app.get("/health", (_req, res) => {
-  res.json({
-    success: true,
-    status: "ok",
-    timestamp: new Date().toISOString(),
-  });
-});
+app.use(env.API_PREFIX, routes);
 
-// Routes
+if (env.SWAGGER_ENABLED) {
+  app.use('/docs', ...swaggerMiddleware);
+}
 
-// 404 & error handler
-app.use(notFound);
-app.use(errorHandler);
+app.use(notFoundMiddleware);
+app.use(errorMiddleware);
 
 export default app;
