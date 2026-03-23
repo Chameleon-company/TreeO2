@@ -4,15 +4,15 @@ services:
     container_name: treeo2_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: treeo2
-      POSTGRES_USER: treeo2_user
-      POSTGRES_PASSWORD: treeo2_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - '5432:5432'
+      - '${POSTGRES_PORT}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U treeo2_user -d treeo2']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 10s
       timeout: 5s
       retries: 5

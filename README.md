@@ -32,6 +32,8 @@ npx prisma generate
 npm run dev
 ```
 
+Use your own local values in `.env`. Do not commit real credentials or secrets to the repository.
+
 API base URL: `http://localhost:3000/api/v1`
 
 Useful endpoints:
@@ -88,3 +90,4 @@ prisma/
 
 - `/auth/login` is intentionally not implemented yet and currently returns `501`.
 - The Prisma schema is still minimal and should be expanded with real TreeO2 entities before feature work continues.
+- `.env` is local-only and must not be committed.

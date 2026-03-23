@@ -25,6 +25,8 @@ npm run prisma:seed
 npm run dev
 ```
 
+Use `.env.example` only as a template. Put your actual local database password and secrets in `.env`, and never commit `.env` to the repository.
+
 ### If Database Connection Fails
 
 If you encounter Prisma errors (for example: P1000 authentication failed), reset the database:
@@ -44,7 +46,11 @@ Base API URL: `http://localhost:3000/api/v1`
 
 Important environment variables used in the project:
 
-DATABASE_URL – PostgreSQL connection string
+POSTGRES_DB – Local Docker Postgres database name
+POSTGRES_USER – Local Docker Postgres user
+POSTGRES_PASSWORD – Local Docker Postgres password
+POSTGRES_PORT – Local Docker Postgres port
+DATABASE_URL – PostgreSQL connection string used by Prisma and the application
 JWT_SECRET – Secret key for signing JWT tokens
 JWT_EXPIRES_IN – Token expiry duration
 JWT_ISSUER – Token issuer identifier
