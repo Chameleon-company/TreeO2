@@ -1,8 +1,10 @@
-import { createPlaceholderRouter } from '../../common/helpers/moduleRouter.helper';
+import { Router } from 'express';
+import { listReports } from './reports.controller';
 
-const router = createPlaceholderRouter({
-  moduleName: 'reports',
-  message: 'Reports module scaffold is ready for async queue and storage integration.',
+const router = Router();
+
+router.get('/', (req, res, next) => {
+  void listReports(req, res).catch(next);
 });
 
 export default router;

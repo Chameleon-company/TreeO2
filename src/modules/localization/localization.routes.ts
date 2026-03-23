@@ -1,5 +1,10 @@
-import { createPlaceholderRouter } from '../../common/helpers/moduleRouter.helper';
+import { Router } from 'express';
+import { listLocalization } from './localization.controller';
 
-const router = createPlaceholderRouter({ moduleName: 'localization' });
+const router = Router();
+
+router.get('/', (req, res, next) => {
+  void listLocalization(req, res).catch(next);
+});
 
 export default router;

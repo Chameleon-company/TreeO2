@@ -1,8 +1,10 @@
-import { createPlaceholderRouter } from '../../common/helpers/moduleRouter.helper';
+import { Router } from 'express';
+import { listUsers } from './users.controller';
 
-const router = createPlaceholderRouter({
-  moduleName: 'users',
-  message: 'Users module scaffold is ready for controllers, services, and Prisma queries.',
+const router = Router();
+
+router.get('/', (req, res, next) => {
+  void listUsers(req, res).catch(next);
 });
 
 export default router;

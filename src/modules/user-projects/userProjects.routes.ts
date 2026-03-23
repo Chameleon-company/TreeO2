@@ -1,5 +1,10 @@
-import { createPlaceholderRouter } from '../../common/helpers/moduleRouter.helper';
+import { Router } from 'express';
+import { listUserProjects } from './userProjects.controller';
 
-const router = createPlaceholderRouter({ moduleName: 'user-projects' });
+const router = Router();
+
+router.get('/', (req, res, next) => {
+  void listUserProjects(req, res).catch(next);
+});
 
 export default router;

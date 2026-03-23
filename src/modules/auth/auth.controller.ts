@@ -1,17 +1,17 @@
 import type { Request, Response } from 'express';
-import { AppError } from '../../common/errors/appError';
-import { ERROR_CODES } from '../../common/errors/errorCodes';
+import { getCurrentUser, loginUser } from './auth.service';
 
-export const login = (req: Request, res: Response): void => {
+export const login = async (req: Request, res: Response): Promise<void> => {
   void req;
-  void res;
-
-  throw new AppError(501, ERROR_CODES.AUTH_006);
+  await loginUser();
+  res.status(200).json({ success: true });
 };
 
-export const me = (req: Request, res: Response): void => {
+export const me = async (req: Request, res: Response): Promise<void> => {
+  const user = await getCurrentUser(req.user);
+
   res.status(200).json({
     success: true,
-    data: req.user ?? null,
+    data: user,
   });
 };

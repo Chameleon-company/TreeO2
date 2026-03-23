@@ -1,5 +1,10 @@
-import { createPlaceholderRouter } from '../../common/helpers/moduleRouter.helper';
+import { Router } from 'express';
+import { listPartners } from './partners.controller';
 
-const router = createPlaceholderRouter({ moduleName: 'partners' });
+const router = Router();
+
+router.get('/', (req, res, next) => {
+  void listPartners(req, res).catch(next);
+});
 
 export default router;
