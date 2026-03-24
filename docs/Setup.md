@@ -51,6 +51,7 @@ Then open `.env` and set at minimum:
 
 ```env
 JWT_SECRET=your-secret-key-at-least-32-characters-long
+DATABASE_URL=postgresql://your-db-user:your-db-password@localhost:5432/your-db-name?schema=public
 ```
 
 All other defaults work for local development. See [Environment Variables](#environment-variables) below for the full reference.
@@ -69,16 +70,17 @@ docker ps
 # treeo2_postgres should show "healthy"
 ```
 
-### 5. Run migrations - TODO
+### 5. Generate Prisma client and push schema
 
 ```bash
-npm run db:migrate
+npx prisma generate
+npx prisma db push
 ```
 
-### 6. Seed the database (optional) - TODO
+### 6. Seed the database (optional)
 
 ```bash
-npm run db:seed
+npm run prisma:seed
 ```
 
 > Seeds are for local/dev only — never run against production.
@@ -112,6 +114,7 @@ All variables are validated on startup via Zod. The server will exit immediately
 | `DB_NAME` | No | `treeo2` | Database name |
 | `DB_USER` | No | `treeo2_user` | Database user |
 | `DB_PASSWORD` | No | `treeo2_password` | Database password |
+| `DATABASE_URL` | **Yes** | — | Prisma/PostgreSQL connection string |
 | `JWT_SECRET` | **Yes** | — | Min 32 characters. Use a strong random string in production |
 | `JWT_EXPIRES_IN` | No | `24h` | Token expiry — e.g. `1h`, `7d`, `24h` |
 | `RATE_LIMIT_WINDOW_MS` | No | `900000` | Rate limit window in ms (default: 15 min) |
@@ -132,7 +135,11 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 # Terminal 1 — database (if not already running)
 docker compose up -d
 
-# Terminal 2 — API server with hot reload
+# Terminal 2 — Prisma client/schema sync
+npx prisma generate
+npx prisma db push
+
+# Terminal 3 — API server with hot reload
 npm run dev
 ```
 
@@ -151,6 +158,7 @@ docker compose down
 ```bash
 docker compose down -v       # removes the postgres_data volume
 docker compose up -d         # fresh container
+npx prisma db push
 ```
 
 ---
@@ -168,6 +176,11 @@ docker compose up -d         # fresh container
 | `npm run format:check` | Check formatting without writing |
 | `npm run type-check` | TypeScript type check without emitting |
 | `npm run validate` | Run type-check + lint + format check (run before PRs) |
+| `npm run prisma:generate` | Generate Prisma client |
+| `npm run prisma:push` | Push schema to the local database |
+| `npm run prisma:migrate:dev` | Create and apply a development migration |
+| `npm run prisma:migrate:deploy` | Apply migrations |
+| `npm run prisma:seed` | Seed local data |
 | `npm test` | Run Jest tests |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run test:coverage` | Run tests with coverage report |
@@ -210,6 +223,16 @@ sudo service postgresql stop    # Linux
 
 **`JWT_SECRET must be at least 32 characters` on startup**
 Your `.env` file is missing or has a short `JWT_SECRET`. See the [generate command](#environment-variables) above.
+
+**Prisma client not generated**
+```bash
+npx prisma generate
+```
+
+**Database schema not applied**
+```bash
+npx prisma db push
+```
 
 **`Cannot find module` errors after pulling changes**
 ```bash
