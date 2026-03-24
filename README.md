@@ -6,6 +6,7 @@ RESTful API for the TreeO2 tree tracking platform — built for xpand Foundation
 
 - **Runtime**: Node.js + TypeScript
 - **Framework**: Express
+- **ORM / Data Access**: Prisma
 - **Database**: PostgreSQL (Docker for local dev)
 - **Auth**: JWT (Bearer token)
 - **Validation**: Zod
@@ -25,15 +26,16 @@ cp .env.example .env
 # 3. Start Postgres
 docker compose up -d
 
-# 4. Run migrations - TODO
-docker exec -i treeo2_postgres psql -U treeo2_user -d treeo2 \
-  < database/migrations/001_initial_schema.sql
+# 4. Generate Prisma client
+npx prisma generate
 
-# 5. Seed data - TODO
-docker exec -i treeo2_postgres psql -U treeo2_user -d treeo2 \
-  < database/seeds/001_seed.sql
+# 5. Push schema to local DB
+npx prisma db push
 
-# 6. Start dev server
+# 6. Seed local data
+npm run prisma:seed
+
+# 7. Start dev server
 npm run dev
 ```
 
@@ -52,6 +54,7 @@ src/
 ├── repositories/    # All SQL queries — nothing else
 ├── types/           # Shared TypeScript types and enums
 ├── utils/           # Pure helper functions — no DB, no Express
+├── lib/
 ├── app.ts
 └── index.ts
 
@@ -59,12 +62,16 @@ database/
 ├── migrations/    # SQL schema files
 └── seeds/         # Sample data
 
+prisma/
+├── schema.prisma
+├── seed.ts
+├── migrations/
+└── models/
+
 tests/
 ├── unit/
 └── integration/
 ```
-
-
 
 ## Scripts
 
@@ -73,5 +80,9 @@ tests/
 | `npm run dev` | Dev server with hot reload |
 | `npm run build` | Compile TypeScript |
 | `npm start` | Run compiled output |
+| `npm run prisma:generate` | Generate Prisma client |
+| `npm run prisma:push` | Push schema to the local database |
+| `npm run prisma:migrate:dev` | Create and apply a development migration |
+| `npm run prisma:migrate:deploy` | Apply migrations |
+| `npm run prisma:seed` | Seed local data |
 | `npm test` | Run Jest tests |
-
