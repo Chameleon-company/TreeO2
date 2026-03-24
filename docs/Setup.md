@@ -114,8 +114,8 @@ All variables are validated on startup via Zod. The server will exit immediately
 | `DB_NAME` | No | `treeo2` | Database name |
 | `DB_USER` | No | `treeo2_user` | Database user |
 | `DB_PASSWORD` | No | `treeo2_password` | Database password |
-| `DATABASE_URL` | **Yes** | — | Prisma/PostgreSQL connection string |
-| `JWT_SECRET` | **Yes** | — | Min 32 characters. Use a strong random string in production |
+| `DATABASE_URL` | **Yes** | postgresql://your-db-user:your-db-password@localhost:5432/your-db-name?schema=public | Prisma/PostgreSQL connection string |
+| `JWT_SECRET` | **Yes** | Zx9@vP4#Lm2$Qw8!Rt6^Hy1&Uk3*Ns5%Bd7@Fx0!Lp | Min 32 characters. Use a strong random string in production |
 | `JWT_EXPIRES_IN` | No | `24h` | Token expiry — e.g. `1h`, `7d`, `24h` |
 | `RATE_LIMIT_WINDOW_MS` | No | `900000` | Rate limit window in ms (default: 15 min) |
 | `RATE_LIMIT_MAX` | No | `100` | Max requests per window per IP |
