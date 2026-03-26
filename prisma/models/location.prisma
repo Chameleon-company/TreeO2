@@ -1,1 +1,16 @@
+model Location {
+  id              Int        @id @default(autoincrement())
+  parentId        Int?
+  level           Int
+  name            String
+  code            String?
+  latitude        Float?
+  longitude       Float?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  parent          Location?  @relation("LocationHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children        Location[] @relation("LocationHierarchy")
+  adminUsers      User[]     @relation("UserAdminLocation")
 
+  @@index([parentId])
+}

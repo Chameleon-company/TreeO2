@@ -1,1 +1,7 @@
-
+model Adopter {
+  id        Int        @id @default(autoincrement())
+  name      String
+  email     String?
+  createdAt DateTime   @default(now())
+  adoptions Adoption[]
+}

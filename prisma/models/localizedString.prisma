@@ -1,1 +1,10 @@
+model LocalizedString {
+  id          Int     @id @default(autoincrement())
+  cultureCode String
+  stringKey   String
+  value       String
+  context     String
+  culture     Culture @relation(fields: [cultureCode], references: [code], onDelete: Restrict)
 
+  @@unique([cultureCode, stringKey, context])
+}

@@ -1,1 +1,11 @@
-
+model Report {
+  id            Int          @id @default(autoincrement())
+  reportType    String
+  requestedById Int?
+  status        ReportStatus
+  parameters    Json
+  outputUrl     String?
+  createdAt     DateTime     @default(now())
+  completedAt   DateTime?
+  requestedBy   User?        @relation(fields: [requestedById], references: [id], onDelete: SetNull)
+}

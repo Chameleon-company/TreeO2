@@ -1,1 +1,8 @@
-
+model Adoption {
+  id        Int      @id @default(autoincrement())
+  adopterId Int
+  fobId     String
+  adoptedAt DateTime
+  createdAt DateTime @default(now())
+  adopter   Adopter  @relation(fields: [adopterId], references: [id], onDelete: Restrict)
+}
