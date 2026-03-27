@@ -1,1 +1,12 @@
+model Report {
+  id            Int       @id @default(autoincrement()) @map("id")
+  reportType    String    @map("report_type") @db.VarChar(100)
+  requestedBy   Int?      @map("requested_by")
+  status        String    @db.VarChar(50) @map("status")
+  parameters    Json      @db.JsonB @map("parameters")
+  outputUrl     String?   @map("output_url") @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at")
+  completedAt   DateTime? @map("completed_at")
 
+  @@map("Reports")
+}
