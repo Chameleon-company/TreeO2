@@ -1,1 +1,11 @@
+model Country {
+  id    Int    @id @default(autoincrement()) @map("id")
+  name  String @db.VarChar(100) @map("name")
+  iso2  String @unique @db.Char(2) @map("iso2")
+  iso3  String? @unique @db.Char(3) @map("iso3")
 
+  locations Location[]
+  administrativeLevels AdministrativeLevel[]
+
+  @@map("Countries")
+}

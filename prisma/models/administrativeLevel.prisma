@@ -1,1 +1,11 @@
+model AdministrativeLevel {
+  id        Int    @id @default(autoincrement()) @map("id")
+  countryId Int    @map("country_id")
+  level     Int    @map("level")
+  name      String @db.VarChar(100) @map("name")
 
+  country Country @relation(fields: [countryId], references: [id], onDelete: Restrict)
+
+  @@index([countryId])
+  @@map("Administrative_Levels")
+}

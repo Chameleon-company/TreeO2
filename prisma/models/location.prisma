@@ -1,1 +1,20 @@
+model Location {
+  id        Int     @id @default(autoincrement()) @map("id")
+  countryId Int     @map("country_id")
+  parentId  Int?    @map("parent_id")
+  level     Int     @map("level")
+  name      String  @db.VarChar(200) @map("name")
+  code      String? @db.VarChar(50) @map("code")
+  latitude  Decimal? @db.Decimal(9, 6) @map("latitude")
+  longitude Decimal? @db.Decimal(9, 6) @map("longitude")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
+  country  Country   @relation(fields: [countryId], references: [id], onDelete: Restrict)
+  parent   Location? @relation("LocationHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Location[] @relation("LocationHierarchy")
+
+  @@index([countryId])
+  @@index([parentId])
+  @@map("Locations")
+}
