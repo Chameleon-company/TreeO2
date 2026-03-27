@@ -67,7 +67,7 @@ isActive, hasPermission, canSignIn
 
 ```
 src/
-├── config/          # env, database pool, logger
+├── config/          # env, database pool, logger, swagger config
 ├── middleware/      # Express middleware (auth, error handler)
 ├── routes/          # URL definitions and middleware attachment only
 ├── controllers/     # Handle req/res, validate input, call services
@@ -253,7 +253,22 @@ Validate all incoming data with Zod in the controller. A `ZodError` is caught by
 
 ---
 
-## 9. Database
+## 9. API Documentation (Swagger)
+
+All endpoints must be documented using Swagger annotations.
+
+Swagger UI is available at: http://localhost:3000/api-docs
+
+Every new route must include:
+- Summary
+- Request params / body
+- Response format
+
+Do not merge PRs with undocumented endpoints.
+
+---
+
+## 10. Database
 
 TODO by Database Team
 
@@ -261,7 +276,7 @@ TODO by Database Team
 
 ---
 
-## 10. Logging
+## 11. Logging
 
 Use `logger` from `config/logger.ts`. Never use `console.log`.
 
@@ -276,9 +291,9 @@ Never log sensitive data like passwords or tokens.
 
 ---
 
-## 11. Git
+## 12. Git
 
-### 11.1 Branching Strategy
+### 12.1 Branching Strategy
 
 We follow a structured Git workflow with username-prefixed branches:
 
@@ -308,7 +323,7 @@ git checkout -b tina/feature/user-authentication
 
 ---
 
-### 11.2 Commit Messages
+### 12.2 Commit Messages
 
 Use clear and consistent commit messages:
 
@@ -320,7 +335,7 @@ docs: update API guidelines
 
 ---
 
-### 11.3 Pull Requests (PRs)
+### 12.3 Pull Requests (PRs)
 
 All changes must go through a Pull Request into main.
 
@@ -354,7 +369,7 @@ Requires JWT_SECRET in environment variables
 
 ---
 
-### 11.4 Code Review & Approval Flow
+### 12.4 Code Review & Approval Flow
 
 All PRs must go through a structured review process before merging.
 
@@ -378,7 +393,7 @@ Approval Flow:
 
 ---
 
-### 11.5 Merging
+### 12.5 Merging
 
 - Only the Project Lead is allowed to merge PRs into main
 - Use squash and merge to keep commit history clean
@@ -389,7 +404,7 @@ git branch -d tina/feature/user-authentication
 
 ---
 
-### 11.6 Keeping Branches Updated
+### 12.6 Keeping Branches Updated
 
 Before opening a PR, pull the latest main and sync your branch:
 
@@ -402,7 +417,7 @@ Resolve conflicts locally before pushing.
 
 ---
 
-### 11.7 Forbidden Practices
+### 12.7 Forbidden Practices
 
 Do not:
 - commit directly to main
@@ -413,7 +428,7 @@ Do not:
 
 ---
 
-### 11.8 Good Practices
+### 12.8 Good Practices
 
 Always:
 - pull the latest changes before starting work

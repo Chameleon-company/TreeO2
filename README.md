@@ -11,6 +11,7 @@ RESTful API for the TreeO2 tree tracking platform — built for xpand Foundation
 - **Auth**: JWT (Bearer token)
 - **Validation**: Zod
 - **Logging**: Winston
+- **API Documentation**: Swagger / OpenAPI
 - **Cloud**: AWS Elastic Beanstalk + SQS + S3
 
 ## Quick Start
@@ -41,12 +42,13 @@ npm run dev
 
 API is available at `http://localhost:3000`  
 Health check: `GET /health`
+Swagger docs: `http://localhost:3000/api-docs`
 
 ## Project Structure
 
 ```
 src/
-├── config/          # env, database pool, logger
+├── config/          # env, database pool, logger, swagger config
 ├── middleware/      # Express middleware (auth, error handler)
 ├── routes/          # URL definitions and middleware attachment only
 ├── controllers/     # Handle req/res, validate input, call services
