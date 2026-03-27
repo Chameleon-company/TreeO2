@@ -1,1 +1,11 @@
+model LocalizedString {
+  id          Int     @id @default(autoincrement()) @map("id")
+  cultureCode String  @map("culture_code") @db.VarChar(10)
+  stringKey   String  @map("string_key") @db.VarChar(255)
+  value       String  @db.Text @map("value")
+  context     String? @db.VarChar(50) @map("context")
 
+  culture     Culture @relation(fields: [cultureCode], references: [code], onDelete: Restrict)
+
+  @@map("Localited_Strings")
+}
