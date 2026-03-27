@@ -94,6 +94,7 @@ npm run dev
 The API will be available at `http://localhost:3000`.
 
 Health check: `GET http://localhost:3000/health`
+Swagger docs: http://localhost:3000/api-docs
 
 ```json
 { "success": true, "status": "ok", "timestamp": "..." }

@@ -6,6 +6,9 @@ import rateLimit from "express-rate-limit";
 import { env } from "./config/env";
 import { errorHandler, notFound } from "./middleware/errorHandler";
 
+import * as swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger";
+
 const app = express();
 
 // Security
@@ -37,6 +40,9 @@ app.get("/health", (_req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Swagger docs
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
 
