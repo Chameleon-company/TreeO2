@@ -27,10 +27,10 @@ cp .env.example .env
 docker compose up -d
 
 # 4. Generate Prisma client
-npx prisma generate
+npx prisma generate --schema ./prisma
 
 # 5. Push schema to local DB
-npx prisma db push
+npx prisma db push --schema ./prisma
 
 # 6. Seed local data
 npm run prisma:seed
