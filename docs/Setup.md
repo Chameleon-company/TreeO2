@@ -73,9 +73,8 @@ docker ps
 ### 5. Generate Prisma client and push schema
 
 ```bash
-npx prisma generate
-npx prisma db push
-```
+npx prisma generate --schema ./prisma
+npx prisma db push --schema ./prisma
 
 ### 6. Seed the database (optional)
 
