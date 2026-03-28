@@ -9,6 +9,9 @@ import { errorHandler, notFound } from "./middleware/errorHandler";
 import * as swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
 
+// Module route imports
+import { healthRoutes } from "./modules/health";
+
 const app = express();
 
 // Security
@@ -44,7 +47,8 @@ app.get("/health", (_req, res) => {
 // Swagger docs
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Routes
+// Module Routes
+app.use("/health", healthRoutes);
 
 // 404 & error handler
 app.use(notFound);

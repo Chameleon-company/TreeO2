@@ -50,9 +50,12 @@ Swagger docs: `http://localhost:3000/api-docs`
 src/
 ├── config/          # env, database pool, logger, swagger config
 ├── middleware/      # Express middleware (auth, error handler)
-├── routes/          # URL definitions and middleware attachment only
-├── controllers/     # Handle req/res, validate input, call services
-├── services/        # Business logic, call repositories
+├── modules/         # Each folder represents an API (e.g. health, users)
+│   └── <module>/    
+│       ├── <module>.routes.ts      # Defines API endpoints and connects them to controller methods
+│       ├── <module>.controller.ts  # Handles requests, validates input, and returns responses
+│       ├── <module>.service.ts     # Contains business logic for the API
+│       └── index.ts                # Exports the module’s routes for use in app.ts
 ├── repositories/    # All SQL queries — nothing else
 ├── types/           # Shared TypeScript types and enums
 ├── utils/           # Pure helper functions — no DB, no Express
