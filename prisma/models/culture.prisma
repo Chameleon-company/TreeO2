@@ -1,8 +1,8 @@
 model Culture {
-  code String @id @db.VarChar(10) @map("code")
-  name String @db.VarChar(100) @map("name")
+  code String @id @db.VarChar(10)
+  name String @db.VarChar(100)
 
   localizedStrings LocalizedString[]
 
-  @@map("Cultures")
+  @@map("cultures")
 }
