@@ -1,11 +1,11 @@
 model AdministrativeLevel {
-  id        Int    @id @default(autoincrement()) @map("id")
+  id        Int    @id @default(autoincrement())
   countryId Int    @map("country_id")
-  level     Int    @map("level")
-  name      String @db.VarChar(100) @map("name")
+  level     Int
+  name      String @db.VarChar(100)
 
   country Country @relation(fields: [countryId], references: [id], onDelete: Restrict)
 
   @@index([countryId])
-  @@map("Administrative_Levels")
+  @@map("administrative_levels")
 }
