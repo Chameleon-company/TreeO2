@@ -1,5 +1,5 @@
 model Report {
-  id            Int       @id @default(autoincrement()) @map("id")
+  id            Int       @id @default(autoincrement())
   reportType    String    @map("report_type") @db.VarChar(100)
   requestedBy   Int?      @map("requested_by")
   status        String    @db.VarChar(50) @map("status")
@@ -8,5 +8,7 @@ model Report {
   createdAt     DateTime  @default(now()) @map("created_at")
   completedAt   DateTime? @map("completed_at")
 
-  @@map("Reports")
+  user          User?     @relation(fields: [requestedBy], references: [id], onDelete: SetNull)
+
+  @@map("reports")
 }
