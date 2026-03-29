@@ -1,1 +1,10 @@
+model ProjectTreeType {
+  project_id   Int
+  tree_type_id Int
 
+  project      Project  @relation(fields: [project_id], references: [id])
+  treeType     TreeType @relation(fields: [tree_type_id], references: [id])
+
+  @@id([project_id, tree_type_id])
+  @@map("project_tree_types")
+}

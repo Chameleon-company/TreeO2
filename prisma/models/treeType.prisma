@@ -1,1 +1,13 @@
+model TreeType {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  key                String?
+  scientific_name    String?
+  dry_weight_density Float    @default(595.0)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
 
+  projectTreeTypes   ProjectTreeType[]
+
+  @@map("tree_types")
+}
