@@ -1,5 +1,5 @@
 model Adoption {
-  id        Int      @id @default(autoincrement()) @map("id")
+  id        Int      @id @default(autoincrement())
   adopterId Int      @map("adopter_id")
   fobId     String   @map("fob_id") @db.VarChar(80)
   adoptedAt DateTime @map("adopted_at") @db.Date
@@ -8,5 +8,5 @@ model Adoption {
   adopter   Adopter  @relation(fields: [adopterId], references: [id], onDelete: Restrict)
 
   @@index([adopterId])
-  @@map("Adoptions")
+  @@map("adoptions")
 }
