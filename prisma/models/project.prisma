@@ -9,6 +9,7 @@ model Project {
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
 
   userProjects    UserProject[]
+  projectTreeTypes ProjectTreeType[]   // ✅ ADD THIS
 
   @@map("projects")
 }
