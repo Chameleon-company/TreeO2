@@ -1,1 +1,8 @@
+model Culture {
+  code String @id @db.VarChar(10)
+  name String @db.VarChar(100)
 
+  localizedStrings LocalizedString[]
+
+  @@map("cultures")
+}
