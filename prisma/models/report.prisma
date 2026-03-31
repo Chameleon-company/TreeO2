@@ -1,14 +1,23 @@
-model Report {
-  id            Int       @id @default(autoincrement())
-  reportType    String    @map("report_type") @db.VarChar(100)
-  requestedBy   Int?      @map("requested_by")
-  status        String    @db.VarChar(50) @map("status")
-  parameters    Json      @db.JsonB @map("parameters")
-  outputUrl     String?   @map("output_url") @db.Text
-  createdAt     DateTime  @default(now()) @map("created_at")
-  completedAt   DateTime? @map("completed_at")
+enum ReportStatus {
+  PENDING
+  PROCESSING
+  COMPLETE
+  FAILED
+}
 
-  user          User?     @relation(fields: [requestedBy], references: [id], onDelete: SetNull)
+model Report {
+  id               Int          @id @default(autoincrement())
+  reportType       String       @map("report_type") @db.VarChar(100)
+  requestedBy      Int?         @map("requested_by")
+  status           ReportStatus @default(PENDING)
+  parameters       Json?        @db.JsonB
+  filePath         String?      @map("file_path") @db.VarChar(500)
+  errorMessage     String?      @map("error_message") @db.Text
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @default(now()) @updatedAt @map("updated_at")
+  completedAt      DateTime?    @map("completed_at")
+
+  user             User?        @relation("UserReports", fields: [requestedBy], references: [id], onDelete: SetNull)
 
   @@map("reports")
 }
