@@ -17,5 +17,23 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build: .
+    container_name: treeo2_backend
+    restart: unless-stopped
+    ports:
+      - '${PORT}:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    command: >
+      sh -c "
+      npx prisma generate --schema ./prisma &&
+      npx prisma db push --schema ./prisma &&
+      npm run dev
+      "
+
 volumes:
   postgres_data:
