@@ -1,1 +1,24 @@
+enum ReportStatus {
+  PENDING
+  PROCESSING
+  COMPLETE
+  FAILED
+}
+
+model Report {
+  id               Int          @id @default(autoincrement())
+  reportType       String       @map("report_type") @db.VarChar(100)
+  status           ReportStatus @default(PENDING)
+  requestedBy      Int?         @map("requested_by")
+  parameters       Json?        @db.JsonB
+  filePath         String?      @map("file_path") @db.VarChar(500)
+  errorMessage     String?      @map("error_message") @db.Text
+  completedAt      DateTime?    @map("completed_at")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @default(now()) @updatedAt @map("updated_at")
+
+  user             User?        @relation("UserReports", fields: [requestedBy], references: [id], onDelete: SetNull)
+
+  @@map("reports")
+}
 
