@@ -1,0 +1,38 @@
+# Node modules
+node_modules
+npm-debug.log
+
+# Logs
+logs
+*.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*
+
+# OS files
+.DS_Store
+
+# Tests
+tests
+
+# Docs
+docs
+
+# Coverage
+coverage
+
+# Build output
+dist
+
+# Misc
+*.md
