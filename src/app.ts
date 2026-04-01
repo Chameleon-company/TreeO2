@@ -6,6 +6,12 @@ import rateLimit from "express-rate-limit";
 import { env } from "./config/env";
 import { errorHandler, notFound } from "./middleware/errorHandler";
 
+import * as swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger";
+
+// Module route imports
+import { healthRoutes } from "./modules/health";
+
 const app = express();
 
 // Security
@@ -29,16 +35,11 @@ app.use(compression());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health check
-app.get("/health", (_req, res) => {
-  res.json({
-    success: true,
-    status: "ok",
-    timestamp: new Date().toISOString(),
-  });
-});
+// Swagger docs
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Routes
+// Module Routes
+app.use("/health", healthRoutes);
 
 // 404 & error handler
 app.use(notFound);

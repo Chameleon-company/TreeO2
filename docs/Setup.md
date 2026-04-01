@@ -73,9 +73,8 @@ docker ps
 ### 5. Generate Prisma client and push schema
 
 ```bash
-npx prisma generate
-npx prisma db push
-```
+npx prisma generate --schema ./prisma
+npx prisma db push --schema ./prisma
 
 ### 6. Seed the database (optional)
 
@@ -94,6 +93,7 @@ npm run dev
 The API will be available at `http://localhost:3000`.
 
 Health check: `GET http://localhost:3000/health`
+Swagger docs: http://localhost:3000/api-docs
 
 ```json
 { "success": true, "status": "ok", "timestamp": "..." }

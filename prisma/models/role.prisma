@@ -1,1 +1,12 @@
+model Role {
+  id      Int         @id @default(autoincrement())
+  name    String      @unique @db.VarChar(50)
+  
+  primaryUsers User[]      @relation("PrimaryRole")
+  roleAssignments          UserRoleAssignment[] 
+
+  @@map("roles")
+}
+
+
 

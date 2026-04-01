@@ -67,11 +67,9 @@ isActive, hasPermission, canSignIn
 
 ```
 src/
-├── config/          # env, database pool, logger
+├── config/          # env, database pool, logger, swagger config
 ├── middleware/      # Express middleware (auth, error handler)
-├── routes/          # URL definitions and middleware attachment only
-├── controllers/     # Handle req/res, validate input, call services
-├── services/        # Business logic, call repositories
+├── modules/         # Each folder represents an API (e.g. health, users)
 ├── repositories/    # All SQL queries — nothing else
 ├── types/           # Shared TypeScript types and enums
 ├── utils/           # Pure helper functions — no DB, no Express
@@ -80,44 +78,7 @@ src/
 ```
 
 ### What belongs where
-
-**Routes** — URL path + which controller function handles it. Nothing else.
-
-Always wrap async controllers with a non-async arrow function and `void`. Express route handlers expect a `void` return, not a `Promise` — passing an async function directly will cause a `no-misused-promises` lint error.
-
-```ts
-// No
-router.get('/:id', getUser);
-
-// Yes
-router.get('/:id', (req, res, next) => {
-  void getUser(req, res, next);
-});
-```
-
-**Controllers** — parse and validate `req`, call a service, return `res`. No SQL, no business logic.
-```ts
-export async function getUser(req: Request, res: Response, next: NextFunction): Promise<void> {
-  try {
-    const id = z.coerce.number().int().positive().parse(req.params.id);
-    const user = await getUserById(id);
-    res.json({ success: true, data: user });
-  } catch (err: unknown) {
-    next(err);
-  }
-}
-```
-
-**Services** — business logic only. Call repositories, throw `AppError` on failure. No `req/res`.
-```ts
-export async function getUserById(id: number): Promise<User> {
-  const user = await findUserById(id);
-  if (!user) import { ERROR_CODES } from './types/errorCodes';
-
-throw new AppError(404, ERROR_CODES.DATA_001);
-  return user;
-}
-```
+**Modules** — each folder represents one API and contains its routes, controller, service, and index file.
 
 **Repositories** — SQL queries only. No business logic, no error throwing (return `null` for not found).
 
@@ -253,7 +214,22 @@ Validate all incoming data with Zod in the controller. A `ZodError` is caught by
 
 ---
 
-## 9. Database
+## 9. API Documentation (Swagger)
+
+All endpoints must be documented using Swagger annotations.
+
+Swagger UI is available at: http://localhost:3000/api-docs
+
+Every new route must include:
+- Summary
+- Request params / body
+- Response format
+
+Do not merge PRs with undocumented endpoints.
+
+---
+
+## 10. Database
 
 TODO by Database Team
 
@@ -261,7 +237,7 @@ TODO by Database Team
 
 ---
 
-## 10. Logging
+## 11. Logging
 
 Use `logger` from `config/logger.ts`. Never use `console.log`.
 
@@ -276,9 +252,9 @@ Never log sensitive data like passwords or tokens.
 
 ---
 
-## 11. Git
+## 12. Git
 
-### 11.1 Branching Strategy
+### 12.1 Branching Strategy
 
 We follow a structured Git workflow with username-prefixed branches:
 
@@ -308,7 +284,7 @@ git checkout -b tina/feature/user-authentication
 
 ---
 
-### 11.2 Commit Messages
+### 12.2 Commit Messages
 
 Use clear and consistent commit messages:
 
@@ -320,7 +296,7 @@ docs: update API guidelines
 
 ---
 
-### 11.3 Pull Requests (PRs)
+### 12.3 Pull Requests (PRs)
 
 All changes must go through a Pull Request into main.
 
@@ -354,7 +330,7 @@ Requires JWT_SECRET in environment variables
 
 ---
 
-### 11.4 Code Review & Approval Flow
+### 12.4 Code Review & Approval Flow
 
 All PRs must go through a structured review process before merging.
 
@@ -378,7 +354,7 @@ Approval Flow:
 
 ---
 
-### 11.5 Merging
+### 12.5 Merging
 
 - Only the Project Lead is allowed to merge PRs into main
 - Use squash and merge to keep commit history clean
@@ -389,7 +365,7 @@ git branch -d tina/feature/user-authentication
 
 ---
 
-### 11.6 Keeping Branches Updated
+### 12.6 Keeping Branches Updated
 
 Before opening a PR, pull the latest main and sync your branch:
 
@@ -402,7 +378,7 @@ Resolve conflicts locally before pushing.
 
 ---
 
-### 11.7 Forbidden Practices
+### 12.7 Forbidden Practices
 
 Do not:
 - commit directly to main
@@ -413,7 +389,7 @@ Do not:
 
 ---
 
-### 11.8 Good Practices
+### 12.8 Good Practices
 
 Always:
 - pull the latest changes before starting work
