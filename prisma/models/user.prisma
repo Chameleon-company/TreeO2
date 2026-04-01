@@ -1,1 +1,32 @@
+model User {
+  id                 Int       @id @default(autoincrement())
+  name               String    @db.VarChar(100)
+  email              String?   @unique @db.VarChar(300)
+  passwordHash       String?   @map("password_hash") @db.VarChar(300)
+  accessToken        String?   @map("access_token") @db.VarChar(100)
+  accessTokenCreated DateTime? @map("access_token_created")
+  canSignIn          Boolean   @default(true) @map("can_sign_in")
+  roleId             Int       @map("role")
+  cardId             String?   @unique @map("card_id") @db.VarChar(80)
+  governmentId       String?   @map("government_id") @db.VarChar(80)
+  gender             String?   @default("Male") @db.VarChar(10)
+  disability         Boolean   @default(false)
+  countryId          Int?      @map("country_id")
+  adminLocationId    Int?      @map("admin_location_id")
+  streetAddress      String?   @map("street_address") @db.VarChar(500)
+  preferredLanguage  String?   @map("preferred_language") @db.VarChar(10)
+  photoId            String?   @map("photo_id") @db.VarChar(100)
+  biography          String?
+  notes              String?
+  accountActive      Boolean   @default(true) @map("account_active")
+  dateJoined         DateTime? @map("date_joined")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
 
+  primaryRole        Role      @relation("PrimaryRole", fields: [roleId], references: [id])
+  roleAssignments    UserRoleAssignment[]
+  userProjects       UserProject[]
+  reports            Report[]  @relation("UserReports")
+
+  @@map("users")
+}
