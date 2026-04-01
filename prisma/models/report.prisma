@@ -1,1 +1,14 @@
+model Report {
+  id          Int      @id @default(autoincrement())
+  reportType  String   @map("report_type") @db.VarChar(100)
+  requestedBy Int?     @map("requested_by")
+  status      String   @db.VarChar(50)
+  parameters  Json     @db.JsonB
+  outputUrl   String?  @map("output_url") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  completedAt DateTime? @map("completed_at")
 
+  user        User?    @relation("UserReports", fields: [requestedBy], references: [id], onDelete: SetNull)
+
+  @@map("reports")
+}

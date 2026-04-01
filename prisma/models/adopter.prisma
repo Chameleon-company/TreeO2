@@ -1,1 +1,10 @@
+model Adopter {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  email     String?  @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
 
+  adoptions Adoption[]
+
+  @@map("adopters")
+}
