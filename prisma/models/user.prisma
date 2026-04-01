@@ -26,6 +26,7 @@ model User {
   primaryRole        Role      @relation("PrimaryRole", fields: [roleId], references: [id])
   roleAssignments    UserRoleAssignment[]
   userProjects       UserProject[]
+  reports            Report[]  @relation("UserReports")
 
   @@map("users")
 }
