@@ -27,6 +27,12 @@ model User {
   roleAssignments    UserRoleAssignment[]
   userProjects       UserProject[]
   reports            Report[]  @relation("UserReports")
+  scanBatches        ScanBatch[]      @relation("ScanBatchInspector")
+  farmerTreeScans    TreeScan[]       @relation("FarmerTreeScans")
+  inspectorTreeScans TreeScan[]       @relation("InspectorTreeScans")
+  correctedTreeScans TreeScan[]       @relation("CorrectedTreeScans")
+  treeScanAudits     TreeScanAudit[]  @relation("TreeScanAuditChangedBy")
+
 
   @@map("users")
 }
