@@ -5,18 +5,18 @@ import compression from "compression";
 import rateLimit from "express-rate-limit";
 import { env } from "./config/env";
 import { errorHandler, notFound } from "./middleware/errorHandler";
+import { securityAuditMiddleware } from "./middleware/securityAudit.middleware";
 
 import * as swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
-
-// Module route imports
-import { healthRoutes } from "./modules/health";
+import routes from "./routes";
 
 const app = express();
 
 // Security
 app.use(helmet());
 app.use(cors({ origin: env.NODE_ENV === "production" ? false : "*" }));
+app.use(securityAuditMiddleware);
 
 // Rate limiting
 app.use(
@@ -39,7 +39,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Module Routes
-app.use("/health", healthRoutes);
+app.use("/", routes);
 
 // 404 & error handler
 app.use(notFound);
