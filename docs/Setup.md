@@ -12,7 +12,7 @@ Make sure you have the following installed before starting:
 |---|---|---|
 | Node.js | ≥ 20.x | Use [nvm](https://github.com/nvm-sh/nvm) to manage versions |
 | npm | ≥ 10.x | Comes with Node.js |
-| Docker | Latest | Required to run PostgreSQL locally |
+| Docker | Latest | Required to run PostgreSQL and backend locally with Docker Compose |
 | Git | Latest | |
 
 To check your versions:
@@ -56,13 +56,13 @@ DATABASE_URL=postgresql://your-db-user:your-db-password@localhost:5432/your-db-n
 
 All other defaults work for local development. See [Environment Variables](#environment-variables) below for the full reference.
 
-### 4. Start the database
+### 4. Start local services (Docker)
 
 ```bash
-docker compose up -d
+docker compose up --build -d
 ```
 
-This starts a PostgreSQL 16 container named `treeo2_postgres` on port `5432`.
+This starts the local development containers defined in `docker-compose.yml`, including PostgreSQL and the backend API.
 
 To confirm it's healthy:
 ```bash
@@ -133,7 +133,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 
 ```bash
 # Terminal 1 — database (if not already running)
-docker compose up -d
+docker compose up --build -d
 
 # Terminal 2 — Prisma client/schema sync
 npx prisma generate

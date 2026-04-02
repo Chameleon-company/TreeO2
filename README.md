@@ -8,13 +8,26 @@ RESTful API for the TreeO2 tree tracking platform — built for xpand Foundation
 - **Framework**: Express
 - **ORM / Data Access**: Prisma
 - **Database**: PostgreSQL (Docker for local dev)
+- **Containerisation**: Docker + Docker Compose (local development)
 - **Auth**: JWT (Bearer token)
 - **Validation**: Zod
 - **Logging**: Winston
 - **API Documentation**: Swagger / OpenAPI
 - **Cloud**: AWS Elastic Beanstalk + SQS + S3
 
-## Quick Start
+---
+
+## Quick Start (Docker — Recommended)
+
+# 1. Set up environment
+cp .env.example .env
+
+# 2. Run backend + database
+docker compose up --build
+
+---
+
+## Quick Start (Manual Setup)
 
 ```bash
 # 1. Install dependencies

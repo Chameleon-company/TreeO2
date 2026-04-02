@@ -7,12 +7,24 @@
 - **ESLint** — enforces code correctness
 - **Prettier** — enforces formatting
 - **Husky** — runs lint and format check before every commit
+- **Docker / Docker Compose** — standardises local development setup for backend + PostgreSQL
 
 ```bash
 npm run validate      # run all checks before opening a PR
 npm run lint:fix      # auto-fix lint issues
 npm run format        # auto-format source files
 ```
+
+---
+
+## Local Development with Docker
+
+For local development, Docker Compose can be used to run PostgreSQL and the backend together.
+
+Use:
+docker compose up --build
+
+This setup automates Prisma client generation, schema push, and backend startup.
 
 ---
 
