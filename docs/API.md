@@ -147,7 +147,43 @@ Whenever a new API is created:
 
 ---
 
-## 7. Health API
+## 7. Testing Standard
+
+All modules should include the following test files:
+
+tests/unit/<module>.test.ts  
+tests/integration/<module>.test.ts
+
+### Unit Tests
+Used to test service/business logic in isolation.
+
+Examples:
+- Returned data is correct
+- Validation logic works
+- Business rules behave as expected
+
+### Integration Tests
+Used to test the full API flow:
+
+route → controller → service → response
+
+Examples:
+- Correct HTTP status code
+- Correct response body
+- Endpoint behaves as expected
+
+### Reference Example
+
+Health module includes:
+
+tests/unit/health.test.ts  
+tests/integration/health.test.ts
+
+All developers should add or update tests for the module they work on.
+
+---
+
+## 8. Health API
 
 Reference implementation for module structure.
 
