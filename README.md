@@ -87,8 +87,8 @@ prisma/
 └── models/
 
 tests/
-├── unit/
-└── integration/
+├── unit/         # Unit tests for service/business logic
+└── integration/  # Integration tests for API routes/endpoints
 ```
 
 ## Scripts
