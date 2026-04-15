@@ -36,8 +36,8 @@ const localizationController = new LocalizationController();
  *       403:
  *         description: Forbidden
  */
-router.get(
-  "/localized-strings",
+ router.get(
+   "/",
   authMiddleware,
   roleMiddleware(["FARMER", "INSPECTOR", "MANAGER", "ADMIN", "DEVELOPER"]),
   (req, res, next) => {
@@ -79,8 +79,8 @@ router.get(
  *       403:
  *         description: Forbidden
  */
-router.post(
-  "/localized-strings",
+ router.post(
+   "/",
   authMiddleware,
   roleMiddleware(["ADMIN"]),
   (req, res, next) => {
@@ -115,8 +115,8 @@ router.post(
  *       404:
  *         description: Resource not found
  */
-router.put(
-  "/localized-strings/:id",
+ router.put(
+   "/:id",
   authMiddleware,
   roleMiddleware(["ADMIN"]),
   (req, res, next) => {
@@ -149,8 +149,8 @@ router.put(
  *       404:
  *         description: Resource not found
  */
-router.delete(
-  "/localized-strings/:id",
+ router.delete(
+   "/:id",
   authMiddleware,
   roleMiddleware(["ADMIN"]),
   (req, res, next) => {

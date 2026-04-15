@@ -7,6 +7,6 @@ const router = Router();
 
 router.use("/health", healthRoutes);
 router.use("/auth", authRoutes);
-router.use("/localization", localizationRoutes);
+router.use("/localized-strings", localizationRoutes);
 
 export default router;
