@@ -19,12 +19,33 @@ npm run format        # auto-format source files
 
 ## Local Development with Docker
 
-For local development, Docker Compose can be used to run PostgreSQL and the backend together.
+For local development, Docker Compose can be used either to run PostgreSQL only or to run PostgreSQL and the backend together.
 
 Use:
-docker compose up --build
+```bash
+docker compose up -d postgres
+```
 
-This setup automates Prisma client generation, schema push, and backend startup.
+This is the preferred development path. Run the API locally with:
+
+```bash
+npm run prisma:generate
+# If migration files already exist, use:
+npm run prisma:migrate:dev
+# If migration files do not exist yet and you only need to sync the local DB, use:
+npm run prisma:push
+npm run dev
+```
+
+Prefer `npm run prisma:migrate:dev` for normal team development because it creates and applies tracked migrations. Use `npm run prisma:push` only when migration files are not available yet or for disposable local database sync.
+
+If you want both backend and database in containers, use:
+
+```bash
+docker compose up --build
+```
+
+The Compose backend setup currently automates Prisma client generation, schema push, and backend startup. That is compatible with the multi-file Prisma schema, but local team development should prefer migrations over `db push`.
 
 ---
 
@@ -408,4 +429,3 @@ Always:
 - keep commits small and meaningful
 - use descriptive branch names
 - test your code before committing
-
