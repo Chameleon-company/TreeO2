@@ -54,27 +54,41 @@ JWT_SECRET=your-secret-key-at-least-32-characters-long
 DATABASE_URL=postgresql://your-db-user:your-db-password@localhost:5432/your-db-name?schema=public
 ```
 
+If the backend runs locally, `DATABASE_URL` should use `localhost`.
+If the backend runs inside Docker Compose, `DATABASE_URL` should use `postgres` as the host instead.
+
 All other defaults work for local development. See [Environment Variables](#environment-variables) below for the full reference.
 
-### 4. Start local services (Docker)
+### 4. Start local database (recommended for development)
 
 ```bash
-docker compose up --build -d
+docker compose up -d postgres
 ```
 
-This starts the local development containers defined in `docker-compose.yml`, including PostgreSQL and the backend API.
+This starts PostgreSQL from `docker-compose.yml` without starting the backend container.
+This is the recommended path for normal development because the backend can then run locally with `npm run dev` and use migration-based Prisma workflow.
 
 To confirm it's healthy:
 ```bash
-docker ps
-# treeo2_postgres should show "healthy"
+docker compose ps
+# postgres should show healthy
 ```
 
-### 5. Generate Prisma client and push schema
+### 5. Generate Prisma client and apply schema changes
 
 ```bash
-npx prisma generate --schema ./prisma
-npx prisma db push --schema ./prisma
+npm run prisma:generate
+# If migration files already exist, use:
+npm run prisma:migrate:dev
+# If migration files do not exist yet and you only need to sync the local DB, use:
+npm run prisma:push
+```
+
+This project uses Prisma's multi-file schema layout:
+
+- `prisma.config.ts` points Prisma at the `./prisma` directory
+- `prisma/schema.prisma` contains `generator`, `datasource`, and shared enums
+- `prisma/models/*.prisma` contains the model definitions
 
 ### 6. Seed the database (optional)
 
@@ -133,15 +147,41 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 
 ```bash
 # Terminal 1 — database (if not already running)
-docker compose up --build -d
+docker compose up -d postgres
 
 # Terminal 2 — Prisma client/schema sync
-npx prisma generate
-npx prisma db push
+npm run prisma:generate
+# If migration files already exist, use:
+npm run prisma:migrate:dev
+# If migration files do not exist yet and you only need to sync the local DB, use:
+npm run prisma:push
 
 # Terminal 3 — API server with hot reload
 npm run dev
 ```
+
+This is the preferred team workflow when schema changes are captured as migrations under `prisma/migrations/`. If there are no migration files yet, `npm run prisma:push` is the fallback to sync the local database.
+
+### Run everything in Docker Compose
+
+If you want both the backend and database to run in Docker:
+
+1. Set `DATABASE_URL` in `.env` to use `postgres` as the host
+2. Start Compose:
+
+```bash
+docker compose up --build
+```
+
+The backend container currently runs:
+
+```bash
+npx prisma generate --schema ./prisma
+npx prisma db push --schema ./prisma
+npm run dev
+```
+
+That is compatible with the multi-file Prisma schema, but it uses `db push` instead of migrations.
 
 ### Stop everything
 
@@ -157,8 +197,11 @@ docker compose down
 
 ```bash
 docker compose down -v       # removes the postgres_data volume
-docker compose up -d         # fresh container
-npx prisma db push
+docker compose up -d postgres
+# If migration files already exist, use:
+npm run prisma:migrate:dev
+# If migration files do not exist yet and you only need to sync the local DB, use:
+npm run prisma:push
 ```
 
 ---
@@ -176,8 +219,8 @@ npx prisma db push
 | `npm run format:check` | Check formatting without writing |
 | `npm run type-check` | TypeScript type check without emitting |
 | `npm run validate` | Run type-check + lint + format check (run before PRs) |
-| `npm run prisma:generate` | Generate Prisma client |
-| `npm run prisma:push` | Push schema to the local database |
+| `npm run prisma:generate` | Generate Prisma client from the `prisma/` directory schema |
+| `npm run prisma:push` | Push schema directly to the database without creating migrations |
 | `npm run prisma:migrate:dev` | Create and apply a development migration |
 | `npm run prisma:migrate:deploy` | Apply migrations |
 | `npm run prisma:seed` | Seed local data |
@@ -189,11 +232,12 @@ npx prisma db push
 
 ## Docker Reference
 
-The `docker-compose.yml` runs a single service:
+The `docker-compose.yml` defines two services:
 
 | Service | Container | Port | Credentials |
 |---|---|---|---|
 | PostgreSQL 16 | `treeo2_postgres` | `5432` | `treeo2_user` / `treeo2_password` |
+| Backend API | `treeo2_backend` | `3000` | Uses `.env` |
 
 Useful Docker commands:
 
@@ -226,12 +270,15 @@ Your `.env` file is missing or has a short `JWT_SECRET`. See the [generate comma
 
 **Prisma client not generated**
 ```bash
-npx prisma generate
+npm run prisma:generate
 ```
 
-**Database schema not applied**
+**Database schema changes not applied**
 ```bash
-npx prisma db push
+# If migration files already exist, use:
+npm run prisma:migrate:dev
+# If migration files do not exist yet and you only need to sync the local DB, use:
+npm run prisma:push
 ```
 
 **`Cannot find module` errors after pulling changes**
@@ -248,6 +295,6 @@ npm run validate    # confirm everything passes
 
 **Database connection refused**
 ```bash
-docker compose up -d            # make sure the container is running
-docker ps                       # confirm it shows "healthy"
+docker compose up -d postgres   # make sure the container is running
+docker compose ps               # confirm it shows "healthy"
 ```
