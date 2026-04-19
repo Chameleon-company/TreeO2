@@ -28,6 +28,23 @@ export interface ResetPasswordRequestBody {
   password: string;
 }
 
+export interface RegisterRequestBody {
+  name: string;
+  email: string;
+  password: string;
+  role: RoleName;
+}
+
+export interface RegisterResponse {
+  success: boolean;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    role: RoleName;
+  };
+}
+
 export interface AuthRouteResponse {
   success: boolean;
   message: string;

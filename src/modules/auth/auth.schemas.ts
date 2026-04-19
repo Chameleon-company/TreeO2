@@ -19,3 +19,18 @@ export const resetPasswordSchema = z.object({
     password: z.string().min(8),
   }),
 });
+
+export const registerSchema = z.object({
+  body: z.object({
+    name: z.string().min(1).max(100),
+    email: z.string().email().max(300),
+    password: z
+      .string()
+      .min(8)
+      .max(72)
+      .regex(/[A-Z]/, "Must contain at least one uppercase letter")
+      .regex(/[0-9]/, "Must contain at least one number")
+      .regex(/[^a-zA-Z0-9]/, "Must contain at least one special character"),
+    role: z.enum(["FARMER", "INSPECTOR", "MANAGER", "ADMIN", "DEVELOPER"]),
+  }),
+});

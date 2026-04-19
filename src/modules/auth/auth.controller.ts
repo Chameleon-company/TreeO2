@@ -6,6 +6,7 @@ import type {
   ForgotPasswordRequestBody,
   JwtPayload,
   LoginRequestBody,
+  RegisterRequestBody,
   ResetPasswordRequestBody,
 } from "./auth.types";
 
@@ -37,6 +38,14 @@ export class AuthController {
   async me(req: Request, res: Response): Promise<void> {
     await this.authService.getMe(this.requireUser(req));
     res.status(501).json({ success: false, message: "Not implemented" });
+  }
+
+
+  async register(req: Request, res: Response): Promise<void> {
+    const result = await this.authService.register(
+      req.body as RegisterRequestBody,
+    );
+    res.status(201).json(result);
   }
 
   private requireUser(req: Request): JwtPayload {
