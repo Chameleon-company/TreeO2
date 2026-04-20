@@ -1,4 +1,4 @@
-import { hashPassword } from "../../lib/bcrypt"; 
+import { hashPassword } from "../../lib/bcrypt";
 import { AppError } from "../../middleware/errorHandler";
 import { ERROR_CODES } from "../../utils/errorCodes";
 import type {

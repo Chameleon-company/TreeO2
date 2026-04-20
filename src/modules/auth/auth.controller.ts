@@ -40,7 +40,6 @@ export class AuthController {
     res.status(501).json({ success: false, message: "Not implemented" });
   }
 
-
   async register(req: Request, res: Response): Promise<void> {
     const result = await this.authService.register(
       req.body as RegisterRequestBody,
