@@ -73,6 +73,7 @@
  * /auth/test/protected:
  *   get:
  *     summary: Protected auth test endpoint
+ *     description: Development only. Temporary protected test route for auth middleware verification.
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
@@ -88,6 +89,7 @@
  * /auth/test/admin:
  *   get:
  *     summary: Role-protected auth test endpoint
+ *     description: Development only. Temporary role-protected test route for auth and role middleware verification.
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
@@ -105,6 +107,7 @@
  * /auth/test/project-scope:
  *   get:
  *     summary: Project-scope auth test endpoint
+ *     description: Development only. Temporary project-scope test route for auth and project scope middleware verification.
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
