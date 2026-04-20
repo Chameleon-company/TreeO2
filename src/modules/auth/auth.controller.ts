@@ -39,7 +39,7 @@ export class AuthController {
     res.status(501).json({ success: false, message: "Not implemented" });
   }
 
-  async getProtectedTest(req: Request, res: Response): Promise<void> {
+  getProtectedTest(req: Request, res: Response): void {
     const user = this.requireUser(req);
 
     res.status(200).json({
@@ -52,7 +52,7 @@ export class AuthController {
     });
   }
 
-  async getAdminTest(req: Request, res: Response): Promise<void> {
+  getAdminTest(req: Request, res: Response): void {
     const user = this.requireUser(req);
 
     res.status(200).json({
@@ -65,7 +65,7 @@ export class AuthController {
     });
   }
 
-  async getProjectScopeTest(req: Request, res: Response): Promise<void> {
+  getProjectScopeTest(req: Request, res: Response): void {
     const user = this.requireUser(req);
 
     res.status(200).json({
