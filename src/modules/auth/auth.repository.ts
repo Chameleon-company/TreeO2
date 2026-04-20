@@ -1,5 +1,4 @@
 import { prisma } from "../../lib/prisma";
-import type { RegisterRequestBody } from "./auth.types";
 
 export class AuthRepository {
   async findUserByEmail(email: string) {
