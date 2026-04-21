@@ -3,6 +3,12 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+const booleanFromEnv = (defaultValue: boolean) =>
+  z
+    .enum(["true", "false"])
+    .default(defaultValue ? "true" : "false")
+    .transform((value) => value === "true");
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production"]).default("development"),
   PORT: z.coerce.number().default(3000),
@@ -15,11 +21,17 @@ const envSchema = z.object({
 
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   JWT_EXPIRES_IN: z.string().default("24h"),
+  AUTH_DEV_MODE: booleanFromEnv(false),
+  AUTH_DEV_ADMIN_TOKEN: z.string().optional(),
+  AUTH_DEV_FARMER_TOKEN: z.string().optional(),
+  AUTH_DEV_MANAGER_TOKEN: z.string().optional(),
+  AUTH_DEV_INSPECTOR_TOKEN: z.string().optional(),
+  AUTH_DEV_DEVELOPER_TOKEN: z.string().optional(),
 
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000),
   RATE_LIMIT_MAX: z.coerce.number().default(100),
 
-  LOG_TO_FILE: z.coerce.boolean().default(false),
+  LOG_TO_FILE: booleanFromEnv(false),
 });
 
 const parsed = envSchema.safeParse(process.env);
