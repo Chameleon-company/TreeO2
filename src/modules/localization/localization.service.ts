@@ -24,6 +24,17 @@ export interface ListLocalizedStringsInput {
 }
 
 export class LocalizationService {
+  private async ensureCultureExists(cultureCode: string): Promise<void> {
+    const culture = await prisma.culture.findUnique({
+      where: { code: cultureCode },
+      select: { code: true },
+    });
+
+    if (!culture) {
+      throw new AppError(400, ERROR_CODES.VAL_002, "VAL_002");
+    }
+  }
+
   async listLocalizedStrings(
     filters: ListLocalizedStringsInput,
   ): Promise<LocalizedString[]> {
@@ -45,6 +56,7 @@ export class LocalizationService {
   async createLocalizedString(
     payload: CreateLocalizedStringInput,
   ): Promise<LocalizedString> {
+    await this.ensureCultureExists(payload.cultureCode);
     return prisma.localizedString.create({ data: payload });
   }
 
@@ -56,6 +68,10 @@ export class LocalizationService {
 
     if (!existing) {
       throw new AppError(404, ERROR_CODES.DATA_001, "DATA_001");
+    }
+
+    if (payload.cultureCode) {
+      await this.ensureCultureExists(payload.cultureCode);
     }
 
     return prisma.localizedString.update({

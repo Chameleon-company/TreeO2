@@ -31,6 +31,9 @@ import { prisma } from "../../src/lib/prisma";
 
 jest.mock("../../src/lib/prisma", () => ({
   prisma: {
+    culture: {
+      findUnique: jest.fn(),
+    },
     localizedString: {
       findMany: jest.fn(),
       create: jest.fn(),
@@ -49,8 +52,13 @@ type MockedLocalizedStringModel = {
   delete: ReturnType<typeof jest.fn>;
 };
 
+type MockedCultureModel = {
+  findUnique: ReturnType<typeof jest.fn>;
+};
+
 const localizedStringModel =
   prisma.localizedString as unknown as MockedLocalizedStringModel;
+const cultureModel = prisma.culture as unknown as MockedCultureModel;
 
 describe("LocalizationService", () => {
   const service = new LocalizationService();
@@ -88,10 +96,15 @@ describe("LocalizationService", () => {
       context: "API",
     };
 
+    cultureModel.findUnique.mockResolvedValueOnce({ code: "en-US" });
     localizedStringModel.create.mockResolvedValueOnce({ id: 1, ...payload });
 
     await service.createLocalizedString(payload);
 
+    expect(cultureModel.findUnique).toHaveBeenCalledWith({
+      where: { code: "en-US" },
+      select: { code: true },
+    });
     expect(localizedStringModel.create).toHaveBeenCalledWith({ data: payload });
   });
 
@@ -129,6 +142,23 @@ describe("LocalizationService", () => {
       .toEqual(new AppError(404, ERROR_CODES.DATA_001, "DATA_001"));
 
     expect(localizedStringModel.update).not.toHaveBeenCalled();
+  });
+
+  it("throws VAL_002 when create culture does not exist", async () => {
+    const payload = {
+      cultureCode: "zz-ZZ",
+      stringKey: "home.title",
+      value: "Welcome",
+      context: "API",
+    };
+
+    cultureModel.findUnique.mockResolvedValueOnce(null);
+
+    await expect(service.createLocalizedString(payload)).rejects.toEqual(
+      new AppError(400, ERROR_CODES.VAL_002, "VAL_002"),
+    );
+
+    expect(localizedStringModel.create).not.toHaveBeenCalled();
   });
 
   it("deletes an existing localized string", async () => {
