@@ -217,11 +217,19 @@ export class ProjectManagementService {
             if (data.countryId !== undefined) {
                 await ensureCountryExists(data.countryId);
             }
-
+            
             if (
                 data.countryId !== undefined ||
                 data.adminLocationId !== undefined
             ) {
+                if (nextAdminLocationId == null || nextCountryId == null) {
+                    throw new ServiceError(
+                        400,
+                        ERROR_CODES.VAL_003,
+                        "countryId and adminLocationId are required"
+                    );
+                }
+            
                 await ensureLocationBelongsToCountry(
                     nextAdminLocationId,
                     nextCountryId
