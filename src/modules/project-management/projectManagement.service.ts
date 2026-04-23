@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma } from "@prisma/client";
+import { AppError } from "../../middleware/errorHandler";
 import { ERROR_CODES } from "../../utils/errorCodes";
 
 const prisma = new PrismaClient();
@@ -21,19 +22,6 @@ type UpdateProjectInput = {
     isActive?: boolean;
 };
 
-// Custom error class for service-layer errors with HTTP status code and application error code.
-class ServiceError extends Error {
-    statusCode: number;
-    code: string;
-
-    constructor(statusCode: number, code: string, message?: string) {
-        super(message ?? code);
-        this.statusCode = statusCode;
-        this.code = code;
-        this.name = "ServiceError";
-    }
-}
-
 // Checks whether a value is a positive whole number.
 const isPositiveInt = (value: unknown): value is number =>
     typeof value === "number" && Number.isInteger(value) && value > 0;
@@ -49,34 +37,34 @@ const assertCreatePayload = (data: CreateProjectInput) => {
         !isPositiveInt(data.countryId) ||
         !isPositiveInt(data.adminLocationId)
     ) {
-        throw new ServiceError(400, ERROR_CODES.VAL_003);
+        throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
     }
 
     if (data.isActive !== undefined && typeof data.isActive !== "boolean") {
-        throw new ServiceError(400, ERROR_CODES.VAL_002, "Invalid isActive value");
+        throw new AppError(400, "Invalid isActive value", ERROR_CODES.VAL_002);
     }
 };
 
 // Validates provided fields for updating a project.
 const assertUpdatePayload = (data: UpdateProjectInput) => {
     if (Object.keys(data).length === 0) {
-        throw new ServiceError(400, ERROR_CODES.VAL_003, "No fields provided for update");
+        throw new AppError(400, "No fields provided for update", ERROR_CODES.VAL_003);
     }
 
     if (data.name !== undefined && !isNonEmptyString(data.name)) {
-        throw new ServiceError(400, ERROR_CODES.VAL_002, "Invalid project name");
+        throw new AppError(400, "Invalid project name", ERROR_CODES.VAL_002);
     }
 
     if (data.countryId !== undefined && !isPositiveInt(data.countryId)) {
-        throw new ServiceError(400, ERROR_CODES.VAL_002, "Invalid countryId");
+        throw new AppError(400, "Invalid countryId", ERROR_CODES.VAL_002);
     }
 
     if (data.adminLocationId !== undefined && !isPositiveInt(data.adminLocationId)) {
-        throw new ServiceError(400, ERROR_CODES.VAL_002, "Invalid adminLocationId");
+        throw new AppError(400, "Invalid adminLocationId", ERROR_CODES.VAL_002);
     }
 
     if (data.isActive !== undefined && typeof data.isActive !== "boolean") {
-        throw new ServiceError(400, ERROR_CODES.VAL_002, "Invalid isActive value");
+        throw new AppError(400, "Invalid isActive value", ERROR_CODES.VAL_002);
     }
 };
 
@@ -88,7 +76,7 @@ const ensureCountryExists = async (countryId: number) => {
     });
 
     if (!country) {
-        throw new ServiceError(404, ERROR_CODES.DATA_001, "Country not found");
+        throw new AppError(404, "Country not found", ERROR_CODES.DATA_001);
     }
 };
 
@@ -100,7 +88,7 @@ const ensureLocationExists = async (locationId: number) => {
     });
 
     if (!location) {
-        throw new ServiceError(404, ERROR_CODES.DATA_001, "Location not found");
+        throw new AppError(404, "Location not found", ERROR_CODES.DATA_001);
     }
 
     return location;
@@ -110,14 +98,14 @@ const ensureLocationExists = async (locationId: number) => {
 const ensureLocationBelongsToCountry = async (
     locationId: number,
     countryId: number
-    ) => {
+) => {
     const location = await ensureLocationExists(locationId);
 
     if (location.countryId !== countryId) {
-        throw new ServiceError(
-        400,
-        ERROR_CODES.VAL_001,
-        "Selected admin location does not belong to the selected country"
+        throw new AppError(
+            400,
+            "Selected admin location does not belong to the selected country",
+            ERROR_CODES.VAL_001
         );
     }
 };
@@ -129,7 +117,7 @@ const ensureProjectExists = async (id: number) => {
     });
 
     if (!project) {
-        throw new ServiceError(404, ERROR_CODES.DATA_001, "Project not found");
+        throw new AppError(404, "Project not found", ERROR_CODES.DATA_001);
     }
 
     return project;
@@ -137,7 +125,6 @@ const ensureProjectExists = async (id: number) => {
 
 // Service class containing business logic for project management operations.
 export class ProjectManagementService {
-
     // Retrieves all projects ordered by newest first.
     async getAllProjects() {
         try {
@@ -145,21 +132,21 @@ export class ProjectManagementService {
                 orderBy: { createdAt: "desc" },
             });
         } catch {
-            throw new ServiceError(500, ERROR_CODES.SYS_002);
+            throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
         }
     }
 
     // Retrieves a single project by its ID.
     async getProjectById(id: number) {
         if (!isPositiveInt(id)) {
-            throw new ServiceError(400, ERROR_CODES.VAL_002, "Invalid project id");
+            throw new AppError(400, "Invalid project id", ERROR_CODES.VAL_002);
         }
 
         try {
             return await ensureProjectExists(id);
         } catch (error) {
-            if (error instanceof ServiceError) throw error;
-            throw new ServiceError(500, ERROR_CODES.SYS_002);
+            if (error instanceof AppError) throw error;
+            throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
         }
     }
 
@@ -186,23 +173,23 @@ export class ProjectManagementService {
 
             return createdProject;
         } catch (error) {
-            if (error instanceof ServiceError) throw error;
+            if (error instanceof AppError) throw error;
 
             if (
                 error instanceof Prisma.PrismaClientKnownRequestError &&
                 error.code === "P2002"
             ) {
-                throw new ServiceError(409, ERROR_CODES.DATA_002);
+                throw new AppError(409, ERROR_CODES.DATA_002, ERROR_CODES.DATA_002);
             }
 
-            throw new ServiceError(500, ERROR_CODES.SYS_002);
+            throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
         }
     }
 
     // Updates an existing project with provided fields.
     async updateProject(id: number, data: UpdateProjectInput) {
         if (!isPositiveInt(id)) {
-            throw new ServiceError(400, ERROR_CODES.VAL_002, "Invalid project id");
+            throw new AppError(400, "Invalid project id", ERROR_CODES.VAL_002);
         }
 
         assertUpdatePayload(data);
@@ -217,19 +204,19 @@ export class ProjectManagementService {
             if (data.countryId !== undefined) {
                 await ensureCountryExists(data.countryId);
             }
-            
+
             if (
                 data.countryId !== undefined ||
                 data.adminLocationId !== undefined
             ) {
                 if (nextAdminLocationId == null || nextCountryId == null) {
-                    throw new ServiceError(
+                    throw new AppError(
                         400,
-                        ERROR_CODES.VAL_003,
-                        "countryId and adminLocationId are required"
+                        "countryId and adminLocationId are required",
+                        ERROR_CODES.VAL_003
                     );
                 }
-            
+
                 await ensureLocationBelongsToCountry(
                     nextAdminLocationId,
                     nextCountryId
@@ -259,23 +246,23 @@ export class ProjectManagementService {
 
             return updatedProject;
         } catch (error) {
-            if (error instanceof ServiceError) throw error;
+            if (error instanceof AppError) throw error;
 
             if (
                 error instanceof Prisma.PrismaClientKnownRequestError &&
                 error.code === "P2002"
             ) {
-                throw new ServiceError(409, ERROR_CODES.DATA_002);
+                throw new AppError(409, ERROR_CODES.DATA_002, ERROR_CODES.DATA_002);
             }
 
-            throw new ServiceError(500, ERROR_CODES.SYS_002);
+            throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
         }
     }
 
     // Deletes a project only when no dependent scans exist.
     async deleteProject(id: number) {
         if (!isPositiveInt(id)) {
-            throw new ServiceError(400, ERROR_CODES.VAL_002, "Invalid project id");
+            throw new AppError(400, "Invalid project id", ERROR_CODES.VAL_002);
         }
 
         try {
@@ -286,10 +273,10 @@ export class ProjectManagementService {
             });
 
             if (dependentScans > 0) {
-                throw new ServiceError(
+                throw new AppError(
                     409,
-                    ERROR_CODES.VAL_001,
-                    "Cannot delete project with dependent scans"
+                    "Cannot delete project with dependent scans",
+                    ERROR_CODES.VAL_001
                 );
             }
 
@@ -301,12 +288,11 @@ export class ProjectManagementService {
                 message: "Project deleted successfully",
             };
         } catch (error) {
-            if (error instanceof ServiceError) throw error;
-            throw new ServiceError(500, ERROR_CODES.SYS_002);
+            if (error instanceof AppError) throw error;
+            throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
         }
     }
 }
 
 export const projectManagementService = new ProjectManagementService();
-export { ServiceError };
 export type { CreateProjectInput, UpdateProjectInput };
