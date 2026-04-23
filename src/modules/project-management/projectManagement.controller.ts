@@ -40,9 +40,8 @@ export class ProjectManagementController {
   async createProject(req: Request, res: Response, next: NextFunction) {
     try {
       const payload = req.body as CreateProjectInput;
-      const createdProject = await projectManagementService.createProject(
-        payload,
-      );
+      const createdProject =
+        await projectManagementService.createProject(payload);
 
       return res.status(201).json({
         success: true,
