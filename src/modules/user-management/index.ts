@@ -1,3 +1,3 @@
-import userManagementRoutes from './userManagement.routes';
+import userManagementRoutes from "./userManagement.routes";
 
 export default userManagementRoutes;

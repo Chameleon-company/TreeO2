@@ -1,12 +1,12 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { UserManagementController } from './userManagement.controller';
-import { authMiddleware } from '../../middleware/auth.middleware';
-import { roleMiddleware } from '../../middleware/role.middleware';
+import { Router, Request, Response, NextFunction } from "express";
+import { UserManagementController } from "./userManagement.controller";
+import { authMiddleware } from "../../middleware/auth.middleware";
+import { roleMiddleware } from "../../middleware/role.middleware";
 
 type AsyncFn = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => Promise<unknown>;
 
 const asyncHandler =
@@ -37,9 +37,9 @@ const router = Router();
  *         description: List of users
  */
 router.get(
-  '/',
+  "/",
   authMiddleware,
-  asyncHandler(UserManagementController.getUsers)
+  asyncHandler(UserManagementController.getUsers),
 );
 
 /**
@@ -63,9 +63,9 @@ router.get(
  *         description: User not found
  */
 router.get(
-  '/:id',
+  "/:id",
   authMiddleware,
-  asyncHandler(UserManagementController.getUserById)
+  asyncHandler(UserManagementController.getUserById),
 );
 
 /**
@@ -98,10 +98,10 @@ router.get(
  *         description: User created
  */
 router.post(
-  '/',
+  "/",
   authMiddleware,
-  roleMiddleware(['ADMIN']),
-  asyncHandler(UserManagementController.createUser)
+  roleMiddleware(["ADMIN"]),
+  asyncHandler(UserManagementController.createUser),
 );
 
 /**
@@ -114,10 +114,10 @@ router.post(
  *       - bearerAuth: []
  */
 router.put(
-  '/:id',
+  "/:id",
   authMiddleware,
-  roleMiddleware(['ADMIN']),
-  asyncHandler(UserManagementController.updateUser)
+  roleMiddleware(["ADMIN"]),
+  asyncHandler(UserManagementController.updateUser),
 );
 
 /**
@@ -133,10 +133,10 @@ router.put(
  *         description: User deleted
  */
 router.delete(
-  '/:id',
+  "/:id",
   authMiddleware,
-  roleMiddleware(['ADMIN']),
-  asyncHandler(UserManagementController.deleteUser)
+  roleMiddleware(["ADMIN"]),
+  asyncHandler(UserManagementController.deleteUser),
 );
 
 export default router;

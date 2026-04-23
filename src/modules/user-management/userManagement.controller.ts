@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
-import { UserManagementService } from './userManagement.service';
+import { Request, Response } from "express";
+import { UserManagementService } from "./userManagement.service";
 
 /**
  * Properly typed request (NO any usage)
@@ -22,13 +22,13 @@ export const UserManagementController = {
       const project = req.query.project;
 
       const users = await UserManagementService.getUsers(
-        project ? String(project) : undefined
+        project ? String(project) : undefined,
       );
 
       return res.json(users);
     } catch {
       return res.status(500).json({
-        message: 'Failed to fetch users',
+        message: "Failed to fetch users",
       });
     }
   },
@@ -38,19 +38,19 @@ export const UserManagementController = {
       const { id } = req.params;
 
       if (!id) {
-        return res.status(400).json({ message: 'User ID required' });
+        return res.status(400).json({ message: "User ID required" });
       }
 
       const user = await UserManagementService.getUserById(id);
 
       if (!user) {
-        return res.status(404).json({ message: 'User not found' });
+        return res.status(404).json({ message: "User not found" });
       }
 
       return res.json(user);
     } catch {
       return res.status(500).json({
-        message: 'Failed to fetch user',
+        message: "Failed to fetch user",
       });
     }
   },
@@ -61,7 +61,7 @@ export const UserManagementController = {
 
       if (!name || !email || !roleId) {
         return res.status(400).json({
-          message: 'Missing required fields',
+          message: "Missing required fields",
         });
       }
 
@@ -75,7 +75,7 @@ export const UserManagementController = {
       return res.status(201).json(user);
     } catch {
       return res.status(500).json({
-        message: 'Failed to create user',
+        message: "Failed to create user",
       });
     }
   },
@@ -85,19 +85,19 @@ export const UserManagementController = {
       const { id } = req.params;
 
       if (!id) {
-        return res.status(400).json({ message: 'User ID required' });
+        return res.status(400).json({ message: "User ID required" });
       }
 
       const updated = await UserManagementService.updateUser(id, req.body);
 
       if (!updated) {
-        return res.status(404).json({ message: 'User not found' });
+        return res.status(404).json({ message: "User not found" });
       }
 
       return res.json(updated);
     } catch {
       return res.status(500).json({
-        message: 'Failed to update user',
+        message: "Failed to update user",
       });
     }
   },
@@ -107,20 +107,19 @@ export const UserManagementController = {
       const { id } = req.params;
 
       if (!id) {
-        return res.status(400).json({ message: 'User ID required' });
+        return res.status(400).json({ message: "User ID required" });
       }
 
       const deleted = await UserManagementService.deleteUser(id);
 
       if (!deleted) {
-        return res.status(404).json({ message: 'User not found' });
+        return res.status(404).json({ message: "User not found" });
       }
 
-      return res.json({ message: 'User deleted successfully' });
+      return res.json({ message: "User deleted successfully" });
     } catch (err: unknown) {
       return res.status(400).json({
-        message:
-          err instanceof Error ? err.message : 'Unknown error occurred',
+        message: err instanceof Error ? err.message : "Unknown error occurred",
       });
     }
   },

@@ -1,6 +1,6 @@
 // services/UserManagementService.ts
 // import { PrismaClient } from '@prisma/client';
-import { prisma } from '../../lib/prisma';
+import { prisma } from "../../lib/prisma";
 
 // const prisma = new PrismaClient();
 
@@ -16,7 +16,7 @@ export const UserManagementService = {
         roleAssignments: { include: { role: true } },
         userProjects: { include: { project: true } },
       },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     });
   },
 
@@ -55,16 +55,20 @@ export const UserManagementService = {
   // Update an existing user
   updateUser: async (
     id: string,
-    data: Partial<{ name: string; email: string; roleId: number }>
+    data: Partial<{ name: string; email: string; roleId: number }>,
   ) => {
     try {
       return prisma.user.update({
         where: { id: Number(id) },
         data,
-        include: { userProjects: true, roleAssignments: true, primaryRole: true },
+        include: {
+          userProjects: true,
+          roleAssignments: true,
+          primaryRole: true,
+        },
       });
     } catch (error) {
-      console.error('Failed to update user:', error);
+      console.error("Failed to update user:", error);
       return null;
     }
   },
@@ -76,13 +80,15 @@ export const UserManagementService = {
       where: { OR: [{ farmerId: Number(id) }, { inspectorId: Number(id) }] },
     });
 
-    if (linkedScan) {throw new Error('User linked to scan records');}
+    if (linkedScan) {
+      throw new Error("User linked to scan records");
+    }
 
     try {
       await prisma.user.delete({ where: { id: Number(id) } });
       return true;
     } catch (error) {
-      console.error('Failed to delete user:', error);
+      console.error("Failed to delete user:", error);
       return false;
     }
   },
