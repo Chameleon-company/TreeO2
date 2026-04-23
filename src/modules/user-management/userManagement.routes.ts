@@ -2,67 +2,157 @@ import { Router } from 'express';
 import { UserManagementController } from './userManagement.controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { roleMiddleware } from '../../middleware/role.middleware';
-import { UserManagementService } from './userManagement.service';
-import { signJwt } from '../../lib/jwt';
 
 const router = Router();
 
 /**
- * 🔐 GET USERS
+ * @swagger
+ * tags:
+ *   name: User Management
+ *   description: User management APIs
+ */
+
+/**
+ * @swagger
+ * /users:
+ *   get:
+ *     summary: Get all users
+ *     tags: [User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
  */
 router.get(
-  '/users',
+  '/',
   authMiddleware,
-  (req, res, next) => {
-    void UserManagementController.getUsers(req, res).catch(next);
+  async (req: any, res, next) => {
+    console.log('➡️ GET /users HIT');
+    try {
+      await UserManagementController.getUsers(req, res);
+    } catch (err) {
+      next(err);
+    }
   }
 );
 
 /**
- * 🔐 GET USER BY ID
+ * @swagger
+ * /users/{id}:
+ *   get:
+ *     summary: Get user by ID
+ *     tags: [User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Success
  */
 router.get(
-  '/users/:id',
+  '/:id',
   authMiddleware,
-  (req, res, next) => {
-    void UserManagementController.getUserById(req, res).catch(next);
+  async (req: any, res, next) => {
+    console.log('➡️ GET /users/:id HIT');
+    try {
+      await UserManagementController.getUserById(req, res);
+    } catch (err) {
+      next(err);
+    }
   }
 );
 
 /**
- * 🔐 CREATE USER (ADMIN ONLY)
+ * @swagger
+ * /users:
+ *   post:
+ *     summary: Create user (Admin only)
+ *     tags: [User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *             required:
+ *               - name
+ *     responses:
+ *       201:
+ *         description: Created
  */
 router.post(
-  '/users',
+  '/',
+  (req, res, next) => {
+    console.log('➡️ POST /users HIT');
+    console.log('Body:', req.body);
+    next();
+  },
   authMiddleware,
   roleMiddleware(['ADMIN']),
-  (req, res, next) => {
-    void UserManagementController.createUser(req, res).catch(next);
+  async (req: any, res, next) => {
+    console.log('🚀 CREATE USER START');
+    try {
+      await UserManagementController.createUser(req, res);
+      console.log('🎉 USER CREATED');
+    } catch (err) {
+      console.error('❌ CREATE USER ERROR:', err);
+      next(err);
+    }
   }
 );
 
-
 /**
- * 🔐 UPDATE USER (ADMIN ONLY)
+ * @swagger
+ * /users/{id}:
+ *   put:
+ *     summary: Update user (Admin only)
+ *     tags: [User Management]
+ *     security:
+ *       - bearerAuth: []
  */
 router.put(
-  '/users/:id',
+  '/:id',
   authMiddleware,
   roleMiddleware(['ADMIN']),
-  (req, res, next) => {
-    void UserManagementController.updateUser(req, res).catch(next);
+  async (req, res, next) => {
+    try {
+      await UserManagementController.updateUser(req, res);
+    } catch (err) {
+      next(err);
+    }
   }
 );
 
 /**
- * 🔐 DELETE USER (ADMIN ONLY)
+ * @swagger
+ * /users/{id}:
+ *   delete:
+ *     summary: Delete user (Admin only)
+ *     tags: [User Management]
+ *     security:
+ *       - bearerAuth: []
  */
 router.delete(
-  '/users/:id',
+  '/:id',
   authMiddleware,
   roleMiddleware(['ADMIN']),
-  (req, res, next) => {
-    void UserManagementController.deleteUser(req, res).catch(next);
+  async (req, res, next) => {
+    try {
+      await UserManagementController.deleteUser(req, res);
+    } catch (err) {
+      next(err);
+    }
   }
 );
 
