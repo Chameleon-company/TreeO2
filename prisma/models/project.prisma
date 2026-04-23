@@ -8,10 +8,14 @@ model Project {
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at")
 
+  country          Country?          @relation("ProjectCountry", fields: [countryId], references: [id], onDelete: Restrict)
+  adminLocation    Location?         @relation("ProjectAdminLocation", fields: [adminLocationId], references: [id], onDelete: Restrict)
   userProjects     UserProject[]
   projectTreeTypes ProjectTreeType[]
   scanBatches      ScanBatch[]       @relation("ProjectScanBatches")
   treeScans        TreeScan[]        @relation("ProjectTreeScans")
 
+  @@index([countryId])
+  @@index([adminLocationId])
   @@map("projects")
 }

@@ -25,16 +25,20 @@ model User {
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  primaryRole        Role      @relation("PrimaryRole", fields: [roleId], references: [id])
+  primaryRole        Role      @relation("PrimaryRole", fields: [roleId], references: [id], onDelete: Restrict)
+  country            Country?             @relation("UserCountry", fields: [countryId], references: [id], onDelete: Restrict)
+  adminLocation      Location?            @relation("UserAdminLocation", fields: [adminLocationId], references: [id], onDelete: Restrict)
   roleAssignments    UserRoleAssignment[]
   userProjects       UserProject[]
-  reports            Report[]  @relation("UserReports")
+  reports            Report[]         @relation("UserReports")
   scanBatches        ScanBatch[]      @relation("ScanBatchInspector")
   farmerTreeScans    TreeScan[]       @relation("FarmerTreeScans")
   inspectorTreeScans TreeScan[]       @relation("InspectorTreeScans")
   correctedTreeScans TreeScan[]       @relation("CorrectedTreeScans")
   treeScanAudits     TreeScanAudit[]  @relation("TreeScanAuditChangedBy")
 
-
+  @@index([roleId])
+  @@index([countryId])
+  @@index([adminLocationId])
   @@map("users")
 }
