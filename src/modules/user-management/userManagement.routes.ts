@@ -1,7 +1,19 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { UserManagementController } from './userManagement.controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { roleMiddleware } from '../../middleware/role.middleware';
+
+type AsyncFn = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => Promise<unknown>;
+
+const asyncHandler =
+  (fn: AsyncFn) =>
+  (req: Request, res: Response, next: NextFunction): void => {
+    void Promise.resolve(fn(req, res, next)).catch(next);
+  };
 
 const router = Router();
 
@@ -9,7 +21,7 @@ const router = Router();
  * @swagger
  * tags:
  *   name: User Management
- *   description: User management APIs
+ *   description: APIs for managing users
  */
 
 /**
@@ -22,19 +34,12 @@ const router = Router();
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Success
+ *         description: List of users
  */
 router.get(
   '/',
   authMiddleware,
-  async (req: any, res, next) => {
-    console.log('➡️ GET /users HIT');
-    try {
-      await UserManagementController.getUsers(req, res);
-    } catch (err) {
-      next(err);
-    }
-  }
+  asyncHandler(UserManagementController.getUsers)
 );
 
 /**
@@ -53,26 +58,21 @@ router.get(
  *           type: string
  *     responses:
  *       200:
- *         description: Success
+ *         description: User details
+ *       404:
+ *         description: User not found
  */
 router.get(
   '/:id',
   authMiddleware,
-  async (req: any, res, next) => {
-    console.log('➡️ GET /users/:id HIT');
-    try {
-      await UserManagementController.getUserById(req, res);
-    } catch (err) {
-      next(err);
-    }
-  }
+  asyncHandler(UserManagementController.getUserById)
 );
 
 /**
  * @swagger
  * /users:
  *   post:
- *     summary: Create user (Admin only)
+ *     summary: Create a user (Admin only)
  *     tags: [User Management]
  *     security:
  *       - bearerAuth: []
@@ -85,38 +85,30 @@ router.get(
  *             properties:
  *               name:
  *                 type: string
- *             required:
- *               - name
+ *               email:
+ *                 type: string
+ *               roleId:
+ *                 type: number
+ *               projectIds:
+ *                 type: array
+ *                 items:
+ *                   type: number
  *     responses:
  *       201:
- *         description: Created
+ *         description: User created
  */
 router.post(
   '/',
-  (req, res, next) => {
-    console.log('➡️ POST /users HIT');
-    console.log('Body:', req.body);
-    next();
-  },
   authMiddleware,
   roleMiddleware(['ADMIN']),
-  async (req: any, res, next) => {
-    console.log('🚀 CREATE USER START');
-    try {
-      await UserManagementController.createUser(req, res);
-      console.log('🎉 USER CREATED');
-    } catch (err) {
-      console.error('❌ CREATE USER ERROR:', err);
-      next(err);
-    }
-  }
+  asyncHandler(UserManagementController.createUser)
 );
 
 /**
  * @swagger
  * /users/{id}:
  *   put:
- *     summary: Update user (Admin only)
+ *     summary: Update a user (Admin only)
  *     tags: [User Management]
  *     security:
  *       - bearerAuth: []
@@ -125,35 +117,26 @@ router.put(
   '/:id',
   authMiddleware,
   roleMiddleware(['ADMIN']),
-  async (req, res, next) => {
-    try {
-      await UserManagementController.updateUser(req, res);
-    } catch (err) {
-      next(err);
-    }
-  }
+  asyncHandler(UserManagementController.updateUser)
 );
 
 /**
  * @swagger
  * /users/{id}:
  *   delete:
- *     summary: Delete user (Admin only)
+ *     summary: Delete a user (Admin only)
  *     tags: [User Management]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User deleted
  */
 router.delete(
   '/:id',
   authMiddleware,
   roleMiddleware(['ADMIN']),
-  async (req, res, next) => {
-    try {
-      await UserManagementController.deleteUser(req, res);
-    } catch (err) {
-      next(err);
-    }
-  }
+  asyncHandler(UserManagementController.deleteUser)
 );
 
 export default router;

@@ -76,7 +76,7 @@ export const UserManagementService = {
       where: { OR: [{ farmerId: Number(id) }, { inspectorId: Number(id) }] },
     });
 
-    if (linkedScan) throw new Error('User linked to scan records');
+    if (linkedScan) {throw new Error('User linked to scan records');}
 
     try {
       await prisma.user.delete({ where: { id: Number(id) } });
