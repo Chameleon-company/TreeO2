@@ -30,10 +30,12 @@ const router = Router();
  */
 // Route to retrieve all projects.
 router.get(
-    "/",
-    authMiddleware,
-    roleMiddleware(["ADMIN", "MANAGER"]),
-    projectManagementController.getAllProjects
+  "/",
+  authMiddleware,
+  roleMiddleware(["ADMIN", "MANAGER"]),
+  (req, res, next) => {
+    void projectManagementController.getAllProjects(req, res, next);
+  },
 );
 
 /**
@@ -65,10 +67,12 @@ router.get(
  */
 // Route to retrieve a project by its ID.
 router.get(
-    "/:id",
-    authMiddleware,
-    roleMiddleware(["ADMIN", "MANAGER"]),
-    projectManagementController.getProjectById
+  "/:id",
+  authMiddleware,
+  roleMiddleware(["ADMIN", "MANAGER"]),
+  (req, res, next) => {
+    void projectManagementController.getProjectById(req, res, next);
+  },
 );
 
 /**
@@ -123,10 +127,12 @@ router.get(
  */
 // Route to create a new project.
 router.post(
-    "/",
-    authMiddleware,
-    roleMiddleware(["ADMIN"]),
-    projectManagementController.createProject
+  "/",
+  authMiddleware,
+  roleMiddleware(["ADMIN"]),
+  (req, res, next) => {
+    void projectManagementController.createProject(req, res, next);
+  },
 );
 
 /**
@@ -182,10 +188,12 @@ router.post(
  */
 // Route to update an existing project.
 router.put(
-    "/:id",
-    authMiddleware,
-    roleMiddleware(["ADMIN"]),
-    projectManagementController.updateProject
+  "/:id",
+  authMiddleware,
+  roleMiddleware(["ADMIN"]),
+  (req, res, next) => {
+    void projectManagementController.updateProject(req, res, next);
+  },
 );
 
 /**
@@ -219,10 +227,12 @@ router.put(
  */
 // Route to delete a project.
 router.delete(
-    "/:id",
-    authMiddleware,
-    roleMiddleware(["ADMIN"]),
-    projectManagementController.deleteProject
+  "/:id",
+  authMiddleware,
+  roleMiddleware(["ADMIN"]),
+  (req, res, next) => {
+    void projectManagementController.deleteProject(req, res, next);
+  },
 );
 
 export default router;

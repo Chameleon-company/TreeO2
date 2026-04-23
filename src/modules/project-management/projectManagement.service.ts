@@ -1,8 +1,7 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { ERROR_CODES } from "../../utils/errorCodes";
-
-const prisma = new PrismaClient();
 
 // Input type for creating a new project with required and optional fields.
 type CreateProjectInput = {
@@ -145,7 +144,9 @@ export class ProjectManagementService {
         try {
             return await ensureProjectExists(id);
         } catch (error) {
-            if (error instanceof AppError) throw error;
+            if (error instanceof AppError) {
+                throw error;
+            }
             throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
         }
     }
@@ -173,7 +174,9 @@ export class ProjectManagementService {
 
             return createdProject;
         } catch (error) {
-            if (error instanceof AppError) throw error;
+            if (error instanceof AppError) {
+                throw error;
+            }
 
             if (
                 error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -209,7 +212,12 @@ export class ProjectManagementService {
                 data.countryId !== undefined ||
                 data.adminLocationId !== undefined
             ) {
-                if (nextAdminLocationId == null || nextCountryId == null) {
+                if (
+                    nextAdminLocationId === null ||
+                    nextAdminLocationId === undefined ||
+                    nextCountryId === null ||
+                    nextCountryId === undefined
+                ) {
                     throw new AppError(
                         400,
                         "countryId and adminLocationId are required",
@@ -246,7 +254,9 @@ export class ProjectManagementService {
 
             return updatedProject;
         } catch (error) {
-            if (error instanceof AppError) throw error;
+            if (error instanceof AppError) {
+                throw error;
+            }
 
             if (
                 error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -288,7 +298,9 @@ export class ProjectManagementService {
                 message: "Project deleted successfully",
             };
         } catch (error) {
-            if (error instanceof AppError) throw error;
+            if (error instanceof AppError) {
+                throw error;
+            }
             throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
         }
     }
