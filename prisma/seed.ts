@@ -1,603 +1,914 @@
 /* eslint-disable no-console */
 import { PrismaClient, Prisma } from "@prisma/client";
 
+import { hashPassword } from "../src/lib/bcrypt";
+
 const prisma = new PrismaClient();
+
+type Tx = Prisma.TransactionClient;
+
+type UserSeed = {
+  email: string;
+  password: string;
+  name: string;
+  roleName: string;
+  cardId: string;
+  governmentId: string;
+  gender: string;
+  disability: boolean;
+  countryIso2: "TL" | "AU";
+  adminLocationCode: "DIL" | "CRI" | "HER" | "BAU" | null;
+  streetAddress: string;
+  preferredLanguage: string;
+  biography: string;
+  notes: string;
+  accountActive: boolean;
+  dateJoined: Date;
+};
+
+async function upsertCountry(
+  tx: Tx,
+  data: { name: string; iso2: string; iso3: string },
+) {
+  return tx.country.upsert({
+    where: { iso2: data.iso2 },
+    update: data,
+    create: data,
+  });
+}
+
+async function upsertCulture(tx: Tx, data: { code: string; name: string }) {
+  return tx.culture.upsert({
+    where: { code: data.code },
+    update: data,
+    create: data,
+  });
+}
+
+async function upsertLocalizedString(
+  tx: Tx,
+  data: {
+    cultureCode: string;
+    stringKey: string;
+    value: string;
+    context: string;
+  },
+) {
+  return tx.localizedString.upsert({
+    where: {
+      cultureCode_stringKey_context: {
+        cultureCode: data.cultureCode,
+        stringKey: data.stringKey,
+        context: data.context,
+      },
+    },
+    update: { value: data.value },
+    create: data,
+  });
+}
+
+async function upsertRole(tx: Tx, name: string) {
+  return tx.role.upsert({
+    where: { name },
+    update: {},
+    create: { name },
+  });
+}
+
+async function upsertPartner(tx: Tx, name: string) {
+  const existing = await tx.partner.findFirst({ where: { name } });
+
+  if (existing) {
+    return tx.partner.update({
+      where: { id: existing.id },
+      data: { name },
+    });
+  }
+
+  return tx.partner.create({ data: { name } });
+}
+
+async function upsertLocation(
+  tx: Tx,
+  data: {
+    countryId: number;
+    parentId: number | null;
+    level: number;
+    name: string;
+    code: string | null;
+    latitude: Prisma.Decimal | null;
+    longitude: Prisma.Decimal | null;
+  },
+) {
+  const existing = await tx.location.findFirst({
+    where: {
+      countryId: data.countryId,
+      code: data.code,
+    },
+  });
+
+  if (existing) {
+    return tx.location.update({
+      where: { id: existing.id },
+      data,
+    });
+  }
+
+  return tx.location.create({ data });
+}
+
+async function upsertAdministrativeLevel(
+  tx: Tx,
+  data: { countryId: number; level: number; name: string },
+) {
+  const existing = await tx.administrativeLevel.findFirst({
+    where: {
+      countryId: data.countryId,
+      level: data.level,
+    },
+  });
+
+  if (existing) {
+    return tx.administrativeLevel.update({
+      where: { id: existing.id },
+      data,
+    });
+  }
+
+  return tx.administrativeLevel.create({ data });
+}
+
+async function upsertTreeType(
+  tx: Tx,
+  data: {
+    name: string;
+    key: string;
+    scientificName: string;
+    dryWeightDensity: Prisma.Decimal;
+  },
+) {
+  const existing = await tx.treeType.findFirst({
+    where: { key: data.key },
+  });
+
+  if (existing) {
+    return tx.treeType.update({
+      where: { id: existing.id },
+      data,
+    });
+  }
+
+  return tx.treeType.create({ data });
+}
+
+async function upsertProject(
+  tx: Tx,
+  data: {
+    name: string;
+    description: string;
+    countryId: number;
+    adminLocationId: number;
+    isActive: boolean;
+  },
+) {
+  const existing = await tx.project.findFirst({
+    where: { name: data.name },
+  });
+
+  if (existing) {
+    return tx.project.update({
+      where: { id: existing.id },
+      data,
+    });
+  }
+
+  return tx.project.create({ data });
+}
+
+async function upsertUser(
+  tx: Tx,
+  data: {
+    email: string;
+    passwordHash: string;
+    name: string;
+    roleId: number;
+    cardId: string;
+    governmentId: string;
+    gender: string;
+    disability: boolean;
+    countryId: number;
+    adminLocationId: number | null;
+    streetAddress: string;
+    preferredLanguage: string;
+    photoId: null;
+    biography: string;
+    notes: string;
+    accountActive: boolean;
+    dateJoined: Date;
+    canSignIn: boolean;
+    accessToken: null;
+    accessTokenCreated: null;
+    resetToken: null;
+    resetTokenExpires: null;
+  },
+) {
+  return tx.user.upsert({
+    where: { email: data.email },
+    update: data,
+    create: data,
+  });
+}
+
+async function upsertScanBatch(
+  tx: Tx,
+  data: { inspectorId: number; projectId: number; uploadedAt: Date },
+) {
+  const existing = await tx.scanBatch.findFirst({
+    where: {
+      inspectorId: data.inspectorId,
+      projectId: data.projectId,
+      uploadedAt: data.uploadedAt,
+    },
+  });
+
+  if (existing) {
+    return tx.scanBatch.update({
+      where: { id: existing.id },
+      data,
+    });
+  }
+
+  return tx.scanBatch.create({ data });
+}
+
+async function upsertTreeScan(
+  tx: Tx,
+  data: {
+    fobId: string;
+    projectId: number;
+    farmerId: number;
+    inspectorId: number;
+    speciesId: number;
+    estimatedPlantedYear: number;
+    estimatedPlantedMonth: number;
+    plantedDate: Date;
+    heightM: Prisma.Decimal;
+    circumferenceCm: Prisma.Decimal;
+    diameterCm: Prisma.Decimal;
+    latitude: number;
+    longitude: number;
+    photoId: null;
+    batchId: number;
+    deviceId: string;
+    isArchived: boolean;
+    isCorrected: boolean;
+    correctedBy: number | null;
+    correctionReason: string | null;
+    isValid: boolean;
+    validationNotes: string;
+  },
+) {
+  const existing = await tx.treeScan.findFirst({
+    where: { fobId: data.fobId },
+  });
+
+  if (existing) {
+    return tx.treeScan.update({
+      where: { id: existing.id },
+      data,
+    });
+  }
+
+  return tx.treeScan.create({ data });
+}
+
+async function upsertTreeScanAudit(
+  tx: Tx,
+  data: {
+    treeScanId: number;
+    changedBy: number;
+    changeReason: string;
+    oldData: Prisma.InputJsonValue;
+    newData: Prisma.InputJsonValue;
+    changedAt: Date;
+  },
+) {
+  const existing = await tx.treeScanAudit.findFirst({
+    where: {
+      treeScanId: data.treeScanId,
+      changedBy: data.changedBy,
+      changedAt: data.changedAt,
+    },
+  });
+
+  if (existing) {
+    return tx.treeScanAudit.update({
+      where: { id: existing.id },
+      data,
+    });
+  }
+
+  return tx.treeScanAudit.create({ data });
+}
+
+async function upsertAdopter(
+  tx: Tx,
+  data: { name: string; email: string },
+) {
+  const existing = await tx.adopter.findFirst({
+    where: { email: data.email },
+  });
+
+  if (existing) {
+    return tx.adopter.update({
+      where: { id: existing.id },
+      data,
+    });
+  }
+
+  return tx.adopter.create({ data });
+}
+
+async function upsertAdoption(
+  tx: Tx,
+  data: { adopterId: number; fobId: string; adoptedAt: Date },
+) {
+  const existing = await tx.adoption.findFirst({
+    where: {
+      adopterId: data.adopterId,
+      fobId: data.fobId,
+    },
+  });
+
+  if (existing) {
+    return tx.adoption.update({
+      where: { id: existing.id },
+      data,
+    });
+  }
+
+  return tx.adoption.create({ data });
+}
+
+async function upsertReport(
+  tx: Tx,
+  data: {
+    reportType: string;
+    requestedBy: number;
+    status: "PENDING" | "PROCESSING" | "COMPLETE" | "FAILED";
+    parameters: Prisma.InputJsonValue;
+    outputUrl: string | null;
+    completedAt: Date | null;
+  },
+) {
+  const existing = await tx.report.findFirst({
+    where: {
+      reportType: data.reportType,
+      requestedBy: data.requestedBy,
+    },
+  });
+
+  if (existing) {
+    return tx.report.update({
+      where: { id: existing.id },
+      data,
+    });
+  }
+
+  return tx.report.create({ data });
+}
 
 async function main(): Promise<void> {
   console.log("Starting seed...");
 
-  // 1. Countries
-  await prisma.country.createMany({
-    data: [
-      { id: 1, name: "Timor-Leste", iso2: "TL", iso3: "TLS" },
-      { id: 2, name: "Australia", iso2: "AU", iso3: "AUS" },
-    ],
-    skipDuplicates: true,
-  });
+  const passwordHashes = {
+    admin: await hashPassword("Admin@123"),
+    manager: await hashPassword("Manager@123"),
+    inspector1: await hashPassword("Inspector1@123"),
+    inspector2: await hashPassword("Inspector2@123"),
+    farmer1: await hashPassword("Farmer1@123"),
+    farmer2: await hashPassword("Farmer2@123"),
+    developer: await hashPassword("Developer@123"),
+  };
 
-  // 2. Cultures
-  await prisma.culture.createMany({
-    data: [
-      { code: "en", name: "English" },
-      { code: "tet", name: "Tetum" },
-    ],
-    skipDuplicates: true,
-  });
-
-  // 3. Localized Strings
-  await prisma.localizedString.createMany({
-    data: [
-      {
-        id: 1,
-        cultureCode: "en",
-        stringKey: "app.title",
-        value: "TreeO2",
-        context: "application",
-      },
-      {
-        id: 2,
-        cultureCode: "tet",
-        stringKey: "app.title",
-        value: "TreeO2",
-        context: "application",
-      },
-      {
-        id: 3,
-        cultureCode: "en",
-        stringKey: "report.status.completed",
-        value: "Completed",
-        context: "report",
-      },
-      {
-        id: 4,
-        cultureCode: "tet",
-        stringKey: "report.status.completed",
-        value: "Kompletu",
-        context: "report",
-      },
-    ],
-    skipDuplicates: true,
-  });
-
-  // 4. Roles
-  await prisma.role.createMany({
-    data: [
-      { id: 1, name: "Admin" },
-      { id: 2, name: "Manager" },
-      { id: 3, name: "Inspector" },
-      { id: 4, name: "Farmer" },
-      { id: 5, name: "Developer" },
-    ],
-    skipDuplicates: true,
-  });
-
-  // 5. Partners
-  await prisma.partner.createMany({
-    data: [
-      { id: 1, name: "xpand Foundation" },
-      { id: 2, name: "Green Timor Initiative" },
-    ],
-    skipDuplicates: true,
-  });
-
-  // 6. Locations
-  await prisma.location.createMany({
-    data: [
-      {
-        id: 1,
-        countryId: 1,
-        parentId: null,
-        level: 1,
-        name: "Dili",
-        code: "DIL",
-        latitude: new Prisma.Decimal("-8.556900"),
-        longitude: new Prisma.Decimal("125.560300"),
-      },
-      {
-        id: 2,
-        countryId: 1,
-        parentId: 1,
-        level: 2,
-        name: "Cristo Rei",
-        code: "CRI",
-        latitude: new Prisma.Decimal("-8.540000"),
-        longitude: new Prisma.Decimal("125.610000"),
-      },
-      {
-        id: 3,
-        countryId: 1,
-        parentId: 2,
-        level: 3,
-        name: "Hera",
-        code: "HER",
-        latitude: new Prisma.Decimal("-8.533300"),
-        longitude: new Prisma.Decimal("125.633300"),
-      },
-      {
-        id: 4,
-        countryId: 1,
-        parentId: null,
-        level: 1,
-        name: "Baucau",
-        code: "BAU",
-        latitude: new Prisma.Decimal("-8.466700"),
-        longitude: new Prisma.Decimal("126.450000"),
-      },
-    ],
-    skipDuplicates: true,
-  });
-
-  // 7. Administrative Levels
-  await prisma.administrativeLevel.createMany({
-    data: [
-      { id: 1, countryId: 1, level: 1, name: "Municipality" },
-      { id: 2, countryId: 1, level: 2, name: "Administrative Post" },
-      { id: 3, countryId: 1, level: 3, name: "Village" },
-    ],
-    skipDuplicates: true,
-  });
-
-  // 8. Tree Types
-  await prisma.treeType.createMany({
-    data: [
-      {
-        id: 1,
-        name: "Mahogany",
-        key: "mahogany",
-        scientificName: "Swietenia macrophylla",
-        dryWeightDensity: new Prisma.Decimal("595.000"),
-      },
-      {
-        id: 2,
-        name: "Teak",
-        key: "teak",
-        scientificName: "Tectona grandis",
-        dryWeightDensity: new Prisma.Decimal("660.000"),
-      },
-      {
-        id: 3,
-        name: "Sandalwood",
-        key: "sandalwood",
-        scientificName: "Santalum album",
-        dryWeightDensity: new Prisma.Decimal("870.000"),
-      },
-    ],
-    skipDuplicates: true,
-  });
-
-  // 9. Projects
-  await prisma.project.createMany({
-    data: [
-      {
-        id: 1,
-        name: "Hera Reforestation 2025",
-        description: "Community-based tree restoration project in Hera.",
-        countryId: 1,
-        adminLocationId: 3,
-        isActive: true,
-      },
-      {
-        id: 2,
-        name: "Baucau Agroforestry Pilot",
-        description: "Agroforestry monitoring and survival tracking in Baucau.",
-        countryId: 1,
-        adminLocationId: 4,
-        isActive: true,
-      },
-    ],
-    skipDuplicates: true,
-  });
-
-  // 10. Users
-  const users = [
-    {
-      email: "admin@treeo2.local",
-      passwordHash: "hashed_admin_pw",
-      name: "TreeO2 Admin",
-      roleId: 1,
-      cardId: "CARD-ADM-001",
-      governmentId: "GOV-ADM-001",
-      gender: "Male",
-      disability: false,
-      countryId: 1,
-      adminLocationId: 1,
-      streetAddress: "Dili Central Office",
-      preferredLanguage: "en",
-      photoId: null,
-      biography: "System administrator for TreeO2.",
-      notes: "Primary admin account.",
-      accountActive: true,
-      dateJoined: new Date("2025-01-05T00:00:00Z"),
-      canSignIn: true,
-      accessToken: null,
-      accessTokenCreated: null,
-      resetToken: null,
-      resetTokenExpires: null,
-    },
-    {
-      email: "manager@treeo2.local",
-      passwordHash: "hashed_manager_pw",
-      name: "Project Manager",
-      roleId: 2,
-      cardId: "CARD-MGR-001",
-      governmentId: "GOV-MGR-001",
-      gender: "Female",
-      disability: false,
-      countryId: 1,
-      adminLocationId: 1,
-      streetAddress: "Dili Operations",
-      preferredLanguage: "en",
-      photoId: null,
-      biography: "Oversees project delivery and monitoring.",
-      notes: "Assigned to multiple projects.",
-      accountActive: true,
-      dateJoined: new Date("2025-01-10T00:00:00Z"),
-      canSignIn: true,
-      accessToken: null,
-      accessTokenCreated: null,
-      resetToken: null,
-      resetTokenExpires: null,
-    },
-    {
-      email: "inspector1@treeo2.local",
-      passwordHash: "hashed_inspector1_pw",
-      name: "Field Inspector One",
-      roleId: 3,
-      cardId: "CARD-INS-001",
-      governmentId: "GOV-INS-001",
-      gender: "Male",
-      disability: false,
-      countryId: 1,
-      adminLocationId: 2,
-      streetAddress: "Cristo Rei Field Office",
-      preferredLanguage: "tet",
-      photoId: null,
-      biography: "Conducts on-site inspections.",
-      notes: "Experienced in field validations.",
-      accountActive: true,
-      dateJoined: new Date("2025-01-12T00:00:00Z"),
-      canSignIn: true,
-      accessToken: null,
-      accessTokenCreated: null,
-      resetToken: null,
-      resetTokenExpires: null,
-    },
-    {
-      email: "inspector2@treeo2.local",
-      passwordHash: "hashed_inspector2_pw",
-      name: "Field Inspector Two",
-      roleId: 3,
-      cardId: "CARD-INS-002",
-      governmentId: "GOV-INS-002",
-      gender: "Female",
-      disability: false,
-      countryId: 1,
-      adminLocationId: 4,
-      streetAddress: "Baucau Field Office",
-      preferredLanguage: "tet",
-      photoId: null,
-      biography: "Supports rural inspection activities.",
-      notes: "Assigned to Baucau pilot.",
-      accountActive: true,
-      dateJoined: new Date("2025-01-13T00:00:00Z"),
-      canSignIn: true,
-      accessToken: null,
-      accessTokenCreated: null,
-      resetToken: null,
-      resetTokenExpires: null,
-    },
-    {
-      email: "farmer1@treeo2.local",
-      passwordHash: "hashed_farmer1_pw",
-      name: "Farmer One",
-      roleId: 4,
-      cardId: "CARD-FAR-001",
-      governmentId: "GOV-FAR-001",
-      gender: "Female",
-      disability: false,
-      countryId: 1,
-      adminLocationId: 3,
-      streetAddress: "Hera Village",
-      preferredLanguage: "tet",
-      photoId: null,
-      biography: "Participating farmer in Hera region.",
-      notes: "Linked to reforestation project.",
-      accountActive: true,
-      dateJoined: new Date("2025-01-15T00:00:00Z"),
-      canSignIn: true,
-      accessToken: null,
-      accessTokenCreated: null,
-      resetToken: null,
-      resetTokenExpires: null,
-    },
-    {
-      email: "farmer2@treeo2.local",
-      passwordHash: "hashed_farmer2_pw",
-      name: "Farmer Two",
-      roleId: 4,
-      cardId: "CARD-FAR-002",
-      governmentId: "GOV-FAR-002",
-      gender: "Male",
-      disability: false,
-      countryId: 1,
-      adminLocationId: 4,
-      streetAddress: "Baucau Rural Area",
-      preferredLanguage: "tet",
-      photoId: null,
-      biography: "Farmer involved in agroforestry activities.",
-      notes: "Linked to Baucau pilot.",
-      accountActive: true,
-      dateJoined: new Date("2025-01-16T00:00:00Z"),
-      canSignIn: true,
-      accessToken: null,
-      accessTokenCreated: null,
-      resetToken: null,
-      resetTokenExpires: null,
-    },
-    {
-      email: "developer@treeo2.local",
-      passwordHash: "hashed_developer_pw",
-      name: "Developer User",
-      roleId: 5,
-      cardId: "CARD-DEV-001",
-      governmentId: "GOV-DEV-001",
-      gender: "Male",
-      disability: false,
-      countryId: 2,
-      adminLocationId: null,
-      streetAddress: "Melbourne Support Hub",
-      preferredLanguage: "en",
-      photoId: null,
-      biography: "Maintains the technical platform.",
-      notes: "Support and development account.",
-      accountActive: true,
-      dateJoined: new Date("2025-01-18T00:00:00Z"),
-      canSignIn: true,
-      accessToken: null,
-      accessTokenCreated: null,
-      resetToken: null,
-      resetTokenExpires: null,
-    },
-  ] as const;
-
-  for (const user of users) {
-    await prisma.user.upsert({
-      where: { email: user.email },
-      update: { ...user },
-      create: { ...user },
+  await prisma.$transaction(async (tx) => {
+    const timorLeste = await upsertCountry(tx, {
+      name: "Timor-Leste",
+      iso2: "TL",
+      iso3: "TLS",
     });
-  }
+    const australia = await upsertCountry(tx, {
+      name: "Australia",
+      iso2: "AU",
+      iso3: "AUS",
+    });
 
-  const admin = await prisma.user.findUniqueOrThrow({
-    where: { email: "admin@treeo2.local" },
-  });
-  const manager = await prisma.user.findUniqueOrThrow({
-    where: { email: "manager@treeo2.local" },
-  });
-  const inspector1 = await prisma.user.findUniqueOrThrow({
-    where: { email: "inspector1@treeo2.local" },
-  });
-  const inspector2 = await prisma.user.findUniqueOrThrow({
-    where: { email: "inspector2@treeo2.local" },
-  });
-  const farmer1 = await prisma.user.findUniqueOrThrow({
-    where: { email: "farmer1@treeo2.local" },
-  });
-  const farmer2 = await prisma.user.findUniqueOrThrow({
-    where: { email: "farmer2@treeo2.local" },
-  });
-  const developer = await prisma.user.findUniqueOrThrow({
-    where: { email: "developer@treeo2.local" },
-  });
+    await upsertCulture(tx, { code: "en", name: "English" });
+    await upsertCulture(tx, { code: "tet", name: "Tetum" });
 
-  // 11. User Role Assignments
-  await prisma.userRoleAssignment.createMany({
-    data: [
-      { userId: admin.id, roleId: 1 },
-      { userId: manager.id, roleId: 2 },
-      { userId: inspector1.id, roleId: 3 },
-      { userId: inspector2.id, roleId: 3 },
-      { userId: farmer1.id, roleId: 4 },
-      { userId: farmer2.id, roleId: 4 },
-      { userId: developer.id, roleId: 5 },
-    ],
-    skipDuplicates: true,
-  });
+    await upsertLocalizedString(tx, {
+      cultureCode: "en",
+      stringKey: "app.title",
+      value: "TreeO2",
+      context: "application",
+    });
+    await upsertLocalizedString(tx, {
+      cultureCode: "tet",
+      stringKey: "app.title",
+      value: "TreeO2",
+      context: "application",
+    });
+    await upsertLocalizedString(tx, {
+      cultureCode: "en",
+      stringKey: "report.status.complete",
+      value: "Complete",
+      context: "report",
+    });
+    await upsertLocalizedString(tx, {
+      cultureCode: "tet",
+      stringKey: "report.status.complete",
+      value: "Kompletu",
+      context: "report",
+    });
 
-  // 12. User Projects
-  await prisma.userProject.createMany({
-    data: [
-      { userId: manager.id, projectId: 1 },
-      { userId: manager.id, projectId: 2 },
-      { userId: inspector1.id, projectId: 1 },
-      { userId: inspector2.id, projectId: 2 },
-      { userId: farmer1.id, projectId: 1 },
-      { userId: farmer2.id, projectId: 2 },
-    ],
-    skipDuplicates: true,
-  });
+    // Match the app's current numeric role mapping on a fresh database.
+    await upsertRole(tx, "Farmer");
+    await upsertRole(tx, "Inspector");
+    await upsertRole(tx, "Manager");
+    await upsertRole(tx, "Admin");
+    await upsertRole(tx, "Developer");
 
-  // 13. Project Tree Types
-  await prisma.projectTreeType.createMany({
-    data: [
-      { projectId: 1, treeTypeId: 1 },
-      { projectId: 1, treeTypeId: 3 },
-      { projectId: 2, treeTypeId: 2 },
-    ],
-    skipDuplicates: true,
-  });
+    await upsertPartner(tx, "xpand Foundation");
+    await upsertPartner(tx, "Green Timor Initiative");
 
-  // 14. Scan Batches
-  await prisma.scanBatch.createMany({
-    data: [
+    const dili = await upsertLocation(tx, {
+      countryId: timorLeste.id,
+      parentId: null,
+      level: 1,
+      name: "Dili",
+      code: "DIL",
+      latitude: new Prisma.Decimal("-8.556900"),
+      longitude: new Prisma.Decimal("125.560300"),
+    });
+    const cristoRei = await upsertLocation(tx, {
+      countryId: timorLeste.id,
+      parentId: dili.id,
+      level: 2,
+      name: "Cristo Rei",
+      code: "CRI",
+      latitude: new Prisma.Decimal("-8.540000"),
+      longitude: new Prisma.Decimal("125.610000"),
+    });
+    const hera = await upsertLocation(tx, {
+      countryId: timorLeste.id,
+      parentId: cristoRei.id,
+      level: 3,
+      name: "Hera",
+      code: "HER",
+      latitude: new Prisma.Decimal("-8.533300"),
+      longitude: new Prisma.Decimal("125.633300"),
+    });
+    const baucau = await upsertLocation(tx, {
+      countryId: timorLeste.id,
+      parentId: null,
+      level: 1,
+      name: "Baucau",
+      code: "BAU",
+      latitude: new Prisma.Decimal("-8.466700"),
+      longitude: new Prisma.Decimal("126.450000"),
+    });
+
+    await upsertAdministrativeLevel(tx, {
+      countryId: timorLeste.id,
+      level: 1,
+      name: "Municipality",
+    });
+    await upsertAdministrativeLevel(tx, {
+      countryId: timorLeste.id,
+      level: 2,
+      name: "Administrative Post",
+    });
+    await upsertAdministrativeLevel(tx, {
+      countryId: timorLeste.id,
+      level: 3,
+      name: "Village",
+    });
+
+    const mahogany = await upsertTreeType(tx, {
+      name: "Mahogany",
+      key: "mahogany",
+      scientificName: "Swietenia macrophylla",
+      dryWeightDensity: new Prisma.Decimal("595.000"),
+    });
+    const teak = await upsertTreeType(tx, {
+      name: "Teak",
+      key: "teak",
+      scientificName: "Tectona grandis",
+      dryWeightDensity: new Prisma.Decimal("660.000"),
+    });
+    const sandalwood = await upsertTreeType(tx, {
+      name: "Sandalwood",
+      key: "sandalwood",
+      scientificName: "Santalum album",
+      dryWeightDensity: new Prisma.Decimal("870.000"),
+    });
+
+    const heraProject = await upsertProject(tx, {
+      name: "Hera Reforestation 2025",
+      description: "Community-based tree restoration project in Hera.",
+      countryId: timorLeste.id,
+      adminLocationId: hera.id,
+      isActive: true,
+    });
+    const baucauProject = await upsertProject(tx, {
+      name: "Baucau Agroforestry Pilot",
+      description: "Agroforestry monitoring and survival tracking in Baucau.",
+      countryId: timorLeste.id,
+      adminLocationId: baucau.id,
+      isActive: true,
+    });
+
+    const roles = {
+      farmer: await tx.role.findUniqueOrThrow({ where: { name: "Farmer" } }),
+      inspector: await tx.role.findUniqueOrThrow({
+        where: { name: "Inspector" },
+      }),
+      manager: await tx.role.findUniqueOrThrow({ where: { name: "Manager" } }),
+      admin: await tx.role.findUniqueOrThrow({ where: { name: "Admin" } }),
+      developer: await tx.role.findUniqueOrThrow({
+        where: { name: "Developer" },
+      }),
+    };
+
+    const locationIdsByCode = {
+      DIL: dili.id,
+      CRI: cristoRei.id,
+      HER: hera.id,
+      BAU: baucau.id,
+    } as const;
+
+    const users: UserSeed[] = [
       {
-        id: 1,
-        inspectorId: inspector1.id,
-        projectId: 1,
-        uploadedAt: new Date("2025-02-01T09:00:00Z"),
+        email: "admin@treeo2.local",
+        password: passwordHashes.admin,
+        name: "TreeO2 Admin",
+        roleName: "Admin",
+        cardId: "CARD-ADM-001",
+        governmentId: "GOV-ADM-001",
+        gender: "Male",
+        disability: false,
+        countryIso2: "TL",
+        adminLocationCode: "DIL",
+        streetAddress: "Dili Central Office",
+        preferredLanguage: "en",
+        biography: "System administrator for TreeO2.",
+        notes: "Primary admin account.",
+        accountActive: true,
+        dateJoined: new Date("2025-01-05T00:00:00Z"),
       },
       {
-        id: 2,
-        inspectorId: inspector2.id,
-        projectId: 2,
-        uploadedAt: new Date("2025-02-10T11:30:00Z"),
+        email: "manager@treeo2.local",
+        password: passwordHashes.manager,
+        name: "Project Manager",
+        roleName: "Manager",
+        cardId: "CARD-MGR-001",
+        governmentId: "GOV-MGR-001",
+        gender: "Female",
+        disability: false,
+        countryIso2: "TL",
+        adminLocationCode: "DIL",
+        streetAddress: "Dili Operations",
+        preferredLanguage: "en",
+        biography: "Oversees project delivery and monitoring.",
+        notes: "Assigned to multiple projects.",
+        accountActive: true,
+        dateJoined: new Date("2025-01-10T00:00:00Z"),
       },
-    ],
-    skipDuplicates: true,
-  });
-
-  // 15. Tree Scans
-  await prisma.treeScan.createMany({
-    data: [
       {
-        id: 1,
-        fobId: "FOB-0001",
-        projectId: 1,
-        farmerId: farmer1.id,
-        inspectorId: inspector1.id,
-        speciesId: 1,
-        estimatedPlantedYear: 2023,
-        estimatedPlantedMonth: 6,
-        plantedDate: new Date("2023-06-15T00:00:00Z"),
-        heightM: new Prisma.Decimal("1.450"),
-        circumferenceCm: new Prisma.Decimal("8.400"),
-        diameterCm: new Prisma.Decimal("2.700"),
-        latitude: -8.5331,
-        longitude: 125.6331,
+        email: "inspector1@treeo2.local",
+        password: passwordHashes.inspector1,
+        name: "Field Inspector One",
+        roleName: "Inspector",
+        cardId: "CARD-INS-001",
+        governmentId: "GOV-INS-001",
+        gender: "Male",
+        disability: false,
+        countryIso2: "TL",
+        adminLocationCode: "CRI",
+        streetAddress: "Cristo Rei Field Office",
+        preferredLanguage: "tet",
+        biography: "Conducts on-site inspections.",
+        notes: "Experienced in field validations.",
+        accountActive: true,
+        dateJoined: new Date("2025-01-12T00:00:00Z"),
+      },
+      {
+        email: "inspector2@treeo2.local",
+        password: passwordHashes.inspector2,
+        name: "Field Inspector Two",
+        roleName: "Inspector",
+        cardId: "CARD-INS-002",
+        governmentId: "GOV-INS-002",
+        gender: "Female",
+        disability: false,
+        countryIso2: "TL",
+        adminLocationCode: "BAU",
+        streetAddress: "Baucau Field Office",
+        preferredLanguage: "tet",
+        biography: "Supports rural inspection activities.",
+        notes: "Assigned to Baucau pilot.",
+        accountActive: true,
+        dateJoined: new Date("2025-01-13T00:00:00Z"),
+      },
+      {
+        email: "farmer1@treeo2.local",
+        password: passwordHashes.farmer1,
+        name: "Farmer One",
+        roleName: "Farmer",
+        cardId: "CARD-FAR-001",
+        governmentId: "GOV-FAR-001",
+        gender: "Female",
+        disability: false,
+        countryIso2: "TL",
+        adminLocationCode: "HER",
+        streetAddress: "Hera Village",
+        preferredLanguage: "tet",
+        biography: "Participating farmer in Hera region.",
+        notes: "Linked to reforestation project.",
+        accountActive: true,
+        dateJoined: new Date("2025-01-15T00:00:00Z"),
+      },
+      {
+        email: "farmer2@treeo2.local",
+        password: passwordHashes.farmer2,
+        name: "Farmer Two",
+        roleName: "Farmer",
+        cardId: "CARD-FAR-002",
+        governmentId: "GOV-FAR-002",
+        gender: "Male",
+        disability: false,
+        countryIso2: "TL",
+        adminLocationCode: "BAU",
+        streetAddress: "Baucau Rural Area",
+        preferredLanguage: "tet",
+        biography: "Farmer involved in agroforestry activities.",
+        notes: "Linked to Baucau pilot.",
+        accountActive: true,
+        dateJoined: new Date("2025-01-16T00:00:00Z"),
+      },
+      {
+        email: "developer@treeo2.local",
+        password: passwordHashes.developer,
+        name: "Developer User",
+        roleName: "Developer",
+        cardId: "CARD-DEV-001",
+        governmentId: "GOV-DEV-001",
+        gender: "Male",
+        disability: false,
+        countryIso2: "AU",
+        adminLocationCode: null,
+        streetAddress: "Melbourne Support Hub",
+        preferredLanguage: "en",
+        biography: "Maintains the technical platform.",
+        notes: "Support and development account.",
+        accountActive: true,
+        dateJoined: new Date("2025-01-18T00:00:00Z"),
+      },
+    ];
+
+    const countryIdsByIso2 = {
+      TL: timorLeste.id,
+      AU: australia.id,
+    } as const;
+
+    const roleIdsByName = {
+      Farmer: roles.farmer.id,
+      Inspector: roles.inspector.id,
+      Manager: roles.manager.id,
+      Admin: roles.admin.id,
+      Developer: roles.developer.id,
+    } as const;
+
+    for (const user of users) {
+      await upsertUser(tx, {
+        email: user.email,
+        passwordHash: user.password,
+        name: user.name,
+        roleId: roleIdsByName[user.roleName as keyof typeof roleIdsByName],
+        cardId: user.cardId,
+        governmentId: user.governmentId,
+        gender: user.gender,
+        disability: user.disability,
+        countryId: countryIdsByIso2[user.countryIso2],
+        adminLocationId: user.adminLocationCode
+          ? locationIdsByCode[user.adminLocationCode]
+          : null,
+        streetAddress: user.streetAddress,
+        preferredLanguage: user.preferredLanguage,
         photoId: null,
-        batchId: 1,
-        deviceId: "DEVICE-01",
-        isArchived: false,
-        isCorrected: false,
-        correctedBy: null,
-        correctionReason: null,
-        isValid: true,
-        validationNotes: "Healthy sapling observed.",
-      },
-      {
-        id: 2,
-        fobId: "FOB-0002",
-        projectId: 1,
-        farmerId: farmer1.id,
-        inspectorId: inspector1.id,
-        speciesId: 3,
-        estimatedPlantedYear: 2022,
-        estimatedPlantedMonth: 11,
-        plantedDate: new Date("2022-11-20T00:00:00Z"),
-        heightM: new Prisma.Decimal("0.950"),
-        circumferenceCm: new Prisma.Decimal("5.600"),
-        diameterCm: new Prisma.Decimal("1.800"),
-        latitude: -8.5335,
-        longitude: 125.6338,
-        photoId: null,
-        batchId: 1,
-        deviceId: "DEVICE-01",
-        isArchived: false,
-        isCorrected: true,
-        correctedBy: manager.id,
-        correctionReason: "Corrected planting month after review.",
-        isValid: true,
-        validationNotes: "Data verified by manager.",
-      },
-      {
-        id: 3,
-        fobId: "FOB-0101",
-        projectId: 2,
-        farmerId: farmer2.id,
-        inspectorId: inspector2.id,
-        speciesId: 2,
-        estimatedPlantedYear: 2024,
-        estimatedPlantedMonth: 3,
-        plantedDate: new Date("2024-03-05T00:00:00Z"),
-        heightM: new Prisma.Decimal("1.800"),
-        circumferenceCm: new Prisma.Decimal("10.200"),
-        diameterCm: new Prisma.Decimal("3.100"),
-        latitude: -8.4662,
-        longitude: 126.4491,
-        photoId: null,
-        batchId: 2,
-        deviceId: "DEVICE-02",
-        isArchived: false,
-        isCorrected: false,
-        correctedBy: null,
-        correctionReason: null,
-        isValid: true,
-        validationNotes: "Strong early growth.",
-      },
-    ],
-    skipDuplicates: true,
-  });
+        biography: user.biography,
+        notes: user.notes,
+        accountActive: user.accountActive,
+        dateJoined: user.dateJoined,
+        canSignIn: true,
+        accessToken: null,
+        accessTokenCreated: null,
+        resetToken: null,
+        resetTokenExpires: null,
+      });
+    }
 
-  // 16. Tree Scan Audit
-  await prisma.treeScanAudit.createMany({
-    data: [
-      {
-        id: 1,
-        treeScanId: 2,
-        changedBy: manager.id,
-        changeReason: "Updated planting month",
-        oldData: { estimatedPlantedMonth: 10 },
-        newData: { estimatedPlantedMonth: 11 },
-        changedAt: new Date("2025-02-02T12:00:00Z"),
-      },
-    ],
-    skipDuplicates: true,
-  });
+    const admin = await tx.user.findUniqueOrThrow({
+      where: { email: "admin@treeo2.local" },
+    });
+    const manager = await tx.user.findUniqueOrThrow({
+      where: { email: "manager@treeo2.local" },
+    });
+    const inspector1 = await tx.user.findUniqueOrThrow({
+      where: { email: "inspector1@treeo2.local" },
+    });
+    const inspector2 = await tx.user.findUniqueOrThrow({
+      where: { email: "inspector2@treeo2.local" },
+    });
+    const farmer1 = await tx.user.findUniqueOrThrow({
+      where: { email: "farmer1@treeo2.local" },
+    });
+    const farmer2 = await tx.user.findUniqueOrThrow({
+      where: { email: "farmer2@treeo2.local" },
+    });
+    const developer = await tx.user.findUniqueOrThrow({
+      where: { email: "developer@treeo2.local" },
+    });
 
-  // 17. Adopters
-  await prisma.adopter.createMany({
-    data: [
-      { id: 1, name: "Green Earth Donor", email: "donor1@example.com" },
-      { id: 2, name: "Eco Supporter", email: "donor2@example.com" },
-    ],
-    skipDuplicates: true,
-  });
+    await tx.userRoleAssignment.createMany({
+      data: [
+        { userId: admin.id, roleId: roles.admin.id },
+        { userId: manager.id, roleId: roles.manager.id },
+        { userId: inspector1.id, roleId: roles.inspector.id },
+        { userId: inspector2.id, roleId: roles.inspector.id },
+        { userId: farmer1.id, roleId: roles.farmer.id },
+        { userId: farmer2.id, roleId: roles.farmer.id },
+        { userId: developer.id, roleId: roles.developer.id },
+      ],
+      skipDuplicates: true,
+    });
 
-  // 18. Adoptions
-  await prisma.adoption.createMany({
-    data: [
-      {
-        id: 1,
-        adopterId: 1,
-        fobId: "FOB-0001",
-        adoptedAt: new Date("2025-02-15T00:00:00Z"),
-      },
-      {
-        id: 2,
-        adopterId: 2,
-        fobId: "FOB-0101",
-        adoptedAt: new Date("2025-02-20T00:00:00Z"),
-      },
-    ],
-    skipDuplicates: true,
-  });
+    await tx.userProject.createMany({
+      data: [
+        { userId: manager.id, projectId: heraProject.id },
+        { userId: manager.id, projectId: baucauProject.id },
+        { userId: inspector1.id, projectId: heraProject.id },
+        { userId: inspector2.id, projectId: baucauProject.id },
+        { userId: farmer1.id, projectId: heraProject.id },
+        { userId: farmer2.id, projectId: baucauProject.id },
+      ],
+      skipDuplicates: true,
+    });
 
-  // 19. Reports
-  await prisma.report.createMany({
-    data: [
-      {
-        id: 1,
-        reportType: "Tree Survival Summary",
-        requestedBy: manager.id,
-        status: "COMPLETED",
-        parameters: { projectId: 1, month: "2025-02" },
-        outputUrl: "https://xyz.com/reports/tree-survival-summary.pdf",
-        completedAt: new Date("2025-02-28T10:00:00Z"),
-      },
-      {
-        id: 2,
-        reportType: "Inspector Activity Report",
-        requestedBy: admin.id,
-        status: "PENDING",
-        parameters: { inspectorId: inspector1.id },
-        outputUrl: null,
-        completedAt: null,
-      },
-    ],
-    skipDuplicates: true,
+    await tx.projectTreeType.createMany({
+      data: [
+        { projectId: heraProject.id, treeTypeId: mahogany.id },
+        { projectId: heraProject.id, treeTypeId: sandalwood.id },
+        { projectId: baucauProject.id, treeTypeId: teak.id },
+      ],
+      skipDuplicates: true,
+    });
+
+    const heraBatch = await upsertScanBatch(tx, {
+      inspectorId: inspector1.id,
+      projectId: heraProject.id,
+      uploadedAt: new Date("2025-02-01T09:00:00Z"),
+    });
+    const baucauBatch = await upsertScanBatch(tx, {
+      inspectorId: inspector2.id,
+      projectId: baucauProject.id,
+      uploadedAt: new Date("2025-02-10T11:30:00Z"),
+    });
+
+    const treeScan1 = await upsertTreeScan(tx, {
+      fobId: "FOB-0001",
+      projectId: heraProject.id,
+      farmerId: farmer1.id,
+      inspectorId: inspector1.id,
+      speciesId: mahogany.id,
+      estimatedPlantedYear: 2023,
+      estimatedPlantedMonth: 6,
+      plantedDate: new Date("2023-06-15T00:00:00Z"),
+      heightM: new Prisma.Decimal("1.450"),
+      circumferenceCm: new Prisma.Decimal("8.400"),
+      diameterCm: new Prisma.Decimal("2.700"),
+      latitude: -8.5331,
+      longitude: 125.6331,
+      photoId: null,
+      batchId: heraBatch.id,
+      deviceId: "DEVICE-01",
+      isArchived: false,
+      isCorrected: false,
+      correctedBy: null,
+      correctionReason: null,
+      isValid: true,
+      validationNotes: "Healthy sapling observed.",
+    });
+    const treeScan2 = await upsertTreeScan(tx, {
+      fobId: "FOB-0002",
+      projectId: heraProject.id,
+      farmerId: farmer1.id,
+      inspectorId: inspector1.id,
+      speciesId: sandalwood.id,
+      estimatedPlantedYear: 2022,
+      estimatedPlantedMonth: 11,
+      plantedDate: new Date("2022-11-20T00:00:00Z"),
+      heightM: new Prisma.Decimal("0.950"),
+      circumferenceCm: new Prisma.Decimal("5.600"),
+      diameterCm: new Prisma.Decimal("1.800"),
+      latitude: -8.5335,
+      longitude: 125.6338,
+      photoId: null,
+      batchId: heraBatch.id,
+      deviceId: "DEVICE-01",
+      isArchived: false,
+      isCorrected: true,
+      correctedBy: manager.id,
+      correctionReason: "Corrected planting month after review.",
+      isValid: true,
+      validationNotes: "Data verified by manager.",
+    });
+    const treeScan3 = await upsertTreeScan(tx, {
+      fobId: "FOB-0101",
+      projectId: baucauProject.id,
+      farmerId: farmer2.id,
+      inspectorId: inspector2.id,
+      speciesId: teak.id,
+      estimatedPlantedYear: 2024,
+      estimatedPlantedMonth: 3,
+      plantedDate: new Date("2024-03-05T00:00:00Z"),
+      heightM: new Prisma.Decimal("1.800"),
+      circumferenceCm: new Prisma.Decimal("10.200"),
+      diameterCm: new Prisma.Decimal("3.100"),
+      latitude: -8.4662,
+      longitude: 126.4491,
+      photoId: null,
+      batchId: baucauBatch.id,
+      deviceId: "DEVICE-02",
+      isArchived: false,
+      isCorrected: false,
+      correctedBy: null,
+      correctionReason: null,
+      isValid: true,
+      validationNotes: "Strong early growth.",
+    });
+
+    await upsertTreeScanAudit(tx, {
+      treeScanId: treeScan2.id,
+      changedBy: manager.id,
+      changeReason: "Updated planting month",
+      oldData: { estimatedPlantedMonth: 10 },
+      newData: { estimatedPlantedMonth: 11 },
+      changedAt: new Date("2025-02-02T12:00:00Z"),
+    });
+
+    const adopter1 = await upsertAdopter(tx, {
+      name: "Green Earth Donor",
+      email: "donor1@example.com",
+    });
+    const adopter2 = await upsertAdopter(tx, {
+      name: "Eco Supporter",
+      email: "donor2@example.com",
+    });
+
+    await upsertAdoption(tx, {
+      adopterId: adopter1.id,
+      fobId: treeScan1.fobId,
+      adoptedAt: new Date("2025-02-15T00:00:00Z"),
+    });
+    await upsertAdoption(tx, {
+      adopterId: adopter2.id,
+      fobId: treeScan3.fobId,
+      adoptedAt: new Date("2025-02-20T00:00:00Z"),
+    });
+
+    await upsertReport(tx, {
+      reportType: "Tree Survival Summary",
+      requestedBy: manager.id,
+      status: "COMPLETE",
+      parameters: { projectId: heraProject.id, month: "2025-02" },
+      outputUrl: "https://xyz.com/reports/tree-survival-summary.pdf",
+      completedAt: new Date("2025-02-28T10:00:00Z"),
+    });
+    await upsertReport(tx, {
+      reportType: "Inspector Activity Report",
+      requestedBy: admin.id,
+      status: "PENDING",
+      parameters: { inspectorId: inspector1.id },
+      outputUrl: null,
+      completedAt: null,
+    });
   });
 
   console.log("Seed completed successfully.");
+  console.log("Test login passwords are set to:");
+  console.log("Admin@123, Manager@123, Inspector1@123, Inspector2@123");
+  console.log("Farmer1@123, Farmer2@123, Developer@123");
 }
 
 void main()
