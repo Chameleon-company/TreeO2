@@ -1,6 +1,6 @@
 import { UserManagementService } from "../../src/modules/user-management/userManagement.service";
 import { prisma } from "../../src/lib/prisma";
-
+process.env.NODE_ENV = "test";
 jest.mock("../../src/lib/prisma", () => ({
   prisma: {
     user: {

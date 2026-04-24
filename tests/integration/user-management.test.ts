@@ -1,8 +1,19 @@
+// ✅ MUST BE FIRST (before imports)
+process.env.NODE_ENV = "test";
+
 import request from "supertest";
 import express from "express";
-import userRoutes from "../../src/modules/user-management/userManagement.routes";
-import { prisma } from "../../src/lib/prisma";
 
+// ✅ MOCK AUTH (bypass 401)
+jest.mock("../../src/middleware/auth.middleware", () => ({
+  authMiddleware: (req: any, res: any, next: any) => next(),
+}));
+
+jest.mock("../../src/middleware/role.middleware", () => ({
+  roleMiddleware: () => (req: any, res: any, next: any) => next(),
+}));
+
+// ✅ MOCK PRISMA
 jest.mock("../../src/lib/prisma", () => ({
   prisma: {
     user: {
@@ -18,17 +29,18 @@ jest.mock("../../src/lib/prisma", () => ({
   },
 }));
 
+import userRoutes from "../../src/modules/user-management/userManagement.routes";
+import { prisma } from "../../src/lib/prisma";
+
 const mockPrisma = prisma as any;
 
 describe("User Management - INTEGRATION TEST", () => {
-
   const app = express();
   app.use(express.json());
   app.use("/users", userRoutes);
 
   afterEach(() => jest.clearAllMocks());
 
-  // GET /users
   it("GET /users should return 200", async () => {
     mockPrisma.user.findMany.mockResolvedValue([{ id: 1, name: "John" }]);
 
@@ -38,7 +50,6 @@ describe("User Management - INTEGRATION TEST", () => {
     expect(Array.isArray(res.body)).toBe(true);
   });
 
-  // GET /users/:id
   it("GET /users/:id should return user", async () => {
     mockPrisma.user.findUnique.mockResolvedValue({ id: 1, name: "John" });
 
@@ -48,7 +59,6 @@ describe("User Management - INTEGRATION TEST", () => {
     expect(res.body.id).toBe(1);
   });
 
-  // POST /users
   it("POST /users should create user", async () => {
     mockPrisma.user.create.mockResolvedValue({ id: 1, name: "New User" });
 
@@ -63,7 +73,6 @@ describe("User Management - INTEGRATION TEST", () => {
     expect(res.status).toBe(201);
   });
 
-  // PUT /users/:id
   it("PUT /users/:id should update user", async () => {
     mockPrisma.user.update.mockResolvedValue({ id: 1, name: "Updated" });
 
@@ -74,10 +83,9 @@ describe("User Management - INTEGRATION TEST", () => {
     expect(res.status).toBe(200);
   });
 
-  // DELETE /users/:id
   it("DELETE /users/:id should delete user", async () => {
     mockPrisma.treeScan.findFirst.mockResolvedValue(null);
-    mockPrisma.user.delete.mockResolvedValue({} as any);
+    mockPrisma.user.delete.mockResolvedValue({});
 
     const res = await request(app).delete("/users/1");
 
