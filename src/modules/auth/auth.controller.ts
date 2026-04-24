@@ -47,6 +47,43 @@ export class AuthController {
     res.status(201).json(result);
   }
 
+  getProtectedTest(req: Request, res: Response): void {
+    const user = this.requireUser(req);
+    res.status(200).json({
+      success: true,
+      message: "Protected auth test endpoint reached",
+      data: {
+        user,
+        requestId: req.requestId ?? null,
+      },
+    });
+  }
+
+  getAdminTest(req: Request, res: Response): void {
+    const user = this.requireUser(req);
+    res.status(200).json({
+      success: true,
+      message: "Admin auth test endpoint reached",
+      data: {
+        user,
+        requestId: req.requestId ?? null,
+      },
+    });
+  }
+
+  getProjectScopeTest(req: Request, res: Response): void {
+    const user = this.requireUser(req);
+    res.status(200).json({
+      success: true,
+      message: "Project scope test endpoint reached",
+      data: {
+        user,
+        projectScope: req.projectScope ?? null,
+        requestId: req.requestId ?? null,
+      },
+    });
+  }
+
   private requireUser(req: Request): JwtPayload {
     if (!req.user) {
       throw new AppError(401, ERROR_CODES.AUTH_003, "AUTH_003");

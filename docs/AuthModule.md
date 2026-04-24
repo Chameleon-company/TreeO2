@@ -43,6 +43,11 @@ What is **not** implemented yet:
 
 All unfinished auth service methods currently return `501 Not Implemented` safely.
 
+Temporary development support:
+- a development-only auth mode is available through `auth.middleware.ts`
+- when `NODE_ENV=development` and `AUTH_DEV_MODE=true`, fixed local bearer tokens can be used for protected route development
+- this is intended only to unblock API development until real auth is implemented
+
 ---
 
 ## Folder Structure
@@ -87,6 +92,9 @@ Current endpoints:
 - `POST /auth/forgot-password`
 - `POST /auth/reset-password`
 - `GET /auth/me`
+- `GET /auth/test/protected`
+- `GET /auth/test/admin`
+- `GET /auth/test/project-scope`
 
 ### `src/modules/auth/auth.controller.ts`
 
@@ -166,6 +174,17 @@ Purpose:
 - validates bearer token presence
 - verifies JWT
 - attaches payload to `req.user`
+
+Current temporary development support:
+- if `AUTH_DEV_MODE=true` and the app is running in development mode
+- the middleware accepts fixed local dev tokens:
+  - `dev-admin-token`
+  - `dev-farmer-token`
+  - `dev-manager-token`
+  - `dev-inspector-token`
+  - `dev-developer-token`
+- these tokens attach a dev user payload to `req.user`
+- if no dev token matches, normal JWT verification still runs
 
 ### `src/middleware/role.middleware.ts`
 
@@ -268,6 +287,69 @@ Flow:
 3. controller calls service
 4. service throws `501`
 5. global error handler returns response
+
+---
+
+## Development-Only Auth Mode
+
+This repository currently supports a temporary local auth mode to allow protected API development before full auth is implemented.
+
+Required conditions:
+- `NODE_ENV=development`
+- `AUTH_DEV_MODE=true`
+
+Supported local bearer tokens:
+- `Bearer dev-admin-token`
+- `Bearer dev-farmer-token`
+- `Bearer dev-manager-token`
+- `Bearer dev-inspector-token`
+- `Bearer dev-developer-token`
+
+Purpose:
+- allow API teams to continue testing protected endpoints
+- allow role middleware testing before real login is implemented
+- avoid adding unsafe fake login endpoints
+
+Important:
+- this is local development support only
+- it must not be treated as the final authentication implementation
+- when `AUTH_DEV_MODE=false`, the dev tokens must be rejected and normal JWT verification must apply
+
+---
+
+## Auth Test Endpoints
+
+The auth module currently includes protected test endpoints to verify middleware behavior before and after enabling development-only auth mode.
+
+### `GET /auth/test/protected`
+
+Purpose:
+- verify basic auth middleware behavior
+
+Expected behavior:
+- no token -> `401`
+- invalid token -> `401`
+- valid dev token with `AUTH_DEV_MODE=true` -> `200`
+
+### `GET /auth/test/admin`
+
+Purpose:
+- verify role middleware behavior
+
+Expected behavior:
+- no token -> `401`
+- non-admin authenticated user -> `403`
+- admin dev token with `AUTH_DEV_MODE=true` -> `200`
+
+### `GET /auth/test/project-scope`
+
+Purpose:
+- verify project-scope middleware behavior
+
+Expected behavior:
+- no token -> `401`
+- missing or invalid `x-project-id` -> `403`
+- valid authenticated user plus valid `x-project-id` -> `200`
 
 ---
 

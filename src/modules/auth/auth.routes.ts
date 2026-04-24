@@ -1,5 +1,8 @@
 import { Router } from "express";
+import { env } from "../../config/env";
 import { authMiddleware } from "../../middleware/auth.middleware";
+import { projectScopeMiddleware } from "../../middleware/projectScope.middleware";
+import { roleMiddleware } from "../../middleware/role.middleware";
 import { validateMiddleware } from "../../middleware/validate.middleware";
 import { AuthController } from "./auth.controller";
 import "./auth.docs";
@@ -48,5 +51,29 @@ router.post(
 router.get("/me", authMiddleware, (req, res, next) => {
   void authController.me(req, res).catch(next);
 });
+
+if (env.NODE_ENV === "development" && env.AUTH_DEV_MODE) {
+  router.get("/test/protected", authMiddleware, (req, res) => {
+    authController.getProtectedTest(req, res);
+  });
+
+  router.get(
+    "/test/admin",
+    authMiddleware,
+    roleMiddleware(["ADMIN"]),
+    (req, res) => {
+      authController.getAdminTest(req, res);
+    },
+  );
+
+  router.get(
+    "/test/project-scope",
+    authMiddleware,
+    projectScopeMiddleware,
+    (req, res) => {
+      authController.getProjectScopeTest(req, res);
+    },
+  );
+}
 
 export default router;

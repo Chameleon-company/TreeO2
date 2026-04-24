@@ -68,4 +68,62 @@
  *         description: Unauthorized
  */
 
+/**
+ * @swagger
+ * /auth/test/protected:
+ *   get:
+ *     summary: Protected auth test endpoint
+ *     description: Development only. Temporary protected test route for auth middleware verification.
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Protected route reached
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /auth/test/admin:
+ *   get:
+ *     summary: Role-protected auth test endpoint
+ *     description: Development only. Temporary role-protected test route for auth and role middleware verification.
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Admin route reached
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+
+/**
+ * @swagger
+ * /auth/test/project-scope:
+ *   get:
+ *     summary: Project-scope auth test endpoint
+ *     description: Development only. Temporary project-scope test route for auth and project scope middleware verification.
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: header
+ *         name: x-project-id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Project-scope route reached
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+
 export {};
