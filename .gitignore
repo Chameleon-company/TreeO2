@@ -6,3 +6,4 @@ dist/
 logs/
 coverage/
 .DS_Store
+!.env.test.example

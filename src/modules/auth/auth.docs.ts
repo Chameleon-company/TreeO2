@@ -20,6 +20,75 @@
 
 /**
  * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *               - role
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 maxLength: 100
+ *                 example: Test User
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 maxLength: 300
+ *                 example: test@treeo2.com
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *                 maxLength: 72
+ *                 example: Test@1234
+ *               role:
+ *                 type: string
+ *                 enum: [FARMER, INSPECTOR, MANAGER, ADMIN, DEVELOPER]
+ *                 example: FARMER
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     name:
+ *                       type: string
+ *                       example: Test User
+ *                     email:
+ *                       type: string
+ *                       example: test@treeo2.com
+ *                     role:
+ *                       type: string
+ *                       example: FARMER
+ *       400:
+ *         description: Validation failed
+ *       409:
+ *         description: Email already exists
+ */
+/**
+
+/**
+ * @swagger
  * /auth/logout:
  *   post:
  *     summary: Logout endpoint scaffold
