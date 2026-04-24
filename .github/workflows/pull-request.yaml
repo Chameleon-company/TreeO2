@@ -16,6 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    env:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://treeo2_user:treeo2_password@localhost:5432/treeo2?schema=public
+      JWT_SECRET: test-secret-test-secret-test-secret-123456
+
     services:
       postgres:
         image: postgres:16
@@ -55,24 +60,17 @@ jobs:
 
       - name: Setup test database
         run: npx prisma db push
-        env:
-          NODE_ENV: development
-          DATABASE_URL: postgresql://treeo2_user:treeo2_password@localhost:5432/treeo2?schema=public
-          JWT_SECRET: test-secret-test-secret-test-secret-123456
 
       - name: Test
         run: npm run test:coverage
         env:
-          NODE_ENV: development
           PORT: 3000
-          DATABASE_URL: postgresql://treeo2_user:treeo2_password@localhost:5432/treeo2?schema=public
-          JWT_SECRET: test-secret-test-secret-test-secret-123456
           AUTH_DEV_MODE: true
           AUTH_DEV_ADMIN_TOKEN: dev-admin-token
           AUTH_DEV_MANAGER_TOKEN: dev-manager-token
           AUTH_DEV_INSPECTOR_TOKEN: dev-inspector-token
           AUTH_DEV_FARMER_TOKEN: dev-farmer-token
           AUTH_DEV_DEVELOPER_TOKEN: dev-developer-token
-          
+
       - name: Build
         run: npm run build
