@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { PrismaClient, Prisma } from "@prisma/client";
 
 import { hashPassword } from "../src/lib/bcrypt";
@@ -7,11 +6,13 @@ const prisma = new PrismaClient();
 
 type Tx = Prisma.TransactionClient;
 
+type RoleName = "Farmer" | "Inspector" | "Manager" | "Admin" | "Developer";
+
 type UserSeed = {
   email: string;
-  password: string;
+  passwordHash: string;
   name: string;
-  roleName: string;
+  roleName: RoleName;
   cardId: string;
   governmentId: string;
   gender: string;
@@ -212,9 +213,29 @@ async function upsertUser(
     resetTokenExpires: null;
   },
 ) {
+  const updateData = {
+    passwordHash: data.passwordHash,
+    name: data.name,
+    roleId: data.roleId,
+    cardId: data.cardId,
+    governmentId: data.governmentId,
+    gender: data.gender,
+    disability: data.disability,
+    countryId: data.countryId,
+    adminLocationId: data.adminLocationId,
+    streetAddress: data.streetAddress,
+    preferredLanguage: data.preferredLanguage,
+    photoId: data.photoId,
+    biography: data.biography,
+    notes: data.notes,
+    accountActive: data.accountActive,
+    dateJoined: data.dateJoined,
+    canSignIn: data.canSignIn,
+  };
+
   return tx.user.upsert({
     where: { email: data.email },
-    update: data,
+    update: updateData,
     create: data,
   });
 }
@@ -268,9 +289,17 @@ async function upsertTreeScan(
     validationNotes: string;
   },
 ) {
-  const existing = await tx.treeScan.findFirst({
+  const existingRows = await tx.treeScan.findMany({
     where: { fobId: data.fobId },
   });
+
+  if (existingRows.length > 1) {
+    throw new Error(
+      `Cannot seed TreeScan deterministically. Multiple rows found for fobId: ${data.fobId}`,
+    );
+  }
+
+  const existing = existingRows[0];
 
   if (existing) {
     return tx.treeScan.update({
@@ -311,10 +340,7 @@ async function upsertTreeScanAudit(
   return tx.treeScanAudit.create({ data });
 }
 
-async function upsertAdopter(
-  tx: Tx,
-  data: { name: string; email: string },
-) {
+async function upsertAdopter(tx: Tx, data: { name: string; email: string }) {
   const existing = await tx.adopter.findFirst({
     where: { email: data.email },
   });
@@ -381,14 +407,34 @@ async function upsertReport(
 async function main(): Promise<void> {
   console.log("Starting seed...");
 
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Seed script must not be run in production.");
+  }
+
+  if (process.env.ALLOW_SAMPLE_SEED !== "true") {
+    throw new Error("Set ALLOW_SAMPLE_SEED=true to run the sample seed script.");
+  }
+
   const passwordHashes = {
-    admin: await hashPassword("Admin@123"),
-    manager: await hashPassword("Manager@123"),
-    inspector1: await hashPassword("Inspector1@123"),
-    inspector2: await hashPassword("Inspector2@123"),
-    farmer1: await hashPassword("Farmer1@123"),
-    farmer2: await hashPassword("Farmer2@123"),
-    developer: await hashPassword("Developer@123"),
+    admin: await hashPassword(process.env.SEED_ADMIN_PASSWORD ?? "Admin@123"),
+    manager: await hashPassword(
+      process.env.SEED_MANAGER_PASSWORD ?? "Manager@123",
+    ),
+    inspector1: await hashPassword(
+      process.env.SEED_INSPECTOR1_PASSWORD ?? "Inspector1@123",
+    ),
+    inspector2: await hashPassword(
+      process.env.SEED_INSPECTOR2_PASSWORD ?? "Inspector2@123",
+    ),
+    farmer1: await hashPassword(
+      process.env.SEED_FARMER1_PASSWORD ?? "Farmer1@123",
+    ),
+    farmer2: await hashPassword(
+      process.env.SEED_FARMER2_PASSWORD ?? "Farmer2@123",
+    ),
+    developer: await hashPassword(
+      process.env.SEED_DEVELOPER_PASSWORD ?? "Developer@123",
+    ),
   };
 
   await prisma.$transaction(async (tx) => {
@@ -397,6 +443,7 @@ async function main(): Promise<void> {
       iso2: "TL",
       iso3: "TLS",
     });
+
     const australia = await upsertCountry(tx, {
       name: "Australia",
       iso2: "AU",
@@ -412,18 +459,21 @@ async function main(): Promise<void> {
       value: "TreeO2",
       context: "application",
     });
+
     await upsertLocalizedString(tx, {
       cultureCode: "tet",
       stringKey: "app.title",
       value: "TreeO2",
       context: "application",
     });
+
     await upsertLocalizedString(tx, {
       cultureCode: "en",
       stringKey: "report.status.complete",
       value: "Complete",
       context: "report",
     });
+
     await upsertLocalizedString(tx, {
       cultureCode: "tet",
       stringKey: "report.status.complete",
@@ -431,7 +481,6 @@ async function main(): Promise<void> {
       context: "report",
     });
 
-    // Match the app's current numeric role mapping on a fresh database.
     await upsertRole(tx, "Farmer");
     await upsertRole(tx, "Inspector");
     await upsertRole(tx, "Manager");
@@ -450,6 +499,7 @@ async function main(): Promise<void> {
       latitude: new Prisma.Decimal("-8.556900"),
       longitude: new Prisma.Decimal("125.560300"),
     });
+
     const cristoRei = await upsertLocation(tx, {
       countryId: timorLeste.id,
       parentId: dili.id,
@@ -459,6 +509,7 @@ async function main(): Promise<void> {
       latitude: new Prisma.Decimal("-8.540000"),
       longitude: new Prisma.Decimal("125.610000"),
     });
+
     const hera = await upsertLocation(tx, {
       countryId: timorLeste.id,
       parentId: cristoRei.id,
@@ -468,6 +519,7 @@ async function main(): Promise<void> {
       latitude: new Prisma.Decimal("-8.533300"),
       longitude: new Prisma.Decimal("125.633300"),
     });
+
     const baucau = await upsertLocation(tx, {
       countryId: timorLeste.id,
       parentId: null,
@@ -483,11 +535,13 @@ async function main(): Promise<void> {
       level: 1,
       name: "Municipality",
     });
+
     await upsertAdministrativeLevel(tx, {
       countryId: timorLeste.id,
       level: 2,
       name: "Administrative Post",
     });
+
     await upsertAdministrativeLevel(tx, {
       countryId: timorLeste.id,
       level: 3,
@@ -500,12 +554,14 @@ async function main(): Promise<void> {
       scientificName: "Swietenia macrophylla",
       dryWeightDensity: new Prisma.Decimal("595.000"),
     });
+
     const teak = await upsertTreeType(tx, {
       name: "Teak",
       key: "teak",
       scientificName: "Tectona grandis",
       dryWeightDensity: new Prisma.Decimal("660.000"),
     });
+
     const sandalwood = await upsertTreeType(tx, {
       name: "Sandalwood",
       key: "sandalwood",
@@ -520,6 +576,7 @@ async function main(): Promise<void> {
       adminLocationId: hera.id,
       isActive: true,
     });
+
     const baucauProject = await upsertProject(tx, {
       name: "Baucau Agroforestry Pilot",
       description: "Agroforestry monitoring and survival tracking in Baucau.",
@@ -547,10 +604,23 @@ async function main(): Promise<void> {
       BAU: baucau.id,
     } as const;
 
+    const countryIdsByIso2 = {
+      TL: timorLeste.id,
+      AU: australia.id,
+    } as const;
+
+    const roleIdsByName: Record<RoleName, number> = {
+      Farmer: roles.farmer.id,
+      Inspector: roles.inspector.id,
+      Manager: roles.manager.id,
+      Admin: roles.admin.id,
+      Developer: roles.developer.id,
+    };
+
     const users: UserSeed[] = [
       {
         email: "admin@treeo2.local",
-        password: passwordHashes.admin,
+        passwordHash: passwordHashes.admin,
         name: "TreeO2 Admin",
         roleName: "Admin",
         cardId: "CARD-ADM-001",
@@ -568,7 +638,7 @@ async function main(): Promise<void> {
       },
       {
         email: "manager@treeo2.local",
-        password: passwordHashes.manager,
+        passwordHash: passwordHashes.manager,
         name: "Project Manager",
         roleName: "Manager",
         cardId: "CARD-MGR-001",
@@ -586,7 +656,7 @@ async function main(): Promise<void> {
       },
       {
         email: "inspector1@treeo2.local",
-        password: passwordHashes.inspector1,
+        passwordHash: passwordHashes.inspector1,
         name: "Field Inspector One",
         roleName: "Inspector",
         cardId: "CARD-INS-001",
@@ -604,7 +674,7 @@ async function main(): Promise<void> {
       },
       {
         email: "inspector2@treeo2.local",
-        password: passwordHashes.inspector2,
+        passwordHash: passwordHashes.inspector2,
         name: "Field Inspector Two",
         roleName: "Inspector",
         cardId: "CARD-INS-002",
@@ -622,7 +692,7 @@ async function main(): Promise<void> {
       },
       {
         email: "farmer1@treeo2.local",
-        password: passwordHashes.farmer1,
+        passwordHash: passwordHashes.farmer1,
         name: "Farmer One",
         roleName: "Farmer",
         cardId: "CARD-FAR-001",
@@ -640,7 +710,7 @@ async function main(): Promise<void> {
       },
       {
         email: "farmer2@treeo2.local",
-        password: passwordHashes.farmer2,
+        passwordHash: passwordHashes.farmer2,
         name: "Farmer Two",
         roleName: "Farmer",
         cardId: "CARD-FAR-002",
@@ -658,7 +728,7 @@ async function main(): Promise<void> {
       },
       {
         email: "developer@treeo2.local",
-        password: passwordHashes.developer,
+        passwordHash: passwordHashes.developer,
         name: "Developer User",
         roleName: "Developer",
         cardId: "CARD-DEV-001",
@@ -676,25 +746,12 @@ async function main(): Promise<void> {
       },
     ];
 
-    const countryIdsByIso2 = {
-      TL: timorLeste.id,
-      AU: australia.id,
-    } as const;
-
-    const roleIdsByName = {
-      Farmer: roles.farmer.id,
-      Inspector: roles.inspector.id,
-      Manager: roles.manager.id,
-      Admin: roles.admin.id,
-      Developer: roles.developer.id,
-    } as const;
-
     for (const user of users) {
       await upsertUser(tx, {
         email: user.email,
-        passwordHash: user.password,
+        passwordHash: user.passwordHash,
         name: user.name,
-        roleId: roleIdsByName[user.roleName as keyof typeof roleIdsByName],
+        roleId: roleIdsByName[user.roleName],
         cardId: user.cardId,
         governmentId: user.governmentId,
         gender: user.gender,
@@ -721,21 +778,27 @@ async function main(): Promise<void> {
     const admin = await tx.user.findUniqueOrThrow({
       where: { email: "admin@treeo2.local" },
     });
+
     const manager = await tx.user.findUniqueOrThrow({
       where: { email: "manager@treeo2.local" },
     });
+
     const inspector1 = await tx.user.findUniqueOrThrow({
       where: { email: "inspector1@treeo2.local" },
     });
+
     const inspector2 = await tx.user.findUniqueOrThrow({
       where: { email: "inspector2@treeo2.local" },
     });
+
     const farmer1 = await tx.user.findUniqueOrThrow({
       where: { email: "farmer1@treeo2.local" },
     });
+
     const farmer2 = await tx.user.findUniqueOrThrow({
       where: { email: "farmer2@treeo2.local" },
     });
+
     const developer = await tx.user.findUniqueOrThrow({
       where: { email: "developer@treeo2.local" },
     });
@@ -779,6 +842,7 @@ async function main(): Promise<void> {
       projectId: heraProject.id,
       uploadedAt: new Date("2025-02-01T09:00:00Z"),
     });
+
     const baucauBatch = await upsertScanBatch(tx, {
       inspectorId: inspector2.id,
       projectId: baucauProject.id,
@@ -809,6 +873,7 @@ async function main(): Promise<void> {
       isValid: true,
       validationNotes: "Healthy sapling observed.",
     });
+
     const treeScan2 = await upsertTreeScan(tx, {
       fobId: "FOB-0002",
       projectId: heraProject.id,
@@ -833,6 +898,7 @@ async function main(): Promise<void> {
       isValid: true,
       validationNotes: "Data verified by manager.",
     });
+
     const treeScan3 = await upsertTreeScan(tx, {
       fobId: "FOB-0101",
       projectId: baucauProject.id,
@@ -871,6 +937,7 @@ async function main(): Promise<void> {
       name: "Green Earth Donor",
       email: "donor1@example.com",
     });
+
     const adopter2 = await upsertAdopter(tx, {
       name: "Eco Supporter",
       email: "donor2@example.com",
@@ -881,6 +948,7 @@ async function main(): Promise<void> {
       fobId: treeScan1.fobId,
       adoptedAt: new Date("2025-02-15T00:00:00Z"),
     });
+
     await upsertAdoption(tx, {
       adopterId: adopter2.id,
       fobId: treeScan3.fobId,
@@ -895,6 +963,7 @@ async function main(): Promise<void> {
       outputUrl: "https://xyz.com/reports/tree-survival-summary.pdf",
       completedAt: new Date("2025-02-28T10:00:00Z"),
     });
+
     await upsertReport(tx, {
       reportType: "Inspector Activity Report",
       requestedBy: admin.id,
@@ -906,9 +975,7 @@ async function main(): Promise<void> {
   });
 
   console.log("Seed completed successfully.");
-  console.log("Test login passwords are set to:");
-  console.log("Admin@123, Manager@123, Inspector1@123, Inspector2@123");
-  console.log("Farmer1@123, Farmer2@123, Developer@123");
+  console.log("Test login accounts were seeded.");
 }
 
 void main()
@@ -916,6 +983,6 @@ void main()
     console.error("Seed failed", err);
     process.exit(1);
   })
-  .finally(() => {
-    void prisma.$disconnect();
+  .finally(async () => {
+    await prisma.$disconnect();
   });
