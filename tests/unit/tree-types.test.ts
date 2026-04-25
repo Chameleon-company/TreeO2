@@ -1,4 +1,5 @@
 const prismaMock = {
+  $transaction: jest.fn(),
   treeType: {
     findMany: jest.fn(),
     findUnique: jest.fn(),
@@ -47,6 +48,9 @@ describe("TreeTypesService", () => {
   beforeEach(() => {
     service = new TreeTypesService();
     jest.clearAllMocks();
+    prismaMock.$transaction.mockImplementation(async (callback) =>
+      callback(prismaMock),
+    );
     prismaMock.projectTreeType.count.mockResolvedValue(0);
     prismaMock.treeScan.count.mockResolvedValue(0);
   });
@@ -200,6 +204,21 @@ describe("TreeTypesService", () => {
         message: "Tree type key already exists",
       });
     });
+
+    it("should map a database unique violation to a conflict", async () => {
+      prismaMock.treeType.findFirst.mockResolvedValue(null);
+      prismaMock.treeType.create.mockRejectedValue({ code: "P2002" });
+
+      await expect(
+        service.createTreeType({
+          name: "Eucalyptus",
+          key: "eucalyptus",
+        }),
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        message: "Tree type key already exists",
+      });
+    });
   });
 
   describe("updateTreeType", () => {
@@ -235,6 +254,19 @@ describe("TreeTypesService", () => {
         message: "Tree type not found",
       });
     });
+
+    it("should map an update race on the unique key to a conflict", async () => {
+      prismaMock.treeType.findUnique.mockResolvedValue(makeTreeTypeRecord());
+      prismaMock.treeType.findFirst.mockResolvedValue(null);
+      prismaMock.treeType.update.mockRejectedValue({ code: "P2002" });
+
+      await expect(
+        service.updateTreeType(1, { key: "eucalyptus" }),
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        message: "Tree type key already exists",
+      });
+    });
   });
 
   describe("deleteTreeType", () => {
@@ -268,7 +300,6 @@ describe("TreeTypesService", () => {
     });
 
     it("should block delete when referenced by tree-scans", async () => {
-      prismaMock.treeType.findUnique.mockResolvedValue(makeTreeTypeRecord());
       prismaMock.projectTreeType.count.mockResolvedValue(0);
       prismaMock.treeScan.count.mockResolvedValue(1);
 
@@ -278,6 +309,16 @@ describe("TreeTypesService", () => {
           "Tree type cannot be deleted because it is referenced by other records",
       });
       expect(prismaMock.treeType.delete).not.toHaveBeenCalled();
+    });
+
+    it("should map a foreign key race during delete to a conflict", async () => {
+      prismaMock.$transaction.mockRejectedValue({ code: "P2003" });
+
+      await expect(service.deleteTreeType(1)).rejects.toMatchObject({
+        statusCode: 409,
+        message:
+          "Tree type cannot be deleted because it is referenced by other records",
+      });
     });
   });
 });

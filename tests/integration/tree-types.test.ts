@@ -12,6 +12,7 @@ process.env.AUTH_DEV_ADMIN_TOKEN = "test-admin-token";
 process.env.AUTH_DEV_MANAGER_TOKEN = "test-manager-token";
 
 const prismaMock = {
+  $transaction: jest.fn(),
   treeType: {
     findMany: jest.fn(),
     findUnique: jest.fn(),
@@ -79,6 +80,9 @@ describe("Tree Types API", () => {
     app = createApp();
     jest.clearAllMocks();
 
+    prismaMock.$transaction.mockImplementation(async (callback) =>
+      callback(prismaMock),
+    );
     prismaMock.projectTreeType.count.mockResolvedValue(0);
     prismaMock.treeScan.count.mockResolvedValue(0);
   });
@@ -339,6 +343,22 @@ describe("Tree Types API", () => {
       expect(response.status).toBe(409);
       expect(response.body.message).toBe("Tree type key already exists");
     });
+
+    it("should return 409 when the database raises a unique violation", async () => {
+      prismaMock.treeType.findFirst.mockResolvedValue(null);
+      prismaMock.treeType.create.mockRejectedValue({ code: "P2002" });
+
+      const response = await request(app)
+        .post("/tree-types")
+        .set(adminAuthHeader)
+        .send({
+          name: "Eucalyptus",
+          key: "eucalyptus",
+        });
+
+      expect(response.status).toBe(409);
+      expect(response.body.message).toBe("Tree type key already exists");
+    });
   });
 
   describe("PUT /tree-types/:id", () => {
@@ -450,6 +470,22 @@ describe("Tree Types API", () => {
       expect(response.status).toBe(409);
       expect(response.body.message).toBe("Tree type key already exists");
     });
+
+    it("should return 409 when update hits a database unique violation", async () => {
+      prismaMock.treeType.findUnique.mockResolvedValue(makeTreeTypeRecord());
+      prismaMock.treeType.findFirst.mockResolvedValue(null);
+      prismaMock.treeType.update.mockRejectedValue({ code: "P2002" });
+
+      const response = await request(app)
+        .put("/tree-types/1")
+        .set(adminAuthHeader)
+        .send({
+          key: "duplicate-key",
+        });
+
+      expect(response.status).toBe(409);
+      expect(response.body.message).toBe("Tree type key already exists");
+    });
   });
 
   describe("DELETE /tree-types/:id", () => {
@@ -521,7 +557,6 @@ describe("Tree Types API", () => {
     });
 
     it("should return 409 when referenced by tree-scans", async () => {
-      prismaMock.treeType.findUnique.mockResolvedValue(makeTreeTypeRecord());
       prismaMock.projectTreeType.count.mockResolvedValue(0);
       prismaMock.treeScan.count.mockResolvedValue(2);
 
@@ -534,6 +569,19 @@ describe("Tree Types API", () => {
         "Tree type cannot be deleted because it is referenced by other records",
       );
       expect(prismaMock.treeType.delete).not.toHaveBeenCalled();
+    });
+
+    it("should return 409 when the database raises a foreign key violation during delete", async () => {
+      prismaMock.$transaction.mockRejectedValue({ code: "P2003" });
+
+      const response = await request(app)
+        .delete("/tree-types/1")
+        .set(adminAuthHeader);
+
+      expect(response.status).toBe(409);
+      expect(response.body.message).toBe(
+        "Tree type cannot be deleted because it is referenced by other records",
+      );
     });
   });
 });

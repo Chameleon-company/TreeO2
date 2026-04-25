@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { logger } from "../../config/logger";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
@@ -16,6 +17,11 @@ interface TreeTypeResponse {
   updated_at: string;
 }
 
+const TREE_TYPE_NOT_FOUND_MESSAGE = "Tree type not found";
+const TREE_TYPE_DUPLICATE_KEY_MESSAGE = "Tree type key already exists";
+const TREE_TYPE_DELETE_REFERENCED_MESSAGE =
+  "Tree type cannot be deleted because it is referenced by other records";
+
 export class TreeTypesService {
   async listTreeTypes(): Promise<TreeTypeResponse[]> {
     const treeTypes = await prisma.treeType.findMany({
@@ -29,7 +35,7 @@ export class TreeTypesService {
     const treeType = await prisma.treeType.findUnique({ where: { id } });
 
     if (!treeType) {
-      throw new AppError(404, "Tree type not found", "DATA_001");
+      throw new AppError(404, TREE_TYPE_NOT_FOUND_MESSAGE, "DATA_001");
     }
 
     return this.toResponse(treeType);
@@ -40,22 +46,30 @@ export class TreeTypesService {
   ): Promise<TreeTypeResponse> {
     await this.ensureUniqueKey(payload.key);
 
-    const treeType = await prisma.treeType.create({
-      data: {
-        name: payload.name,
-        key: payload.key,
-        scientificName: payload.scientific_name,
-        dryWeightDensity: payload.dry_weight_density ?? 595,
-      },
-    });
+    try {
+      const treeType = await prisma.treeType.create({
+        data: {
+          name: payload.name,
+          key: payload.key,
+          scientificName: payload.scientific_name,
+          dryWeightDensity: payload.dry_weight_density ?? 595,
+        },
+      });
 
-    logger.info("Tree type created", {
-      treeTypeId: treeType.id,
-      key: treeType.key,
-      name: treeType.name,
-    });
+      logger.info("Tree type created", {
+        treeTypeId: treeType.id,
+        key: treeType.key,
+        name: treeType.name,
+      });
 
-    return this.toResponse(treeType);
+      return this.toResponse(treeType);
+    } catch (error) {
+      this.throwPersistenceConflict(
+        error,
+        TREE_TYPE_DUPLICATE_KEY_MESSAGE,
+        TREE_TYPE_DELETE_REFERENCED_MESSAGE,
+      );
+    }
   }
 
   async updateTreeType(
@@ -67,61 +81,81 @@ export class TreeTypesService {
     });
 
     if (!existingTreeType) {
-      throw new AppError(404, "Tree type not found", "DATA_001");
+      throw new AppError(404, TREE_TYPE_NOT_FOUND_MESSAGE, "DATA_001");
     }
 
     if (payload.key) {
       await this.ensureUniqueKey(payload.key, id);
     }
 
-    const treeType = await prisma.treeType.update({
-      where: { id },
-      data: {
-        name: payload.name,
-        key: payload.key,
-        scientificName: payload.scientific_name,
-        dryWeightDensity: payload.dry_weight_density,
-      },
-    });
+    try {
+      const treeType = await prisma.treeType.update({
+        where: { id },
+        data: {
+          name: payload.name,
+          key: payload.key,
+          scientificName: payload.scientific_name,
+          dryWeightDensity: payload.dry_weight_density,
+        },
+      });
 
-    logger.info("Tree type updated", {
-      treeTypeId: treeType.id,
-      key: treeType.key,
-      name: treeType.name,
-    });
+      logger.info("Tree type updated", {
+        treeTypeId: treeType.id,
+        key: treeType.key,
+        name: treeType.name,
+      });
 
-    return this.toResponse(treeType);
+      return this.toResponse(treeType);
+    } catch (error) {
+      this.throwPersistenceConflict(
+        error,
+        TREE_TYPE_DUPLICATE_KEY_MESSAGE,
+        TREE_TYPE_DELETE_REFERENCED_MESSAGE,
+      );
+    }
   }
 
   async deleteTreeType(id: number): Promise<void> {
-    const existingTreeType = await prisma.treeType.findUnique({
-      where: { id },
-    });
+    try {
+      const deletedTreeType = await prisma.$transaction(async (tx) => {
+        const existingTreeType = await tx.treeType.findUnique({
+          where: { id },
+        });
 
-    if (!existingTreeType) {
-      throw new AppError(404, "Tree type not found", "DATA_001");
-    }
+        if (!existingTreeType) {
+          throw new AppError(404, TREE_TYPE_NOT_FOUND_MESSAGE, "DATA_001");
+        }
 
-    const [projectTreeTypeReferences, treeScanReferences] = await Promise.all([
-      prisma.projectTreeType.count({ where: { treeTypeId: id } }),
-      prisma.treeScan.count({ where: { speciesId: id } }),
-    ]);
+        const [projectTreeTypeReferences, treeScanReferences] =
+          await Promise.all([
+            tx.projectTreeType.count({ where: { treeTypeId: id } }),
+            tx.treeScan.count({ where: { speciesId: id } }),
+          ]);
 
-    if (projectTreeTypeReferences > 0 || treeScanReferences > 0) {
-      throw new AppError(
-        409,
-        "Tree type cannot be deleted because it is referenced by other records",
-        "DATA_002",
+        if (projectTreeTypeReferences > 0 || treeScanReferences > 0) {
+          throw new AppError(
+            409,
+            TREE_TYPE_DELETE_REFERENCED_MESSAGE,
+            "DATA_002",
+          );
+        }
+
+        await tx.treeType.delete({ where: { id } });
+        return existingTreeType;
+      });
+
+      logger.info("Tree type deleted", {
+        treeTypeId: id,
+        key: deletedTreeType.key,
+        name: deletedTreeType.name,
+      });
+    } catch (error) {
+      this.throwPersistenceConflict(
+        error,
+        TREE_TYPE_DUPLICATE_KEY_MESSAGE,
+        TREE_TYPE_DELETE_REFERENCED_MESSAGE,
       );
     }
-
-    await prisma.treeType.delete({ where: { id } });
-
-    logger.info("Tree type deleted", {
-      treeTypeId: id,
-      key: existingTreeType.key,
-      name: existingTreeType.name,
-    });
   }
 
   private async ensureUniqueKey(
@@ -140,8 +174,43 @@ export class TreeTypesService {
     });
 
     if (existingTreeType) {
-      throw new AppError(409, "Tree type key already exists", "DATA_002");
+      throw new AppError(409, TREE_TYPE_DUPLICATE_KEY_MESSAGE, "DATA_002");
     }
+  }
+
+  private throwPersistenceConflict(
+    error: unknown,
+    duplicateKeyMessage: string,
+    foreignKeyMessage: string,
+  ): never {
+    if (error instanceof AppError) {
+      throw error;
+    }
+
+    const errorCode =
+      typeof error === "object" && error !== null && "code" in error
+        ? (error as { code?: string }).code
+        : undefined;
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2002") {
+        throw new AppError(409, duplicateKeyMessage, "DATA_002");
+      }
+
+      if (error.code === "P2003") {
+        throw new AppError(409, foreignKeyMessage, "DATA_002");
+      }
+    }
+
+    if (errorCode === "P2002" || errorCode === "23505") {
+      throw new AppError(409, duplicateKeyMessage, "DATA_002");
+    }
+
+    if (errorCode === "P2003" || errorCode === "23503") {
+      throw new AppError(409, foreignKeyMessage, "DATA_002");
+    }
+
+    throw error;
   }
 
   private toResponse(treeType: {
