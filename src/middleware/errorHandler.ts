@@ -25,6 +25,7 @@ export const errorHandler = (
     stack: err.stack,
     url: req.url,
     method: req.method,
+    requestId: req.requestId ?? null,
   });
 
   if (err instanceof AppError) {
@@ -32,6 +33,7 @@ export const errorHandler = (
       success: false,
       message: err.message,
       code: err.code,
+      requestId: req.requestId ?? null,
     });
     return;
   }
@@ -41,19 +43,32 @@ export const errorHandler = (
       success: false,
       message: ERROR_CODES.VAL_001,
       errors: err.flatten().fieldErrors,
+      requestId: req.requestId ?? null,
     });
     return;
   }
 
   // Postgres unique violation
   if ((err as NodeJS.ErrnoException).code === "23505") {
-    res.status(409).json({ success: false, message: ERROR_CODES.DATA_002 });
+    res.status(409).json({
+      success: false,
+      message: ERROR_CODES.DATA_002,
+      requestId: req.requestId ?? null,
+    });
     return;
   }
 
-  res.status(500).json({ success: false, message: ERROR_CODES.SYS_001 });
+  res.status(500).json({
+    success: false,
+    message: ERROR_CODES.SYS_001,
+    requestId: req.requestId ?? null,
+  });
 };
 
 export const notFound = (req: Request, res: Response): void => {
-  res.status(404).json({ success: false, message: ERROR_CODES.DATA_001 });
+  res.status(404).json({
+    success: false,
+    message: ERROR_CODES.DATA_001,
+    requestId: req.requestId ?? null,
+  });
 };

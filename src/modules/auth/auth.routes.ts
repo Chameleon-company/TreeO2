@@ -9,6 +9,7 @@ import "./auth.docs";
 import {
   forgotPasswordSchema,
   loginSchema,
+  registerSchema,
   resetPasswordSchema,
 } from "./auth.schemas";
 
@@ -18,6 +19,14 @@ const authController = new AuthController();
 router.post("/login", validateMiddleware(loginSchema), (req, res, next) => {
   void authController.login(req, res).catch(next);
 });
+
+router.post(
+  "/register",
+  validateMiddleware(registerSchema),
+  (req, res, next) => {
+    void authController.register(req, res).catch(next);
+  },
+);
 
 router.post("/logout", authMiddleware, (req, res, next) => {
   void authController.logout(req, res).catch(next);
