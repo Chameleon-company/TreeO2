@@ -1,6 +1,13 @@
-process.env.DATABASE_URL =
-  process.env.DATABASE_URL ??
-  "postgresql://treeo2_user:treeo2_password@localhost:5432/treeo2?schema=public";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    "DATABASE_URL must be set in .env before running tree-types DB integration tests.",
+  );
+}
+
 process.env.JWT_SECRET =
   process.env.JWT_SECRET ?? "12345678901234567890123456789012";
 
