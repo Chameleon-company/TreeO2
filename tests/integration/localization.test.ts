@@ -1,171 +1,401 @@
 import {
+  afterAll,
   afterEach,
-  beforeAll,
   describe,
   expect,
   it,
-  jest,
 } from "@jest/globals";
-
-jest.mock("../../src/config/env", () => ({
-  env: {
-    NODE_ENV: "development",
-    LOG_TO_FILE: false,
-    PORT: 3000,
-    RATE_LIMIT_WINDOW_MS: 900000,
-    RATE_LIMIT_MAX: 100,
-    JWT_SECRET: "12345678901234567890123456789012",
-    JWT_EXPIRES_IN: "24h",
-    DATABASE_URL: "postgresql://user:pass@localhost:5432/treeo2",
-    DB_HOST: "localhost",
-    DB_PORT: 5432,
-    DB_NAME: "treeo2",
-    DB_USER: "treeo2_user",
-    DB_PASSWORD: "treeo2_password",
-  },
-}));
-
-import express, { type NextFunction, type Request, type Response } from "express";
+import "dotenv/config";
 import request from "supertest";
-import { errorHandler, notFound } from "../../src/middleware/errorHandler";
-import localizationRoutes from "../../src/modules/localization/localization.routes";
-import { LocalizationController } from "../../src/modules/localization/localization.controller";
+import { PrismaClient } from "@prisma/client";
 
-jest.mock("../../src/lib/prisma", () => ({
-  prisma: {
-    localizedString: {
-      findMany: jest.fn(),
-      create: jest.fn(),
-      findUnique: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    },
-  },
-}));
+process.env.NODE_ENV = "development";
 
-jest.mock("../../src/middleware/auth.middleware", () => ({
-  authMiddleware: (_req: Request, _res: Response, next: NextFunction) => next(),
-}));
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const app = require("../../src/app").default;
 
-jest.mock("../../src/middleware/role.middleware", () => ({
-  roleMiddleware:
-    () => (_req: Request, _res: Response, next: NextFunction) => next(),
-}));
+const prisma = new PrismaClient();
+
+const TOKENS = {
+  ADMIN: process.env.AUTH_DEV_ADMIN_TOKEN!,
+  MANAGER: process.env.AUTH_DEV_MANAGER_TOKEN!,
+  INSPECTOR: process.env.AUTH_DEV_INSPECTOR_TOKEN!,
+  FARMER: process.env.AUTH_DEV_FARMER_TOKEN!,
+  DEVELOPER: process.env.AUTH_DEV_DEVELOPER_TOKEN!,
+};
 
 describe("Localization API", () => {
-  const app = express();
+  const testKeyPrefix = "it.localization.";
+  const defaultCultureCode = "en-US";
+  const preferredCultureCode = "fr-FR";
+  const primaryCultureCode = "tst-INT1";
+  const secondaryCultureCode = "tst-INT2";
 
-  beforeAll(() => {
-    app.use(express.json());
-    app.use("/localized-strings", localizationRoutes);
-    app.use(notFound);
-    app.use(errorHandler);
+  const authHeader = (token: string) => ({
+    Authorization: `Bearer ${token}`,
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
+  afterEach(async () => {
+    await prisma.localizedString.deleteMany({
+      where: {
+        stringKey: {
+          startsWith: testKeyPrefix,
+        },
+      },
+    });
   });
 
-  it("handles GET /localized-strings", async () => {
-    const listSpy = jest
-      .spyOn(LocalizationController.prototype, "listLocalizedStrings")
-      .mockImplementationOnce(async (_req: Request, res: Response) => {
-        res.status(200).json({
-          success: true,
-          data: [
-            {
-              id: 1,
-              cultureCode: "en-US",
-              stringKey: "home.title",
-              value: "Welcome",
-              context: "API",
-            },
-          ],
-        });
+  afterAll(async () => {
+    await prisma.localizedString.deleteMany({
+      where: {
+        stringKey: {
+          startsWith: testKeyPrefix,
+        },
+      },
+    });
+    await prisma.culture.deleteMany({
+      where: {
+        code: {
+          in: [primaryCultureCode, secondaryCultureCode],
+        },
+      },
+    });
+    await prisma.$disconnect();
+  });
+
+  const ensureTestCultures = async (): Promise<void> => {
+    await prisma.culture.upsert({
+      where: { code: defaultCultureCode },
+      create: { code: defaultCultureCode, name: "English (US)" },
+      update: {},
+    });
+
+    await prisma.culture.upsert({
+      where: { code: preferredCultureCode },
+      create: { code: preferredCultureCode, name: "French" },
+      update: {},
+    });
+
+    await prisma.culture.upsert({
+      where: { code: primaryCultureCode },
+      create: { code: primaryCultureCode, name: "Integration Culture 1" },
+      update: {},
+    });
+
+    await prisma.culture.upsert({
+      where: { code: secondaryCultureCode },
+      create: { code: secondaryCultureCode, name: "Integration Culture 2" },
+      update: {},
+    });
+  };
+
+  it("returns 401 when auth header is missing", async () => {
+    const response = await request(app).get("/localized-strings");
+
+    expect(response.status).toBe(401);
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toBe("AUTH_003: Authentication required");
+  });
+
+  it("returns 403 for POST when role is not allowed", async () => {
+    const response = await request(app)
+      .post("/localized-strings")
+      .set(authHeader(TOKENS.FARMER))
+      .send({
+        cultureCode: primaryCultureCode,
+        stringKey: `${testKeyPrefix}forbidden`,
+        value: "Forbidden",
+        context: "ADMIN",
       });
 
-    const response = await request(app).get("/localized-strings");
+    expect(response.status).toBe(403);
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toBe("AUTH_004: Insufficient permissions");
+  });
+
+  it("handles GET /localized-strings with real database and filters", async () => {
+    await ensureTestCultures();
+    const keyA = `${testKeyPrefix}a.${Date.now()}`;
+    const keyB = `${testKeyPrefix}b.${Date.now()}`;
+
+    await prisma.localizedString.createMany({
+      data: [
+        {
+          cultureCode: primaryCultureCode,
+          stringKey: keyA,
+          value: "Hello",
+          context: "API",
+        },
+        {
+          cultureCode: secondaryCultureCode,
+          stringKey: keyB,
+          value: "Bonjour",
+          context: "MOBILE",
+        },
+      ],
+    });
+
+    const response = await request(app)
+      .get("/localized-strings")
+      .query({ cultureCode: primaryCultureCode, context: "API" })
+      .set(authHeader(TOKENS.MANAGER));
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
     expect(response.body.data).toHaveLength(1);
-    expect(listSpy).toHaveBeenCalledTimes(1);
+    expect(response.body.data[0].stringKey).toBe(keyA);
+    expect(response.body.data[0].cultureCode).toBe(primaryCultureCode);
   });
 
-  it("handles POST /localized-strings", async () => {
-    const createSpy = jest
-      .spyOn(LocalizationController.prototype, "createLocalizedString")
-      .mockImplementationOnce(async (_req: Request, res: Response) => {
-        res.status(201).json({
-          success: true,
-          data: {
-            id: 2,
-            cultureCode: "en-US",
-            stringKey: "auth.login",
-            value: "Login",
-            context: "ADMIN",
-          },
-        });
-      });
+  it("resolves GET /localized-strings by preferred_language with default fallback", async () => {
+    await ensureTestCultures();
+    const keyWithTranslation = `${testKeyPrefix}pref.translated.${Date.now()}`;
+    const keyFallbackOnly = `${testKeyPrefix}pref.fallback.${Date.now()}`;
 
-    const response = await request(app).post("/localized-strings").send({
-      cultureCode: "en-US",
-      stringKey: "auth.login",
-      value: "Login",
-      context: "ADMIN",
+    await prisma.localizedString.createMany({
+      data: [
+        {
+          cultureCode: defaultCultureCode,
+          stringKey: keyWithTranslation,
+          value: "Mango",
+          context: "API",
+        },
+        {
+          cultureCode: preferredCultureCode,
+          stringKey: keyWithTranslation,
+          value: "Mangue",
+          context: "API",
+        },
+        {
+          cultureCode: defaultCultureCode,
+          stringKey: keyFallbackOnly,
+          value: "Avocado",
+          context: "API",
+        },
+      ],
     });
+
+    const response = await request(app)
+      .get("/localized-strings")
+      .query({
+        preferred_language: preferredCultureCode,
+        context: "API",
+        string_keys: [keyWithTranslation, keyFallbackOnly],
+      })
+      .set(authHeader(TOKENS.MANAGER));
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data).toHaveLength(2);
+
+    const translated = response.body.data.find(
+      (item: { stringKey: string }) => item.stringKey === keyWithTranslation,
+    );
+    const fallback = response.body.data.find(
+      (item: { stringKey: string }) => item.stringKey === keyFallbackOnly,
+    );
+
+    expect(translated?.cultureCode).toBe(preferredCultureCode);
+    expect(translated?.value).toBe("Mangue");
+    expect(fallback?.cultureCode).toBe(defaultCultureCode);
+    expect(fallback?.value).toBe("Avocado");
+  });
+
+  it("handles POST /localized-strings with real database", async () => {
+    await ensureTestCultures();
+    const key = `${testKeyPrefix}create.${Date.now()}`;
+
+    const response = await request(app)
+      .post("/localized-strings")
+      .set(authHeader(TOKENS.ADMIN))
+      .send({
+        cultureCode: primaryCultureCode,
+        stringKey: key,
+        value: "Login",
+        context: "ADMIN",
+      });
 
     expect(response.status).toBe(201);
     expect(response.body.success).toBe(true);
-    expect(response.body.data.stringKey).toBe("auth.login");
-    expect(createSpy).toHaveBeenCalledTimes(1);
+    expect(response.body.data.stringKey).toBe(key);
+    expect(response.body.data.cultureCode).toBe(primaryCultureCode);
+  });
+
+  it("returns 400 for invalid POST payload", async () => {
+    const response = await request(app)
+      .post("/localized-strings")
+      .set(authHeader(TOKENS.ADMIN))
+      .send({
+        cultureCode: primaryCultureCode,
+        stringKey: `${testKeyPrefix}invalid.${Date.now()}`,
+        context: "ADMIN",
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toBe("VAL_001: Validation failed");
+    expect(response.body.errors.value).toBeDefined();
+  });
+
+  it("returns 400 for POST when culture does not exist", async () => {
+    const response = await request(app)
+      .post("/localized-strings")
+      .set(authHeader(TOKENS.ADMIN))
+      .send({
+        cultureCode: "zz-ZZ",
+        stringKey: `${testKeyPrefix}missing-culture.${Date.now()}`,
+        value: "Login",
+        context: "ADMIN",
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toBe("VAL_002: Invalid request body");
+  });
+
+  it("returns 500 for duplicate localized strings with current error mapping", async () => {
+    await ensureTestCultures();
+    const key = `${testKeyPrefix}duplicate.${Date.now()}`;
+
+    await prisma.localizedString.create({
+      data: {
+        cultureCode: primaryCultureCode,
+        stringKey: key,
+        value: "Existing",
+        context: "ADMIN",
+      },
+    });
+
+    const response = await request(app)
+      .post("/localized-strings")
+      .set(authHeader(TOKENS.ADMIN))
+      .send({
+        cultureCode: primaryCultureCode,
+        stringKey: key,
+        value: "Duplicate",
+        context: "ADMIN",
+      });
+
+    expect(response.status).toBe(500);
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toBe("SYS_001: Internal server error");
   });
 
   it("handles PUT /localized-strings/:id", async () => {
-    const updateSpy = jest
-      .spyOn(LocalizationController.prototype, "updateLocalizedString")
-      .mockImplementationOnce(async (_req: Request, res: Response) => {
-        res.status(200).json({
-          success: true,
-          data: {
-            id: 2,
-            cultureCode: "en-US",
-            stringKey: "auth.login",
-            value: "Sign in",
-            context: "ADMIN",
-          },
-        });
-      });
+    await ensureTestCultures();
+    const created = await prisma.localizedString.create({
+      data: {
+        cultureCode: primaryCultureCode,
+        stringKey: `${testKeyPrefix}update.${Date.now()}`,
+        value: "Login",
+        context: "ADMIN",
+      },
+    });
 
     const response = await request(app)
-      .put("/localized-strings/2")
-      .send({ value: "Sign in" });
+      .put(`/localized-strings/${created.id}`)
+      .set(authHeader(TOKENS.ADMIN))
+      .send({ value: "Sign in", cultureCode: secondaryCultureCode });
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
     expect(response.body.data.value).toBe("Sign in");
-    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(response.body.data.cultureCode).toBe(secondaryCultureCode);
+  });
+
+  it("returns 400 for invalid PUT id", async () => {
+    const response = await request(app)
+      .put("/localized-strings/not-a-number")
+      .set(authHeader(TOKENS.ADMIN))
+      .send({ value: "Sign in" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toBe("VAL_001: Validation failed");
+  });
+
+  it("returns 400 for PUT with empty payload", async () => {
+    const response = await request(app)
+      .put("/localized-strings/1")
+      .set(authHeader(TOKENS.ADMIN))
+      .send({});
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toBe("VAL_001: Validation failed");
+  });
+
+  it("returns 404 for PUT when target does not exist", async () => {
+    const response = await request(app)
+      .put("/localized-strings/999999")
+      .set(authHeader(TOKENS.ADMIN))
+      .send({ value: "Sign in" });
+
+    expect(response.status).toBe(404);
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toBe("DATA_001: Resource not found");
+  });
+
+  it("returns 400 for PUT when new culture does not exist", async () => {
+    await ensureTestCultures();
+    const created = await prisma.localizedString.create({
+      data: {
+        cultureCode: primaryCultureCode,
+        stringKey: `${testKeyPrefix}update-missing-culture.${Date.now()}`,
+        value: "Login",
+        context: "ADMIN",
+      },
+    });
+
+    const response = await request(app)
+      .put(`/localized-strings/${created.id}`)
+      .set(authHeader(TOKENS.ADMIN))
+      .send({ cultureCode: "zz-ZZ" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toBe("VAL_002: Invalid request body");
   });
 
   it("handles DELETE /localized-strings/:id", async () => {
-    const deleteSpy = jest
-      .spyOn(LocalizationController.prototype, "deleteLocalizedString")
-      .mockImplementationOnce(async (_req: Request, res: Response) => {
-        res.status(200).json({
-          success: true,
-          message: "Localized string deleted successfully",
-        });
-      });
+    await ensureTestCultures();
+    const created = await prisma.localizedString.create({
+      data: {
+        cultureCode: primaryCultureCode,
+        stringKey: `${testKeyPrefix}delete.${Date.now()}`,
+        value: "Delete me",
+        context: "ADMIN",
+      },
+    });
 
-    const response = await request(app).delete("/localized-strings/2");
+    const response = await request(app)
+      .delete(`/localized-strings/${created.id}`)
+      .set(authHeader(TOKENS.ADMIN));
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
-    expect(deleteSpy).toHaveBeenCalledTimes(1);
+    expect(response.body.message).toBe("Localized string deleted successfully");
+
+    const inDb = await prisma.localizedString.findUnique({
+      where: { id: created.id },
+    });
+    expect(inDb).toBeNull();
+  });
+
+  it("returns 404 for DELETE when target does not exist", async () => {
+    const response = await request(app)
+      .delete("/localized-strings/999999")
+      .set(authHeader(TOKENS.ADMIN));
+
+    expect(response.status).toBe(404);
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toBe("DATA_001: Resource not found");
   });
 
   it("returns 404 for unknown localization endpoint", async () => {
-    const response = await request(app).get("/localized-strings/unknown/path");
+    const response = await request(app)
+      .get("/localized-strings/unknown/path")
+      .set(authHeader(TOKENS.MANAGER));
 
     expect(response.status).toBe(404);
     expect(response.body.success).toBe(false);

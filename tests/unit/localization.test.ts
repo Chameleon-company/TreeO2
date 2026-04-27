@@ -88,6 +88,70 @@ describe("LocalizationService", () => {
     });
   });
 
+  it("uses empty where clause when listLocalizedStrings has no filters", async () => {
+    localizedStringModel.findMany.mockResolvedValueOnce([]);
+
+    await service.listLocalizedStrings({});
+
+    expect(localizedStringModel.findMany).toHaveBeenCalledWith({
+      where: {},
+      orderBy: [
+        { cultureCode: "asc" },
+        { context: "asc" },
+        { stringKey: "asc" },
+      ],
+    });
+  });
+
+  it("resolves localized strings by preferredLanguage with fallback", async () => {
+    localizedStringModel.findMany.mockResolvedValueOnce([
+      {
+        id: 1,
+        cultureCode: "en-US",
+        stringKey: "tree.oak",
+        value: "Oak",
+        context: "API",
+      },
+      {
+        id: 2,
+        cultureCode: "fr-FR",
+        stringKey: "tree.oak",
+        value: "Chene",
+        context: "API",
+      },
+      {
+        id: 3,
+        cultureCode: "en-US",
+        stringKey: "tree.pine",
+        value: "Pine",
+        context: "API",
+      },
+    ]);
+
+    const results = await service.listLocalizedStrings({
+      preferredLanguage: "fr-FR",
+      context: "API",
+    });
+
+    expect(localizedStringModel.findMany).toHaveBeenCalledWith({
+      where: {
+        context: "API",
+        cultureCode: {
+          in: ["fr-FR", "en-US"],
+        },
+      },
+      orderBy: [{ stringKey: "asc" }, { cultureCode: "asc" }],
+    });
+
+    expect(results).toHaveLength(2);
+    expect(results.find((item) => item.stringKey === "tree.oak")?.cultureCode).toBe(
+      "fr-FR",
+    );
+    expect(results.find((item) => item.stringKey === "tree.pine")?.cultureCode).toBe(
+      "en-US",
+    );
+  });
+
   it("creates a localized string", async () => {
     const payload = {
       cultureCode: "en-US",
@@ -133,6 +197,55 @@ describe("LocalizationService", () => {
       where: { id: 10 },
       data: { value: "Hello" },
     });
+  });
+
+  it("validates culture when updating cultureCode", async () => {
+    localizedStringModel.findUnique.mockResolvedValueOnce({
+      id: 12,
+      cultureCode: "en-US",
+      stringKey: "home.title",
+      value: "Welcome",
+      context: "API",
+    });
+    cultureModel.findUnique.mockResolvedValueOnce({ code: "fr-FR" });
+    localizedStringModel.update.mockResolvedValueOnce({
+      id: 12,
+      cultureCode: "fr-FR",
+      stringKey: "home.title",
+      value: "Bienvenue",
+      context: "API",
+    });
+
+    await service.updateLocalizedString(12, {
+      cultureCode: "fr-FR",
+      value: "Bienvenue",
+    });
+
+    expect(cultureModel.findUnique).toHaveBeenCalledWith({
+      where: { code: "fr-FR" },
+      select: { code: true },
+    });
+    expect(localizedStringModel.update).toHaveBeenCalledWith({
+      where: { id: 12 },
+      data: { cultureCode: "fr-FR", value: "Bienvenue" },
+    });
+  });
+
+  it("throws VAL_002 when update culture does not exist", async () => {
+    localizedStringModel.findUnique.mockResolvedValueOnce({
+      id: 13,
+      cultureCode: "en-US",
+      stringKey: "home.title",
+      value: "Welcome",
+      context: "API",
+    });
+    cultureModel.findUnique.mockResolvedValueOnce(null);
+
+    await expect(
+      service.updateLocalizedString(13, { cultureCode: "zz-ZZ" }),
+    ).rejects.toEqual(new AppError(400, ERROR_CODES.VAL_002, "VAL_002"));
+
+    expect(localizedStringModel.update).not.toHaveBeenCalled();
   });
 
   it("throws DATA_001 when update target does not exist", async () => {

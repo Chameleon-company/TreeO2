@@ -2,7 +2,10 @@ import { LocalizedString } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { ERROR_CODES } from "../../utils/errorCodes";
-import { type LocalizationContext } from "./localization.constants";
+import {
+  DEFAULT_LOCALIZATION_CULTURE_CODE,
+  type LocalizationContext,
+} from "./localization.constants";
 
 export interface CreateLocalizedStringInput {
   cultureCode: string;
@@ -21,6 +24,9 @@ export interface UpdateLocalizedStringInput {
 export interface ListLocalizedStringsInput {
   cultureCode?: string;
   context?: LocalizationContext;
+  preferredLanguage?: string;
+  fallbackLanguage?: string;
+  stringKeys?: string[];
 }
 
 export class LocalizationService {
@@ -38,9 +44,61 @@ export class LocalizationService {
   async listLocalizedStrings(
     filters: ListLocalizedStringsInput,
   ): Promise<LocalizedString[]> {
+    if (filters.preferredLanguage) {
+      const preferredLanguage = filters.preferredLanguage;
+      const fallbackLanguage =
+        filters.fallbackLanguage ?? DEFAULT_LOCALIZATION_CULTURE_CODE;
+
+      const entries = await prisma.localizedString.findMany({
+        where: {
+          ...(filters.context ? { context: filters.context } : {}),
+          ...(filters.stringKeys?.length
+            ? {
+                stringKey: {
+                  in: filters.stringKeys,
+                },
+              }
+            : {}),
+          cultureCode: {
+            in: [preferredLanguage, fallbackLanguage],
+          },
+        },
+        orderBy: [{ stringKey: "asc" }, { cultureCode: "asc" }],
+      });
+
+      const localizedByKey = new Map<string, LocalizedString>();
+
+      for (const entry of entries) {
+        const existing = localizedByKey.get(entry.stringKey);
+
+        if (!existing) {
+          localizedByKey.set(entry.stringKey, entry);
+          continue;
+        }
+
+        if (
+          existing.cultureCode !== preferredLanguage &&
+          entry.cultureCode === preferredLanguage
+        ) {
+          localizedByKey.set(entry.stringKey, entry);
+        }
+      }
+
+      return Array.from(localizedByKey.values()).sort((a, b) =>
+        a.stringKey.localeCompare(b.stringKey),
+      );
+    }
+
     const where = {
       ...(filters.cultureCode ? { cultureCode: filters.cultureCode } : {}),
       ...(filters.context ? { context: filters.context } : {}),
+      ...(filters.stringKeys?.length
+        ? {
+            stringKey: {
+              in: filters.stringKeys,
+            },
+          }
+        : {}),
     };
 
     return prisma.localizedString.findMany({
