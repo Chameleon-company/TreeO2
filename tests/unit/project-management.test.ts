@@ -1,6 +1,6 @@
 import { ERROR_CODES } from "../../src/utils/errorCodes";
 import {
-  ProjectManagementService,
+    ProjectManagementService,
 } from "../../src/modules/project-management/projectManagement.service";
 
 jest.mock("@prisma/client", () => {
@@ -19,6 +19,15 @@ jest.mock("@prisma/client", () => {
             findUnique: jest.fn(),
         },
         treeScan: {
+            count: jest.fn(),
+        },
+        userProject: {
+            count: jest.fn(),
+        },
+        projectTreeType: {
+            count: jest.fn(),
+        },
+        scanBatch: {
             count: jest.fn(),
         },
     };
@@ -344,7 +353,7 @@ describe("ProjectManagementService", () => {
 
     // Tests for deleting a project.
     describe("deleteProject", () => {
-        it("should delete a project successfully when no dependent scans exist", async () => {
+        it("should delete a project successfully when no dependent records exist", async () => {
             const existingProject = {
                 id: 1,
                 name: "Reforestation Project",
@@ -352,11 +361,26 @@ describe("ProjectManagementService", () => {
 
             mockPrisma.project.findUnique.mockResolvedValue(existingProject);
             mockPrisma.treeScan.count.mockResolvedValue(0);
+            mockPrisma.userProject.count.mockResolvedValue(0);
+            mockPrisma.projectTreeType.count.mockResolvedValue(0);
+            mockPrisma.scanBatch.count.mockResolvedValue(0);
             mockPrisma.project.delete.mockResolvedValue(existingProject);
 
             const result = await service.deleteProject(1);
 
             expect(mockPrisma.treeScan.count).toHaveBeenCalledWith({
+                where: { projectId: 1 },
+            });
+
+            expect(mockPrisma.userProject.count).toHaveBeenCalledWith({
+                where: { projectId: 1 },
+            });
+
+            expect(mockPrisma.projectTreeType.count).toHaveBeenCalledWith({
+                where: { projectId: 1 },
+            });
+
+            expect(mockPrisma.scanBatch.count).toHaveBeenCalledWith({
                 where: { projectId: 1 },
             });
 
@@ -379,7 +403,7 @@ describe("ProjectManagementService", () => {
             });
         });
 
-        it("should throw VAL_001 when dependent scans exist", async () => {
+        it("should throw VAL_001 when dependent records exist", async () => {
             const existingProject = {
                 id: 1,
                 name: "Reforestation Project",
@@ -387,11 +411,14 @@ describe("ProjectManagementService", () => {
 
             mockPrisma.project.findUnique.mockResolvedValue(existingProject);
             mockPrisma.treeScan.count.mockResolvedValue(2);
+            mockPrisma.userProject.count.mockResolvedValue(0);
+            mockPrisma.projectTreeType.count.mockResolvedValue(0);
+            mockPrisma.scanBatch.count.mockResolvedValue(0);
 
             await expect(service.deleteProject(1)).rejects.toMatchObject({
                 statusCode: 409,
                 code: ERROR_CODES.VAL_001,
-                message: "Cannot delete project with dependent scans",
+                message: "Cannot delete project with dependent records",
             });
         });
     });

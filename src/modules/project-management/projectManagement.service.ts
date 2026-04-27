@@ -39,6 +39,14 @@ const assertCreatePayload = (data: CreateProjectInput) => {
     throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
   }
 
+  if (
+    data.description !== undefined &&
+    data.description !== null &&
+    typeof data.description !== "string"
+  ) {
+    throw new AppError(400, "Invalid description", ERROR_CODES.VAL_002);
+  }
+
   if (data.isActive !== undefined && typeof data.isActive !== "boolean") {
     throw new AppError(400, "Invalid isActive value", ERROR_CODES.VAL_002);
   }
@@ -56,6 +64,14 @@ const assertUpdatePayload = (data: UpdateProjectInput) => {
 
   if (data.name !== undefined && !isNonEmptyString(data.name)) {
     throw new AppError(400, "Invalid project name", ERROR_CODES.VAL_002);
+  }
+
+  if (
+    data.description !== undefined &&
+    data.description !== null &&
+    typeof data.description !== "string"
+  ) {
+    throw new AppError(400, "Invalid description", ERROR_CODES.VAL_002);
   }
 
   if (data.countryId !== undefined && !isPositiveInt(data.countryId)) {
@@ -269,7 +285,7 @@ export class ProjectManagementService {
     }
   }
 
-  // Deletes a project only when no dependent scans exist.
+  // Deletes a project only when no dependent records exist.
   async deleteProject(id: number) {
     if (!isPositiveInt(id)) {
       throw new AppError(400, "Invalid project id", ERROR_CODES.VAL_002);
@@ -278,14 +294,35 @@ export class ProjectManagementService {
     try {
       await ensureProjectExists(id);
 
-      const dependentScans = await prisma.treeScan.count({
-        where: { projectId: id },
-      });
+      const [
+        dependentScans,
+        dependentUserProjects,
+        dependentProjectTreeTypes,
+        dependentScanBatches,
+      ] = await Promise.all([
+        prisma.treeScan.count({
+          where: { projectId: id },
+        }),
+        prisma.userProject.count({
+          where: { projectId: id },
+        }),
+        prisma.projectTreeType.count({
+          where: { projectId: id },
+        }),
+        prisma.scanBatch.count({
+          where: { projectId: id },
+        }),
+      ]);
 
-      if (dependentScans > 0) {
+      if (
+        dependentScans > 0 ||
+        dependentUserProjects > 0 ||
+        dependentProjectTreeTypes > 0 ||
+        dependentScanBatches > 0
+      ) {
         throw new AppError(
           409,
-          "Cannot delete project with dependent scans",
+          "Cannot delete project with dependent records",
           ERROR_CODES.VAL_001,
         );
       }
@@ -301,6 +338,7 @@ export class ProjectManagementService {
       if (error instanceof AppError) {
         throw error;
       }
+
       throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
     }
   }
