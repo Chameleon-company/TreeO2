@@ -1,15 +1,7 @@
 import express from "express";
 import request from "supertest";
 
-process.env.NODE_ENV = "development";
-process.env.DATABASE_URL =
-  process.env.DATABASE_URL ??
-  "postgresql://treeo2_user:treeo2_password@localhost:5432/treeo2?schema=public";
-process.env.JWT_SECRET =
-  process.env.JWT_SECRET ?? "12345678901234567890123456789012";
-process.env.AUTH_DEV_MODE = "true";
-process.env.AUTH_DEV_ADMIN_TOKEN = "test-admin-token";
-process.env.AUTH_DEV_MANAGER_TOKEN = "test-manager-token";
+const originalEnv = { ...process.env };
 
 const prismaMock = {
   $transaction: jest.fn(),
@@ -40,13 +32,12 @@ jest.mock("../../src/config/logger", () => ({
   },
 }));
 
-const treeTypesRoutes = require("../../src/modules/tree-types/treeTypes.routes")
-  .default as express.Router;
-const { errorHandler } = require("../../src/middleware/errorHandler") as {
-  errorHandler: express.ErrorRequestHandler;
-};
-
 const createApp = (): express.Express => {
+  const treeTypesRoutes = require("../../src/modules/tree-types/treeTypes.routes")
+    .default as express.Router;
+  const { errorHandler } = require("../../src/middleware/errorHandler") as {
+    errorHandler: express.ErrorRequestHandler;
+  };
   const app = express();
   app.use(express.json());
   app.use("/tree-types", treeTypesRoutes);
@@ -75,6 +66,25 @@ const makeTreeTypeRecord = (overrides: Partial<Record<string, unknown>> = {}) =>
 
 describe("Tree Types API", () => {
   let app: express.Express;
+
+  beforeAll(() => {
+    process.env = {
+      ...originalEnv,
+      NODE_ENV: "development",
+      DATABASE_URL:
+        originalEnv.DATABASE_URL ??
+        "postgresql://treeo2_user:treeo2_password@localhost:5432/treeo2?schema=public",
+      JWT_SECRET:
+        originalEnv.JWT_SECRET ?? "12345678901234567890123456789012",
+      AUTH_DEV_MODE: "true",
+      AUTH_DEV_ADMIN_TOKEN: "test-admin-token",
+      AUTH_DEV_MANAGER_TOKEN: "test-manager-token",
+    };
+  });
+
+  afterAll(() => {
+    process.env = originalEnv;
+  });
 
   beforeEach(() => {
     app = createApp();

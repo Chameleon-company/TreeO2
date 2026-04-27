@@ -1,23 +1,27 @@
-import dotenv from "dotenv";
+export {};
 
-dotenv.config();
+const shouldRunDbTests = process.env.RUN_DB_TESTS === "true";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set in .env before running tree-types DB integration tests.",
-  );
+if (shouldRunDbTests) {
+  const dotenv = require("dotenv") as typeof import("dotenv");
+  dotenv.config();
+
+  if (!process.env.DATABASE_URL) {
+    throw new Error(
+      "DATABASE_URL must be set before running tree-types DB integration tests.",
+    );
+  }
+
+  process.env.JWT_SECRET =
+    process.env.JWT_SECRET ?? "12345678901234567890123456789012";
 }
 
-process.env.JWT_SECRET =
-  process.env.JWT_SECRET ?? "12345678901234567890123456789012";
-
-const describeIfDb =
-  process.env.RUN_DB_TESTS === "true" ? describe : describe.skip;
+const describeIfDb = shouldRunDbTests ? describe : describe.skip;
 
 let prisma: typeof import("../../src/lib/prisma")["prisma"];
 let TreeTypesService: typeof import("../../src/modules/tree-types/treeTypes.service")["TreeTypesService"];
 
-if (process.env.RUN_DB_TESTS === "true") {
+if (shouldRunDbTests) {
   ({ prisma } = require("../../src/lib/prisma") as typeof import("../../src/lib/prisma"));
   ({ TreeTypesService } = require("../../src/modules/tree-types/treeTypes.service") as typeof import("../../src/modules/tree-types/treeTypes.service"));
 }
