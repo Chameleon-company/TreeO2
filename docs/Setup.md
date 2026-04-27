@@ -78,6 +78,7 @@ docker compose ps
 
 ```bash
 npm run prisma:generate
+# Choose one:
 # If migration files already exist, use:
 npm run prisma:migrate:dev
 # If migration files do not exist yet and you only need to sync the local DB, use:
@@ -98,6 +99,7 @@ ALLOW_SAMPLE_SEED=true npm run prisma:seed
 
 > Seeds are for local/dev only — never run against production.
 > The sample seed expects a clean local database and is intentionally blocked unless `ALLOW_SAMPLE_SEED=true` is set.
+> The sample seed will only run when `NODE_ENV` is `development` or `test`.
 > Optional password overrides are available through `SEED_ADMIN_PASSWORD`, `SEED_MANAGER_PASSWORD`, `SEED_INSPECTOR1_PASSWORD`, `SEED_INSPECTOR2_PASSWORD`, `SEED_FARMER1_PASSWORD`, `SEED_FARMER2_PASSWORD`, and `SEED_DEVELOPER_PASSWORD`.
 
 ### 7. Start the dev server
@@ -161,6 +163,7 @@ docker compose up -d postgres
 
 # Terminal 2 — Prisma client/schema sync
 npm run prisma:generate
+# Choose one:
 # If migration files already exist, use:
 npm run prisma:migrate:dev
 # If migration files do not exist yet and you only need to sync the local DB, use:
@@ -208,6 +211,7 @@ docker compose down
 ```bash
 docker compose down -v       # removes the postgres_data volume
 docker compose up -d postgres
+# Choose one:
 # If migration files already exist, use:
 npm run prisma:migrate:dev
 # If migration files do not exist yet and you only need to sync the local DB, use:
@@ -228,6 +232,7 @@ npm run prisma:push
 | `npm run format` | Auto-format all source files with Prettier |
 | `npm run format:check` | Check formatting without writing |
 | `npm run type-check` | TypeScript type check without emitting |
+| `npm run type-check:seed` | Type-check `prisma/seed.ts` and its dependencies |
 | `npm run validate` | Run type-check + lint + format check (run before PRs) |
 | `npm run prisma:generate` | Generate Prisma client from the `prisma/` directory schema |
 | `npm run prisma:push` | Push schema directly to the database without creating migrations |

@@ -487,8 +487,12 @@ async function upsertReport(
 async function main(): Promise<void> {
   console.log("Starting seed...");
 
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("Seed script must not be run in production.");
+  const runtimeEnv = process.env.NODE_ENV ?? "development";
+
+  if (runtimeEnv !== "development" && runtimeEnv !== "test") {
+    throw new Error(
+      `Seed script must only run in development or test. Current NODE_ENV: ${runtimeEnv}`,
+    );
   }
 
   if (process.env.ALLOW_SAMPLE_SEED !== "true") {
