@@ -674,8 +674,8 @@ npm test -- --runInBand tests/unit/tree-types.test.ts tests/integration/tree-typ
 ### Current Limitations
 
 - auth and role checks depend on the existing scaffold and are not fully production-complete yet
-- duplicate key protection is currently handled in service logic, not by a visible DB uniqueness constraint
-- tests mock Prisma rather than using a real database
+- duplicate key protection is handled both in service logic and by a DB uniqueness constraint on `tree_types.key`
+- the default route integration suite still mocks Prisma, but optional DB-backed integration tests also exist for critical persistence behavior
 - there is not yet a dedicated `project-tree-types` deletion/assignment workflow connected to this document beyond reference checks
 
 ---
@@ -690,7 +690,7 @@ The `tree-types` module is now fully wired into the backend with:
 - authenticated read access
 - admin-only mutation access
 - reference-safe delete behavior
-- unit and integration test coverage
+- unit, mocked integration, and optional DB-backed integration test coverage
 
 This module now serves as one of the more complete examples of the project’s current module-based API structure and can be used as a reference for implementing similar CRUD-style master-data APIs.
 
