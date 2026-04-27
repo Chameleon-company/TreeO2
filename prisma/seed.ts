@@ -27,6 +27,14 @@ type UserSeed = {
   dateJoined: Date;
 };
 
+function getSingleOrThrow<T>(rows: T[], message: string): T | null {
+  if (rows.length > 1) {
+    throw new Error(message);
+  }
+
+  return rows[0] ?? null;
+}
+
 async function upsertCountry(
   tx: Tx,
   data: { name: string; iso2: string; iso3: string },
@@ -77,7 +85,10 @@ async function upsertRole(tx: Tx, name: string) {
 }
 
 async function upsertPartner(tx: Tx, name: string) {
-  const existing = await tx.partner.findFirst({ where: { name } });
+  const existing = getSingleOrThrow(
+    await tx.partner.findMany({ where: { name } }),
+    `Cannot seed Partner deterministically. Multiple rows found for name: ${name}`,
+  );
 
   if (existing) {
     return tx.partner.update({
@@ -101,12 +112,15 @@ async function upsertLocation(
     longitude: Prisma.Decimal | null;
   },
 ) {
-  const existing = await tx.location.findFirst({
-    where: {
-      countryId: data.countryId,
-      code: data.code,
-    },
-  });
+  const existing = getSingleOrThrow(
+    await tx.location.findMany({
+      where: {
+        countryId: data.countryId,
+        code: data.code,
+      },
+    }),
+    `Cannot seed Location deterministically. Multiple rows found for countryId=${data.countryId} and code=${String(data.code)}`,
+  );
 
   if (existing) {
     return tx.location.update({
@@ -122,12 +136,15 @@ async function upsertAdministrativeLevel(
   tx: Tx,
   data: { countryId: number; level: number; name: string },
 ) {
-  const existing = await tx.administrativeLevel.findFirst({
-    where: {
-      countryId: data.countryId,
-      level: data.level,
-    },
-  });
+  const existing = getSingleOrThrow(
+    await tx.administrativeLevel.findMany({
+      where: {
+        countryId: data.countryId,
+        level: data.level,
+      },
+    }),
+    `Cannot seed AdministrativeLevel deterministically. Multiple rows found for countryId=${data.countryId} and level=${data.level}`,
+  );
 
   if (existing) {
     return tx.administrativeLevel.update({
@@ -148,9 +165,12 @@ async function upsertTreeType(
     dryWeightDensity: Prisma.Decimal;
   },
 ) {
-  const existing = await tx.treeType.findFirst({
-    where: { key: data.key },
-  });
+  const existing = getSingleOrThrow(
+    await tx.treeType.findMany({
+      where: { key: data.key },
+    }),
+    `Cannot seed TreeType deterministically. Multiple rows found for key: ${data.key}`,
+  );
 
   if (existing) {
     return tx.treeType.update({
@@ -172,9 +192,12 @@ async function upsertProject(
     isActive: boolean;
   },
 ) {
-  const existing = await tx.project.findFirst({
-    where: { name: data.name },
-  });
+  const existing = getSingleOrThrow(
+    await tx.project.findMany({
+      where: { name: data.name },
+    }),
+    `Cannot seed Project deterministically. Multiple rows found for name: ${data.name}`,
+  );
 
   if (existing) {
     return tx.project.update({
@@ -244,13 +267,16 @@ async function upsertScanBatch(
   tx: Tx,
   data: { inspectorId: number; projectId: number; uploadedAt: Date },
 ) {
-  const existing = await tx.scanBatch.findFirst({
-    where: {
-      inspectorId: data.inspectorId,
-      projectId: data.projectId,
-      uploadedAt: data.uploadedAt,
-    },
-  });
+  const existing = getSingleOrThrow(
+    await tx.scanBatch.findMany({
+      where: {
+        inspectorId: data.inspectorId,
+        projectId: data.projectId,
+        uploadedAt: data.uploadedAt,
+      },
+    }),
+    `Cannot seed ScanBatch deterministically. Multiple rows found for inspectorId=${data.inspectorId}, projectId=${data.projectId}, uploadedAt=${data.uploadedAt.toISOString()}`,
+  );
 
   if (existing) {
     return tx.scanBatch.update({
@@ -293,13 +319,10 @@ async function upsertTreeScan(
     where: { fobId: data.fobId },
   });
 
-  if (existingRows.length > 1) {
-    throw new Error(
-      `Cannot seed TreeScan deterministically. Multiple rows found for fobId: ${data.fobId}`,
-    );
-  }
-
-  const existing = existingRows[0];
+  const existing = getSingleOrThrow(
+    existingRows,
+    `Cannot seed TreeScan deterministically. Multiple rows found for fobId: ${data.fobId}`,
+  );
 
   if (existing) {
     return tx.treeScan.update({
@@ -322,13 +345,16 @@ async function upsertTreeScanAudit(
     changedAt: Date;
   },
 ) {
-  const existing = await tx.treeScanAudit.findFirst({
-    where: {
-      treeScanId: data.treeScanId,
-      changedBy: data.changedBy,
-      changedAt: data.changedAt,
-    },
-  });
+  const existing = getSingleOrThrow(
+    await tx.treeScanAudit.findMany({
+      where: {
+        treeScanId: data.treeScanId,
+        changedBy: data.changedBy,
+        changedAt: data.changedAt,
+      },
+    }),
+    `Cannot seed TreeScanAudit deterministically. Multiple rows found for treeScanId=${data.treeScanId}, changedBy=${data.changedBy}, changedAt=${data.changedAt.toISOString()}`,
+  );
 
   if (existing) {
     return tx.treeScanAudit.update({
@@ -341,9 +367,12 @@ async function upsertTreeScanAudit(
 }
 
 async function upsertAdopter(tx: Tx, data: { name: string; email: string }) {
-  const existing = await tx.adopter.findFirst({
-    where: { email: data.email },
-  });
+  const existing = getSingleOrThrow(
+    await tx.adopter.findMany({
+      where: { email: data.email },
+    }),
+    `Cannot seed Adopter deterministically. Multiple rows found for email: ${data.email}`,
+  );
 
   if (existing) {
     return tx.adopter.update({
@@ -359,12 +388,15 @@ async function upsertAdoption(
   tx: Tx,
   data: { adopterId: number; fobId: string; adoptedAt: Date },
 ) {
-  const existing = await tx.adoption.findFirst({
-    where: {
-      adopterId: data.adopterId,
-      fobId: data.fobId,
-    },
-  });
+  const existing = getSingleOrThrow(
+    await tx.adoption.findMany({
+      where: {
+        adopterId: data.adopterId,
+        fobId: data.fobId,
+      },
+    }),
+    `Cannot seed Adoption deterministically. Multiple rows found for adopterId=${data.adopterId} and fobId=${data.fobId}`,
+  );
 
   if (existing) {
     return tx.adoption.update({
@@ -387,12 +419,15 @@ async function upsertReport(
     completedAt: Date | null;
   },
 ) {
-  const existing = await tx.report.findFirst({
-    where: {
-      reportType: data.reportType,
-      requestedBy: data.requestedBy,
-    },
-  });
+  const existing = getSingleOrThrow(
+    await tx.report.findMany({
+      where: {
+        reportType: data.reportType,
+        requestedBy: data.requestedBy,
+      },
+    }),
+    `Cannot seed Report deterministically. Multiple rows found for reportType=${data.reportType} and requestedBy=${data.requestedBy}`,
+  );
 
   if (existing) {
     return tx.report.update({
@@ -596,6 +631,30 @@ async function main(): Promise<void> {
         where: { name: "Developer" },
       }),
     };
+
+    const expectedRoleIds: Record<RoleName, number> = {
+      Farmer: 1,
+      Inspector: 2,
+      Manager: 3,
+      Admin: 4,
+      Developer: 5,
+    };
+
+    const actualRoleIds: Record<RoleName, number> = {
+      Farmer: roles.farmer.id,
+      Inspector: roles.inspector.id,
+      Manager: roles.manager.id,
+      Admin: roles.admin.id,
+      Developer: roles.developer.id,
+    };
+
+    for (const roleName of Object.keys(expectedRoleIds) as RoleName[]) {
+      if (actualRoleIds[roleName] !== expectedRoleIds[roleName]) {
+        throw new Error(
+          `Role ID mismatch for ${roleName}. Expected ${expectedRoleIds[roleName]}, found ${actualRoleIds[roleName]}. Reset the local database and rerun migrations before seeding.`,
+        );
+      }
+    }
 
     const locationIdsByCode = {
       DIL: dili.id,

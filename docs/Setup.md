@@ -93,10 +93,12 @@ This project uses Prisma's multi-file schema layout:
 ### 6. Seed the database (optional)
 
 ```bash
-npm run prisma:seed
+ALLOW_SAMPLE_SEED=true npm run prisma:seed
 ```
 
 > Seeds are for local/dev only — never run against production.
+> The sample seed expects a clean local database and is intentionally blocked unless `ALLOW_SAMPLE_SEED=true` is set.
+> Optional password overrides are available through `SEED_ADMIN_PASSWORD`, `SEED_MANAGER_PASSWORD`, `SEED_INSPECTOR1_PASSWORD`, `SEED_INSPECTOR2_PASSWORD`, `SEED_FARMER1_PASSWORD`, `SEED_FARMER2_PASSWORD`, and `SEED_DEVELOPER_PASSWORD`.
 
 ### 7. Start the dev server
 
@@ -223,7 +225,7 @@ npm run prisma:push
 | `npm run prisma:push` | Push schema directly to the database without creating migrations |
 | `npm run prisma:migrate:dev` | Create and apply a development migration |
 | `npm run prisma:migrate:deploy` | Apply migrations |
-| `npm run prisma:seed` | Seed local data |
+| `npm run prisma:seed` | Seed local sample data after setting `ALLOW_SAMPLE_SEED=true` |
 | `npm test` | Run Jest tests |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run test:coverage` | Run tests with coverage report |
