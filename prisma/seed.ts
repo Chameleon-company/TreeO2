@@ -1,6 +1,6 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 
-import { hashPassword } from "../src/lib/bcrypt";
+import { comparePassword, hashPassword } from "../src/lib/bcrypt";
 
 const prisma = new PrismaClient();
 
@@ -10,7 +10,7 @@ type RoleName = "Farmer" | "Inspector" | "Manager" | "Admin" | "Developer";
 
 type UserSeed = {
   email: string;
-  passwordHash: string;
+  password: string;
   name: string;
   roleName: RoleName;
   cardId: string;
@@ -213,7 +213,7 @@ async function upsertUser(
   tx: Tx,
   data: {
     email: string;
-    passwordHash: string;
+    password: string;
     name: string;
     roleId: number;
     cardId: string;
@@ -236,8 +236,21 @@ async function upsertUser(
     resetTokenExpires: null;
   },
 ) {
+  const existing = await tx.user.findUnique({
+    where: { email: data.email },
+  });
+
+  let passwordHash = await hashPassword(data.password);
+
+  if (
+    existing?.passwordHash &&
+    (await comparePassword(data.password, existing.passwordHash))
+  ) {
+    passwordHash = existing.passwordHash;
+  }
+
   const updateData = {
-    passwordHash: data.passwordHash,
+    passwordHash,
     name: data.name,
     roleId: data.roleId,
     cardId: data.cardId,
@@ -254,12 +267,44 @@ async function upsertUser(
     accountActive: data.accountActive,
     dateJoined: data.dateJoined,
     canSignIn: data.canSignIn,
+    accessToken: data.accessToken,
+    accessTokenCreated: data.accessTokenCreated,
+    resetToken: data.resetToken,
+    resetTokenExpires: data.resetTokenExpires,
   };
 
-  return tx.user.upsert({
-    where: { email: data.email },
-    update: updateData,
-    create: data,
+  if (existing) {
+    return tx.user.update({
+      where: { id: existing.id },
+      data: updateData,
+    });
+  }
+
+  return tx.user.create({
+    data: {
+      email: data.email,
+      passwordHash,
+      name: data.name,
+      roleId: data.roleId,
+      cardId: data.cardId,
+      governmentId: data.governmentId,
+      gender: data.gender,
+      disability: data.disability,
+      countryId: data.countryId,
+      adminLocationId: data.adminLocationId,
+      streetAddress: data.streetAddress,
+      preferredLanguage: data.preferredLanguage,
+      photoId: data.photoId,
+      biography: data.biography,
+      notes: data.notes,
+      accountActive: data.accountActive,
+      dateJoined: data.dateJoined,
+      canSignIn: data.canSignIn,
+      accessToken: data.accessToken,
+      accessTokenCreated: data.accessTokenCreated,
+      resetToken: data.resetToken,
+      resetTokenExpires: data.resetTokenExpires,
+    },
   });
 }
 
@@ -450,26 +495,14 @@ async function main(): Promise<void> {
     throw new Error("Set ALLOW_SAMPLE_SEED=true to run the sample seed script.");
   }
 
-  const passwordHashes = {
-    admin: await hashPassword(process.env.SEED_ADMIN_PASSWORD ?? "Admin@123"),
-    manager: await hashPassword(
-      process.env.SEED_MANAGER_PASSWORD ?? "Manager@123",
-    ),
-    inspector1: await hashPassword(
-      process.env.SEED_INSPECTOR1_PASSWORD ?? "Inspector1@123",
-    ),
-    inspector2: await hashPassword(
-      process.env.SEED_INSPECTOR2_PASSWORD ?? "Inspector2@123",
-    ),
-    farmer1: await hashPassword(
-      process.env.SEED_FARMER1_PASSWORD ?? "Farmer1@123",
-    ),
-    farmer2: await hashPassword(
-      process.env.SEED_FARMER2_PASSWORD ?? "Farmer2@123",
-    ),
-    developer: await hashPassword(
-      process.env.SEED_DEVELOPER_PASSWORD ?? "Developer@123",
-    ),
+  const seedPasswords = {
+    admin: process.env.SEED_ADMIN_PASSWORD ?? "Admin@123",
+    manager: process.env.SEED_MANAGER_PASSWORD ?? "Manager@123",
+    inspector1: process.env.SEED_INSPECTOR1_PASSWORD ?? "Inspector1@123",
+    inspector2: process.env.SEED_INSPECTOR2_PASSWORD ?? "Inspector2@123",
+    farmer1: process.env.SEED_FARMER1_PASSWORD ?? "Farmer1@123",
+    farmer2: process.env.SEED_FARMER2_PASSWORD ?? "Farmer2@123",
+    developer: process.env.SEED_DEVELOPER_PASSWORD ?? "Developer@123",
   };
 
   await prisma.$transaction(async (tx) => {
@@ -679,7 +712,7 @@ async function main(): Promise<void> {
     const users: UserSeed[] = [
       {
         email: "admin@treeo2.local",
-        passwordHash: passwordHashes.admin,
+        password: seedPasswords.admin,
         name: "TreeO2 Admin",
         roleName: "Admin",
         cardId: "CARD-ADM-001",
@@ -697,7 +730,7 @@ async function main(): Promise<void> {
       },
       {
         email: "manager@treeo2.local",
-        passwordHash: passwordHashes.manager,
+        password: seedPasswords.manager,
         name: "Project Manager",
         roleName: "Manager",
         cardId: "CARD-MGR-001",
@@ -715,7 +748,7 @@ async function main(): Promise<void> {
       },
       {
         email: "inspector1@treeo2.local",
-        passwordHash: passwordHashes.inspector1,
+        password: seedPasswords.inspector1,
         name: "Field Inspector One",
         roleName: "Inspector",
         cardId: "CARD-INS-001",
@@ -733,7 +766,7 @@ async function main(): Promise<void> {
       },
       {
         email: "inspector2@treeo2.local",
-        passwordHash: passwordHashes.inspector2,
+        password: seedPasswords.inspector2,
         name: "Field Inspector Two",
         roleName: "Inspector",
         cardId: "CARD-INS-002",
@@ -751,7 +784,7 @@ async function main(): Promise<void> {
       },
       {
         email: "farmer1@treeo2.local",
-        passwordHash: passwordHashes.farmer1,
+        password: seedPasswords.farmer1,
         name: "Farmer One",
         roleName: "Farmer",
         cardId: "CARD-FAR-001",
@@ -769,7 +802,7 @@ async function main(): Promise<void> {
       },
       {
         email: "farmer2@treeo2.local",
-        passwordHash: passwordHashes.farmer2,
+        password: seedPasswords.farmer2,
         name: "Farmer Two",
         roleName: "Farmer",
         cardId: "CARD-FAR-002",
@@ -787,7 +820,7 @@ async function main(): Promise<void> {
       },
       {
         email: "developer@treeo2.local",
-        passwordHash: passwordHashes.developer,
+        password: seedPasswords.developer,
         name: "Developer User",
         roleName: "Developer",
         cardId: "CARD-DEV-001",
@@ -808,7 +841,7 @@ async function main(): Promise<void> {
     for (const user of users) {
       await upsertUser(tx, {
         email: user.email,
-        passwordHash: user.passwordHash,
+        password: user.password,
         name: user.name,
         roleId: roleIdsByName[user.roleName],
         cardId: user.cardId,

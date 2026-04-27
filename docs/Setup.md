@@ -135,6 +135,14 @@ All variables are validated on startup via Zod. The server will exit immediately
 | `JWT_EXPIRES_IN` | No | `24h` | Token expiry — e.g. `1h`, `7d`, `24h` |
 | `RATE_LIMIT_WINDOW_MS` | No | `900000` | Rate limit window in ms (default: 15 min) |
 | `RATE_LIMIT_MAX` | No | `100` | Max requests per window per IP |
+| `ALLOW_SAMPLE_SEED` | No | `false` | Safety flag required to allow local sample seeding |
+| `SEED_ADMIN_PASSWORD` | No | `Admin@123` | Optional override for the sample admin account password |
+| `SEED_MANAGER_PASSWORD` | No | `Manager@123` | Optional override for the sample manager account password |
+| `SEED_INSPECTOR1_PASSWORD` | No | `Inspector1@123` | Optional override for the first sample inspector account password |
+| `SEED_INSPECTOR2_PASSWORD` | No | `Inspector2@123` | Optional override for the second sample inspector account password |
+| `SEED_FARMER1_PASSWORD` | No | `Farmer1@123` | Optional override for the first sample farmer account password |
+| `SEED_FARMER2_PASSWORD` | No | `Farmer2@123` | Optional override for the second sample farmer account password |
+| `SEED_DEVELOPER_PASSWORD` | No | `Developer@123` | Optional override for the sample developer account password |
 
 To generate a strong `JWT_SECRET`:
 ```bash
