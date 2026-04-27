@@ -14,7 +14,9 @@ const normalizeStringKeys = (raw?: string | string[]): string[] | undefined => {
     ? raw
     : raw.split(",").map((value) => value.trim());
 
-  const unique = Array.from(new Set(values.filter((value) => value.length > 0)));
+  const unique = Array.from(
+    new Set(values.filter((value) => value.length > 0)),
+  );
   return unique.length > 0 ? unique : undefined;
 };
 

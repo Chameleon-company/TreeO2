@@ -36,8 +36,8 @@ const localizationController = new LocalizationController();
  *       403:
  *         description: Forbidden
  */
- router.get(
-   "/",
+router.get(
+  "/",
   authMiddleware,
   roleMiddleware(["FARMER", "INSPECTOR", "MANAGER", "ADMIN", "DEVELOPER"]),
   (req, res, next) => {
@@ -79,8 +79,8 @@ const localizationController = new LocalizationController();
  *       403:
  *         description: Forbidden
  */
- router.post(
-   "/",
+router.post(
+  "/",
   authMiddleware,
   roleMiddleware(["ADMIN"]),
   (req, res, next) => {
@@ -115,8 +115,8 @@ const localizationController = new LocalizationController();
  *       404:
  *         description: Resource not found
  */
- router.put(
-   "/:id",
+router.put(
+  "/:id",
   authMiddleware,
   roleMiddleware(["ADMIN"]),
   (req, res, next) => {
@@ -149,8 +149,8 @@ const localizationController = new LocalizationController();
  *       404:
  *         description: Resource not found
  */
- router.delete(
-   "/:id",
+router.delete(
+  "/:id",
   authMiddleware,
   roleMiddleware(["ADMIN"]),
   (req, res, next) => {

@@ -1,7 +1,5 @@
 import type { Request, Response } from "express";
-import {
-  LocalizationService,
-} from "./localization.service";
+import { LocalizationService } from "./localization.service";
 import {
   createLocalizedStringSchema,
   idParamSchema,
