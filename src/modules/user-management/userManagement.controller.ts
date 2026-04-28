@@ -1,126 +1,40 @@
 import { Request, Response } from "express";
 import { UserManagementService } from "./userManagement.service";
 
-/**
- * Properly typed request (NO any usage)
- */
-type Params = { id?: string };
-type Query = { project?: string };
-
-type Body = {
-  name?: string;
-  email?: string;
-  roleId?: number;
-  projectIds?: number[];
-};
-
-type TypedRequest = Request<Params, unknown, Body, Query>;
-
 export const UserManagementController = {
-  getUsers: async (req: TypedRequest, res: Response): Promise<Response> => {
-    try {
-      const project = req.query.project;
 
-      const users = await UserManagementService.getUsers(
-        project ? String(project) : undefined,
-      );
-
-      return res.json(users);
-    } catch {
-      return res.status(500).json({
-        message: "Failed to fetch users",
-      });
-    }
+  getUsers: async (req: any, res: Response) => {
+    const users = await UserManagementService.getUsers(
+      req.user,
+      req.query.project,
+    );
+    return res.json(users);
   },
 
-  getUserById: async (req: TypedRequest, res: Response): Promise<Response> => {
-    try {
-      const { id } = req.params;
-
-      if (!id) {
-        return res.status(400).json({ message: "User ID required" });
-      }
-
-      const user = await UserManagementService.getUserById(id);
-
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      return res.json(user);
-    } catch {
-      return res.status(500).json({
-        message: "Failed to fetch user",
-      });
-    }
+  getUserById: async (req: any, res: Response) => {
+    const user = await UserManagementService.getUserById(
+      req.user,
+      req.params.id,
+    );
+    return res.json(user);
   },
 
-  createUser: async (req: TypedRequest, res: Response): Promise<Response> => {
-    try {
-      const { name, email, roleId, projectIds } = req.body;
-
-      if (!name || !email || !roleId) {
-        return res.status(400).json({
-          message: "Missing required fields",
-        });
-      }
-
-      const user = await UserManagementService.createUser({
-        name,
-        email,
-        roleId,
-        projectIds,
-      });
-
-      return res.status(201).json(user);
-    } catch {
-      return res.status(500).json({
-        message: "Failed to create user",
-      });
-    }
+  createUser: async (req: any, res: Response) => {
+    const user = await UserManagementService.createUser(req.body);
+    return res.status(201).json(user);
   },
 
-  updateUser: async (req: TypedRequest, res: Response): Promise<Response> => {
-    try {
-      const { id } = req.params;
-
-      if (!id) {
-        return res.status(400).json({ message: "User ID required" });
-      }
-
-      const updated = await UserManagementService.updateUser(id, req.body);
-
-      if (!updated) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      return res.json(updated);
-    } catch {
-      return res.status(500).json({
-        message: "Failed to update user",
-      });
-    }
+  updateUser: async (req: any, res: Response) => {
+    const updated = await UserManagementService.updateUser(
+      req.user,
+      req.params.id,
+      req.body,
+    );
+    return res.json(updated);
   },
 
-  deleteUser: async (req: TypedRequest, res: Response): Promise<Response> => {
-    try {
-      const { id } = req.params;
-
-      if (!id) {
-        return res.status(400).json({ message: "User ID required" });
-      }
-
-      const deleted = await UserManagementService.deleteUser(id);
-
-      if (!deleted) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      return res.json({ message: "User deleted successfully" });
-    } catch (err: unknown) {
-      return res.status(400).json({
-        message: err instanceof Error ? err.message : "Unknown error occurred",
-      });
-    }
+  deleteUser: async (req: any, res: Response) => {
+    await UserManagementService.deleteUser(req.params.id);
+    return res.json({ message: "User deactivated successfully" });
   },
 };

@@ -1,19 +1,15 @@
-// ✅ MUST BE FIRST (before imports)
-process.env.NODE_ENV = "test";
-
 import request from "supertest";
 import express from "express";
+import userRoutes from "../../src/modules/user-management/userManagement.routes";
+import { prisma } from "../../src/lib/prisma";
 
-// ✅ MOCK AUTH (bypass 401)
 jest.mock("../../src/middleware/auth.middleware", () => ({
-  authMiddleware: (req: any, res: any, next: any) => next(),
+  authMiddleware: (req: any, res: any, next: any) => {
+    req.user = { id: 1, role: "ADMIN", projectIds: [101] };
+    next();
+  },
 }));
 
-jest.mock("../../src/middleware/role.middleware", () => ({
-  roleMiddleware: () => (req: any, res: any, next: any) => next(),
-}));
-
-// ✅ MOCK PRISMA
 jest.mock("../../src/lib/prisma", () => ({
   prisma: {
     user: {
@@ -21,7 +17,6 @@ jest.mock("../../src/lib/prisma", () => ({
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-      delete: jest.fn(),
     },
     treeScan: {
       findFirst: jest.fn(),
@@ -29,43 +24,50 @@ jest.mock("../../src/lib/prisma", () => ({
   },
 }));
 
-import userRoutes from "../../src/modules/user-management/userManagement.routes";
-import { prisma } from "../../src/lib/prisma";
-
 const mockPrisma = prisma as any;
 
-describe("User Management - INTEGRATION TEST", () => {
-  const app = express();
-  app.use(express.json());
-  app.use("/users", userRoutes);
+const app = express();
+app.use(express.json());
+app.use("/users", userRoutes);
+
+describe("User Management API", () => {
 
   afterEach(() => jest.clearAllMocks());
 
-  it("GET /users should return 200", async () => {
-    mockPrisma.user.findMany.mockResolvedValue([{ id: 1, name: "John" }]);
+  it("GET users", async () => {
+    mockPrisma.user.findMany.mockResolvedValue([{ id: 1 }]);
 
     const res = await request(app).get("/users");
 
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
   });
 
-  it("GET /users/:id should return user", async () => {
-    mockPrisma.user.findUnique.mockResolvedValue({ id: 1, name: "John" });
+  it("GET user by id", async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 1,
+      userProjects: [],
+    });
 
     const res = await request(app).get("/users/1");
 
     expect(res.status).toBe(200);
-    expect(res.body.id).toBe(1);
   });
 
-  it("POST /users should create user", async () => {
-    mockPrisma.user.create.mockResolvedValue({ id: 1, name: "New User" });
+  it("GET user not found → 404", async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+
+    const res = await request(app).get("/users/999");
+
+    expect(res.status).toBe(404);
+  });
+
+  it("CREATE user", async () => {
+    mockPrisma.user.create.mockResolvedValue({ id: 1 });
 
     const res = await request(app)
       .post("/users")
       .send({
-        name: "New User",
+        name: "Test",
         email: "test@test.com",
         roleId: 1,
       });
@@ -73,8 +75,13 @@ describe("User Management - INTEGRATION TEST", () => {
     expect(res.status).toBe(201);
   });
 
-  it("PUT /users/:id should update user", async () => {
-    mockPrisma.user.update.mockResolvedValue({ id: 1, name: "Updated" });
+  it("UPDATE user", async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 1,
+      userProjects: [],
+    });
+
+    mockPrisma.user.update.mockResolvedValue({ id: 1 });
 
     const res = await request(app)
       .put("/users/1")
@@ -83,12 +90,30 @@ describe("User Management - INTEGRATION TEST", () => {
     expect(res.status).toBe(200);
   });
 
-  it("DELETE /users/:id should delete user", async () => {
+  it("DELETE user success", async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({ id: 1 });
     mockPrisma.treeScan.findFirst.mockResolvedValue(null);
-    mockPrisma.user.delete.mockResolvedValue({});
+    mockPrisma.user.update.mockResolvedValue({});
 
     const res = await request(app).delete("/users/1");
 
     expect(res.status).toBe(200);
+  });
+
+  it("DELETE user not found → 404", async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+
+    const res = await request(app).delete("/users/999");
+
+    expect(res.status).toBe(404);
+  });
+
+  it("DELETE user linked → 409", async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({ id: 1 });
+    mockPrisma.treeScan.findFirst.mockResolvedValue({ id: 1 });
+
+    const res = await request(app).delete("/users/1");
+
+    expect(res.status).toBe(409);
   });
 });

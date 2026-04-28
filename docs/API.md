@@ -199,3 +199,102 @@ Flow: routes → controller → service → response
 Notes:
 - Serves as the standard example for all modules
 - Swagger is defined in `health.routes.ts`
+
+
+## 9. USER MANAGEMENT API
+
+This module manages users in the TreeO2 system. It supports user creation, retrieval, updating, and soft deletion with role-based and project-based access control.
+
+**Module Path:** `src/modules/user-management/`
+
+### Files
+
+* `userManagement.routes.ts`
+* `userManagement.controller.ts`
+* `userManagement.service.ts`
+* `index.ts`
+
+### 9.1 Purpose
+
+Manages system users for authentication, authorization, project assignment, and tree scan ownership.
+
+### 9.2 Architecture Flow
+
+```text
+Route → Controller → Service → Prisma → Database → Response
+```
+
+### 9.3 Security
+
+* JWT authentication required
+* Middleware:
+
+  * `authMiddleware`
+  * `roleMiddleware`
+
+### 9.4 Access Control
+
+| Endpoint          | ADMIN | MANAGER       | INSPECTOR | FARMER |
+| ----------------- | ----- | ------------- | --------- | ------ |
+| GET /users        | Yes   | Yes           | No        | No     |
+| GET /users/:id    | Yes   | Project-based | Self      | Self   |
+| POST /users       | Yes   | No            | No        | No     |
+| PUT /users/:id    | Yes   | No            | No        | No     |
+| DELETE /users/:id | Yes   | No            | No        | No     |
+
+### 9.5 Endpoints
+
+#### GET /users
+
+Fetch all users (optional project filter)
+
+#### GET /users/:id
+
+Fetch user by ID with role-based access
+
+#### POST /users
+
+Create user (ADMIN only)
+
+#### PUT /users/:id
+
+Update user (ADMIN only)
+
+#### DELETE /users/:id
+
+Soft delete user (ADMIN only)
+
+### 9.6 Business Logic
+
+* Prisma-based database operations
+* Role and project-based access control
+* Soft delete (disable account instead of removing)
+* Prevent deletion if linked to `treeScan`
+
+### 9.7 Response Codes
+
+* 200 Success
+* 201 Created
+* 400 Bad Request
+* 401 Unauthorized
+* 403 Forbidden
+* 404 Not Found
+
+### 9.8 Swagger
+
+Defined in `userManagement.routes.ts`
+Available at: `http://localhost:3000/api-docs`
+
+### 9.9 Testing
+
+* Unit tests: service logic
+* Integration tests: full API flow (route → controller → service)
+
+### 9.10 Summary
+
+* Modular architecture
+* Secure authentication
+* Role-based access control
+* Soft delete system
+* Clean separation of concerns
+* Fully tested and documented API
