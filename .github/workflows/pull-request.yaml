@@ -1,9 +1,11 @@
 name: Pull Request Checks
 permissions:
   contents: read
+
 concurrency:
   group: pr-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+
 on:
   pull_request:
     branches: [master]
@@ -13,6 +15,27 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    env:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://treeo2_user:treeo2_password@localhost:5432/treeo2?schema=public
+      JWT_SECRET: test-secret-test-secret-test-secret-123456
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: treeo2_user
+          POSTGRES_PASSWORD: treeo2_password
+          POSTGRES_DB: treeo2
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U treeo2_user -d treeo2"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,8 +58,19 @@ jobs:
       - name: Format check
         run: npm run format:check
 
+      - name: Setup test database
+        run: npx prisma db push
+
       - name: Test
         run: npm run test:coverage
+        env:
+          PORT: 3000
+          AUTH_DEV_MODE: true
+          AUTH_DEV_ADMIN_TOKEN: dev-admin-token
+          AUTH_DEV_MANAGER_TOKEN: dev-manager-token
+          AUTH_DEV_INSPECTOR_TOKEN: dev-inspector-token
+          AUTH_DEV_FARMER_TOKEN: dev-farmer-token
+          AUTH_DEV_DEVELOPER_TOKEN: dev-developer-token
 
       - name: Build
         run: npm run build
