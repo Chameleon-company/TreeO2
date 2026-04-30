@@ -150,11 +150,19 @@ In simple terms, it does this:
 
 1. checks whether it is allowed to run
 2. reads sample passwords from environment variables or fallback defaults
-3. hashes those passwords with bcrypt
+3. prepares the final password hashes before opening the main database transactions
 4. inserts shared reference data such as countries, cultures, roles, and tree types
 5. inserts or updates users
 6. links users to roles and projects
 7. inserts scans, audits, adopters, adoptions, and reports
+
+The seed is intentionally split into smaller transaction phases instead of one large transaction:
+
+- phase 1: reference data
+- phase 2: users and user relationships
+- phase 3: scans, adopters, adoptions, and reports
+
+I want it structured this way so the seed is more durable on reruns and does not depend on one long interactive Prisma transaction staying open.
 
 The script is designed to be safer on rerun than a naive seed:
 
@@ -162,6 +170,7 @@ The script is designed to be safer on rerun than a naive seed:
 - it uses deterministic lookups where possible
 - it fails loudly if duplicate rows would make the result ambiguous
 - it resets user token fields on rerun
+- it keeps expensive bcrypt work outside the main write transactions
 
 ---
 
@@ -175,6 +184,8 @@ The sample seed will only run when:
 - `NODE_ENV` is `development` or `test`
 
 This is there to reduce the chance of someone loading demo data into the wrong environment.
+
+It also reduces the chance of transaction timeout issues, because the seed no longer keeps password work and all record creation inside one single long-running transaction.
 
 Run the seed with:
 
@@ -210,8 +221,10 @@ Instead:
 
 1. it reads a password value from `.env` if you provide one
 2. otherwise it falls back to the default sample password
-3. it hashes the password using `bcrypt`
-4. it stores only `passwordHash` in the database
+3. before the main write transactions start, it checks whether the existing seeded user already has a matching password hash
+4. if the password is unchanged, it keeps the existing hash
+5. if the password changed, it hashes the new password using `bcrypt`
+6. it stores only `passwordHash` in the database
 
 Available password override variables:
 
@@ -232,7 +245,7 @@ SEED_ADMIN_PASSWORD=MyLocalAdminPassword123
 
 That means the seeded admin user can sign in with `MyLocalAdminPassword123`, but the database will still store only the bcrypt hash.
 
-The seed also avoids regenerating a new hash on every rerun if the configured password has not changed.
+The seed also avoids regenerating a new hash on every rerun if the configured password has not changed. That keeps reruns more stable and avoids unnecessary writes to seeded users.
 
 ---
 
@@ -262,6 +275,8 @@ npm run prisma:generate
 npm run type-check
 npm run type-check:seed
 ```
+
+`npm run type-check:seed` is important here because `prisma/seed.ts` sits outside the normal `src/` TypeScript include path. I added that dedicated check so seed-only type errors do not slip through unnoticed.
 
 If your database is running and you changed seed behavior, also run:
 
