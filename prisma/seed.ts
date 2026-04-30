@@ -27,6 +27,10 @@ type UserSeed = {
   dateJoined: Date;
 };
 
+type PreparedUserSeed = Omit<UserSeed, "password"> & {
+  passwordHash: string;
+};
+
 function getSingleOrThrow<T>(rows: T[], message: string): T | null {
   if (rows.length > 1) {
     throw new Error(message);
@@ -213,7 +217,7 @@ async function upsertUser(
   tx: Tx,
   data: {
     email: string;
-    password: string;
+    passwordHash: string;
     name: string;
     roleId: number;
     cardId: string;
@@ -236,21 +240,8 @@ async function upsertUser(
     resetTokenExpires: null;
   },
 ) {
-  const existing = await tx.user.findUnique({
-    where: { email: data.email },
-  });
-
-  let passwordHash = await hashPassword(data.password);
-
-  if (
-    existing?.passwordHash &&
-    (await comparePassword(data.password, existing.passwordHash))
-  ) {
-    passwordHash = existing.passwordHash;
-  }
-
   const updateData = {
-    passwordHash,
+    passwordHash: data.passwordHash,
     name: data.name,
     roleId: data.roleId,
     cardId: data.cardId,
@@ -273,6 +264,10 @@ async function upsertUser(
     resetTokenExpires: data.resetTokenExpires,
   };
 
+  const existing = await tx.user.findUnique({
+    where: { email: data.email },
+  });
+
   if (existing) {
     return tx.user.update({
       where: { id: existing.id },
@@ -283,7 +278,7 @@ async function upsertUser(
   return tx.user.create({
     data: {
       email: data.email,
-      passwordHash,
+      passwordHash: data.passwordHash,
       name: data.name,
       roleId: data.roleId,
       cardId: data.cardId,
@@ -306,6 +301,60 @@ async function upsertUser(
       resetTokenExpires: data.resetTokenExpires,
     },
   });
+}
+
+async function prepareSeedUsers(users: UserSeed[]): Promise<PreparedUserSeed[]> {
+  const existingUsers = await prisma.user.findMany({
+    where: {
+      email: {
+        in: users.map((user) => user.email),
+      },
+    },
+    select: {
+      email: true,
+      passwordHash: true,
+    },
+  });
+
+  const existingUsersByEmail = new Map(
+    existingUsers.map((user) => [user.email, user.passwordHash]),
+  );
+
+  const preparedUsers: PreparedUserSeed[] = [];
+
+  for (const user of users) {
+    const existingPasswordHash = existingUsersByEmail.get(user.email) ?? null;
+
+    let passwordHash = await hashPassword(user.password);
+
+    if (
+      existingPasswordHash &&
+      (await comparePassword(user.password, existingPasswordHash))
+    ) {
+      passwordHash = existingPasswordHash;
+    }
+
+    preparedUsers.push({
+      email: user.email,
+      passwordHash,
+      name: user.name,
+      roleName: user.roleName,
+      cardId: user.cardId,
+      governmentId: user.governmentId,
+      gender: user.gender,
+      disability: user.disability,
+      countryIso2: user.countryIso2,
+      adminLocationCode: user.adminLocationCode,
+      streetAddress: user.streetAddress,
+      preferredLanguage: user.preferredLanguage,
+      biography: user.biography,
+      notes: user.notes,
+      accountActive: user.accountActive,
+      dateJoined: user.dateJoined,
+    });
+  }
+
+  return preparedUsers;
 }
 
 async function upsertScanBatch(
@@ -509,7 +558,138 @@ async function main(): Promise<void> {
     developer: process.env.SEED_DEVELOPER_PASSWORD ?? "Developer@123",
   };
 
-  await prisma.$transaction(async (tx) => {
+  const users: UserSeed[] = [
+    {
+      email: "admin@treeo2.local",
+      password: seedPasswords.admin,
+      name: "TreeO2 Admin",
+      roleName: "Admin",
+      cardId: "CARD-ADM-001",
+      governmentId: "GOV-ADM-001",
+      gender: "Male",
+      disability: false,
+      countryIso2: "TL",
+      adminLocationCode: "DIL",
+      streetAddress: "Dili Central Office",
+      preferredLanguage: "en",
+      biography: "System administrator for TreeO2.",
+      notes: "Primary admin account.",
+      accountActive: true,
+      dateJoined: new Date("2025-01-05T00:00:00Z"),
+    },
+    {
+      email: "manager@treeo2.local",
+      password: seedPasswords.manager,
+      name: "Project Manager",
+      roleName: "Manager",
+      cardId: "CARD-MGR-001",
+      governmentId: "GOV-MGR-001",
+      gender: "Female",
+      disability: false,
+      countryIso2: "TL",
+      adminLocationCode: "DIL",
+      streetAddress: "Dili Operations",
+      preferredLanguage: "en",
+      biography: "Oversees project delivery and monitoring.",
+      notes: "Assigned to multiple projects.",
+      accountActive: true,
+      dateJoined: new Date("2025-01-10T00:00:00Z"),
+    },
+    {
+      email: "inspector1@treeo2.local",
+      password: seedPasswords.inspector1,
+      name: "Field Inspector One",
+      roleName: "Inspector",
+      cardId: "CARD-INS-001",
+      governmentId: "GOV-INS-001",
+      gender: "Male",
+      disability: false,
+      countryIso2: "TL",
+      adminLocationCode: "CRI",
+      streetAddress: "Cristo Rei Field Office",
+      preferredLanguage: "tet",
+      biography: "Conducts on-site inspections.",
+      notes: "Experienced in field validations.",
+      accountActive: true,
+      dateJoined: new Date("2025-01-12T00:00:00Z"),
+    },
+    {
+      email: "inspector2@treeo2.local",
+      password: seedPasswords.inspector2,
+      name: "Field Inspector Two",
+      roleName: "Inspector",
+      cardId: "CARD-INS-002",
+      governmentId: "GOV-INS-002",
+      gender: "Female",
+      disability: false,
+      countryIso2: "TL",
+      adminLocationCode: "BAU",
+      streetAddress: "Baucau Field Office",
+      preferredLanguage: "tet",
+      biography: "Supports rural inspection activities.",
+      notes: "Assigned to Baucau pilot.",
+      accountActive: true,
+      dateJoined: new Date("2025-01-13T00:00:00Z"),
+    },
+    {
+      email: "farmer1@treeo2.local",
+      password: seedPasswords.farmer1,
+      name: "Farmer One",
+      roleName: "Farmer",
+      cardId: "CARD-FAR-001",
+      governmentId: "GOV-FAR-001",
+      gender: "Female",
+      disability: false,
+      countryIso2: "TL",
+      adminLocationCode: "HER",
+      streetAddress: "Hera Village",
+      preferredLanguage: "tet",
+      biography: "Participating farmer in Hera region.",
+      notes: "Linked to reforestation project.",
+      accountActive: true,
+      dateJoined: new Date("2025-01-15T00:00:00Z"),
+    },
+    {
+      email: "farmer2@treeo2.local",
+      password: seedPasswords.farmer2,
+      name: "Farmer Two",
+      roleName: "Farmer",
+      cardId: "CARD-FAR-002",
+      governmentId: "GOV-FAR-002",
+      gender: "Male",
+      disability: false,
+      countryIso2: "TL",
+      adminLocationCode: "BAU",
+      streetAddress: "Baucau Rural Area",
+      preferredLanguage: "tet",
+      biography: "Farmer involved in agroforestry activities.",
+      notes: "Linked to Baucau pilot.",
+      accountActive: true,
+      dateJoined: new Date("2025-01-16T00:00:00Z"),
+    },
+    {
+      email: "developer@treeo2.local",
+      password: seedPasswords.developer,
+      name: "Developer User",
+      roleName: "Developer",
+      cardId: "CARD-DEV-001",
+      governmentId: "GOV-DEV-001",
+      gender: "Male",
+      disability: false,
+      countryIso2: "AU",
+      adminLocationCode: null,
+      streetAddress: "Melbourne Support Hub",
+      preferredLanguage: "en",
+      biography: "Maintains the technical platform.",
+      notes: "Support and development account.",
+      accountActive: true,
+      dateJoined: new Date("2025-01-18T00:00:00Z"),
+    },
+  ];
+
+  const preparedUsers = await prepareSeedUsers(users);
+
+  const referenceData = await prisma.$transaction(async (tx) => {
     const timorLeste = await upsertCountry(tx, {
       name: "Timor-Leste",
       iso2: "TL",
@@ -712,149 +892,39 @@ async function main(): Promise<void> {
       Admin: roles.admin.id,
       Developer: roles.developer.id,
     };
+    return {
+      countryIdsByIso2,
+      locationIdsByCode,
+      roleIdsByName,
+      heraProjectId: heraProject.id,
+      baucauProjectId: baucauProject.id,
+      mahoganyId: mahogany.id,
+      teakId: teak.id,
+      sandalwoodId: sandalwood.id,
+      roleAssignmentIds: {
+        admin: roles.admin.id,
+        manager: roles.manager.id,
+        inspector: roles.inspector.id,
+        farmer: roles.farmer.id,
+        developer: roles.developer.id,
+      },
+    };
+  });
 
-    const users: UserSeed[] = [
-      {
-        email: "admin@treeo2.local",
-        password: seedPasswords.admin,
-        name: "TreeO2 Admin",
-        roleName: "Admin",
-        cardId: "CARD-ADM-001",
-        governmentId: "GOV-ADM-001",
-        gender: "Male",
-        disability: false,
-        countryIso2: "TL",
-        adminLocationCode: "DIL",
-        streetAddress: "Dili Central Office",
-        preferredLanguage: "en",
-        biography: "System administrator for TreeO2.",
-        notes: "Primary admin account.",
-        accountActive: true,
-        dateJoined: new Date("2025-01-05T00:00:00Z"),
-      },
-      {
-        email: "manager@treeo2.local",
-        password: seedPasswords.manager,
-        name: "Project Manager",
-        roleName: "Manager",
-        cardId: "CARD-MGR-001",
-        governmentId: "GOV-MGR-001",
-        gender: "Female",
-        disability: false,
-        countryIso2: "TL",
-        adminLocationCode: "DIL",
-        streetAddress: "Dili Operations",
-        preferredLanguage: "en",
-        biography: "Oversees project delivery and monitoring.",
-        notes: "Assigned to multiple projects.",
-        accountActive: true,
-        dateJoined: new Date("2025-01-10T00:00:00Z"),
-      },
-      {
-        email: "inspector1@treeo2.local",
-        password: seedPasswords.inspector1,
-        name: "Field Inspector One",
-        roleName: "Inspector",
-        cardId: "CARD-INS-001",
-        governmentId: "GOV-INS-001",
-        gender: "Male",
-        disability: false,
-        countryIso2: "TL",
-        adminLocationCode: "CRI",
-        streetAddress: "Cristo Rei Field Office",
-        preferredLanguage: "tet",
-        biography: "Conducts on-site inspections.",
-        notes: "Experienced in field validations.",
-        accountActive: true,
-        dateJoined: new Date("2025-01-12T00:00:00Z"),
-      },
-      {
-        email: "inspector2@treeo2.local",
-        password: seedPasswords.inspector2,
-        name: "Field Inspector Two",
-        roleName: "Inspector",
-        cardId: "CARD-INS-002",
-        governmentId: "GOV-INS-002",
-        gender: "Female",
-        disability: false,
-        countryIso2: "TL",
-        adminLocationCode: "BAU",
-        streetAddress: "Baucau Field Office",
-        preferredLanguage: "tet",
-        biography: "Supports rural inspection activities.",
-        notes: "Assigned to Baucau pilot.",
-        accountActive: true,
-        dateJoined: new Date("2025-01-13T00:00:00Z"),
-      },
-      {
-        email: "farmer1@treeo2.local",
-        password: seedPasswords.farmer1,
-        name: "Farmer One",
-        roleName: "Farmer",
-        cardId: "CARD-FAR-001",
-        governmentId: "GOV-FAR-001",
-        gender: "Female",
-        disability: false,
-        countryIso2: "TL",
-        adminLocationCode: "HER",
-        streetAddress: "Hera Village",
-        preferredLanguage: "tet",
-        biography: "Participating farmer in Hera region.",
-        notes: "Linked to reforestation project.",
-        accountActive: true,
-        dateJoined: new Date("2025-01-15T00:00:00Z"),
-      },
-      {
-        email: "farmer2@treeo2.local",
-        password: seedPasswords.farmer2,
-        name: "Farmer Two",
-        roleName: "Farmer",
-        cardId: "CARD-FAR-002",
-        governmentId: "GOV-FAR-002",
-        gender: "Male",
-        disability: false,
-        countryIso2: "TL",
-        adminLocationCode: "BAU",
-        streetAddress: "Baucau Rural Area",
-        preferredLanguage: "tet",
-        biography: "Farmer involved in agroforestry activities.",
-        notes: "Linked to Baucau pilot.",
-        accountActive: true,
-        dateJoined: new Date("2025-01-16T00:00:00Z"),
-      },
-      {
-        email: "developer@treeo2.local",
-        password: seedPasswords.developer,
-        name: "Developer User",
-        roleName: "Developer",
-        cardId: "CARD-DEV-001",
-        governmentId: "GOV-DEV-001",
-        gender: "Male",
-        disability: false,
-        countryIso2: "AU",
-        adminLocationCode: null,
-        streetAddress: "Melbourne Support Hub",
-        preferredLanguage: "en",
-        biography: "Maintains the technical platform.",
-        notes: "Support and development account.",
-        accountActive: true,
-        dateJoined: new Date("2025-01-18T00:00:00Z"),
-      },
-    ];
-
-    for (const user of users) {
+  const seededUserIds = await prisma.$transaction(async (tx) => {
+    for (const user of preparedUsers) {
       await upsertUser(tx, {
         email: user.email,
-        password: user.password,
+        passwordHash: user.passwordHash,
         name: user.name,
-        roleId: roleIdsByName[user.roleName],
+        roleId: referenceData.roleIdsByName[user.roleName],
         cardId: user.cardId,
         governmentId: user.governmentId,
         gender: user.gender,
         disability: user.disability,
-        countryId: countryIdsByIso2[user.countryIso2],
+        countryId: referenceData.countryIdsByIso2[user.countryIso2],
         adminLocationId: user.adminLocationCode
-          ? locationIdsByCode[user.adminLocationCode]
+          ? referenceData.locationIdsByCode[user.adminLocationCode]
           : null,
         streetAddress: user.streetAddress,
         preferredLanguage: user.preferredLanguage,
@@ -901,56 +971,95 @@ async function main(): Promise<void> {
 
     await tx.userRoleAssignment.createMany({
       data: [
-        { userId: admin.id, roleId: roles.admin.id },
-        { userId: manager.id, roleId: roles.manager.id },
-        { userId: inspector1.id, roleId: roles.inspector.id },
-        { userId: inspector2.id, roleId: roles.inspector.id },
-        { userId: farmer1.id, roleId: roles.farmer.id },
-        { userId: farmer2.id, roleId: roles.farmer.id },
-        { userId: developer.id, roleId: roles.developer.id },
+        { userId: admin.id, roleId: referenceData.roleAssignmentIds.admin },
+        {
+          userId: manager.id,
+          roleId: referenceData.roleAssignmentIds.manager,
+        },
+        {
+          userId: inspector1.id,
+          roleId: referenceData.roleAssignmentIds.inspector,
+        },
+        {
+          userId: inspector2.id,
+          roleId: referenceData.roleAssignmentIds.inspector,
+        },
+        {
+          userId: farmer1.id,
+          roleId: referenceData.roleAssignmentIds.farmer,
+        },
+        {
+          userId: farmer2.id,
+          roleId: referenceData.roleAssignmentIds.farmer,
+        },
+        {
+          userId: developer.id,
+          roleId: referenceData.roleAssignmentIds.developer,
+        },
       ],
       skipDuplicates: true,
     });
 
     await tx.userProject.createMany({
       data: [
-        { userId: manager.id, projectId: heraProject.id },
-        { userId: manager.id, projectId: baucauProject.id },
-        { userId: inspector1.id, projectId: heraProject.id },
-        { userId: inspector2.id, projectId: baucauProject.id },
-        { userId: farmer1.id, projectId: heraProject.id },
-        { userId: farmer2.id, projectId: baucauProject.id },
+        { userId: manager.id, projectId: referenceData.heraProjectId },
+        { userId: manager.id, projectId: referenceData.baucauProjectId },
+        { userId: inspector1.id, projectId: referenceData.heraProjectId },
+        { userId: inspector2.id, projectId: referenceData.baucauProjectId },
+        { userId: farmer1.id, projectId: referenceData.heraProjectId },
+        { userId: farmer2.id, projectId: referenceData.baucauProjectId },
       ],
       skipDuplicates: true,
     });
 
     await tx.projectTreeType.createMany({
       data: [
-        { projectId: heraProject.id, treeTypeId: mahogany.id },
-        { projectId: heraProject.id, treeTypeId: sandalwood.id },
-        { projectId: baucauProject.id, treeTypeId: teak.id },
+        {
+          projectId: referenceData.heraProjectId,
+          treeTypeId: referenceData.mahoganyId,
+        },
+        {
+          projectId: referenceData.heraProjectId,
+          treeTypeId: referenceData.sandalwoodId,
+        },
+        {
+          projectId: referenceData.baucauProjectId,
+          treeTypeId: referenceData.teakId,
+        },
       ],
       skipDuplicates: true,
     });
 
+    return {
+      adminId: admin.id,
+      managerId: manager.id,
+      inspector1Id: inspector1.id,
+      inspector2Id: inspector2.id,
+      farmer1Id: farmer1.id,
+      farmer2Id: farmer2.id,
+      developerId: developer.id,
+    };
+  });
+
+  await prisma.$transaction(async (tx) => {
     const heraBatch = await upsertScanBatch(tx, {
-      inspectorId: inspector1.id,
-      projectId: heraProject.id,
+      inspectorId: seededUserIds.inspector1Id,
+      projectId: referenceData.heraProjectId,
       uploadedAt: new Date("2025-02-01T09:00:00Z"),
     });
 
     const baucauBatch = await upsertScanBatch(tx, {
-      inspectorId: inspector2.id,
-      projectId: baucauProject.id,
+      inspectorId: seededUserIds.inspector2Id,
+      projectId: referenceData.baucauProjectId,
       uploadedAt: new Date("2025-02-10T11:30:00Z"),
     });
 
     const treeScan1 = await upsertTreeScan(tx, {
       fobId: "FOB-0001",
-      projectId: heraProject.id,
-      farmerId: farmer1.id,
-      inspectorId: inspector1.id,
-      speciesId: mahogany.id,
+      projectId: referenceData.heraProjectId,
+      farmerId: seededUserIds.farmer1Id,
+      inspectorId: seededUserIds.inspector1Id,
+      speciesId: referenceData.mahoganyId,
       estimatedPlantedYear: 2023,
       estimatedPlantedMonth: 6,
       plantedDate: new Date("2023-06-15T00:00:00Z"),
@@ -972,10 +1081,10 @@ async function main(): Promise<void> {
 
     const treeScan2 = await upsertTreeScan(tx, {
       fobId: "FOB-0002",
-      projectId: heraProject.id,
-      farmerId: farmer1.id,
-      inspectorId: inspector1.id,
-      speciesId: sandalwood.id,
+      projectId: referenceData.heraProjectId,
+      farmerId: seededUserIds.farmer1Id,
+      inspectorId: seededUserIds.inspector1Id,
+      speciesId: referenceData.sandalwoodId,
       estimatedPlantedYear: 2022,
       estimatedPlantedMonth: 11,
       plantedDate: new Date("2022-11-20T00:00:00Z"),
@@ -989,7 +1098,7 @@ async function main(): Promise<void> {
       deviceId: "DEVICE-01",
       isArchived: false,
       isCorrected: true,
-      correctedBy: manager.id,
+      correctedBy: seededUserIds.managerId,
       correctionReason: "Corrected planting month after review.",
       isValid: true,
       validationNotes: "Data verified by manager.",
@@ -997,10 +1106,10 @@ async function main(): Promise<void> {
 
     const treeScan3 = await upsertTreeScan(tx, {
       fobId: "FOB-0101",
-      projectId: baucauProject.id,
-      farmerId: farmer2.id,
-      inspectorId: inspector2.id,
-      speciesId: teak.id,
+      projectId: referenceData.baucauProjectId,
+      farmerId: seededUserIds.farmer2Id,
+      inspectorId: seededUserIds.inspector2Id,
+      speciesId: referenceData.teakId,
       estimatedPlantedYear: 2024,
       estimatedPlantedMonth: 3,
       plantedDate: new Date("2024-03-05T00:00:00Z"),
@@ -1022,7 +1131,7 @@ async function main(): Promise<void> {
 
     await upsertTreeScanAudit(tx, {
       treeScanId: treeScan2.id,
-      changedBy: manager.id,
+      changedBy: seededUserIds.managerId,
       changeReason: "Updated planting month",
       oldData: { estimatedPlantedMonth: 10 },
       newData: { estimatedPlantedMonth: 11 },
@@ -1053,18 +1162,18 @@ async function main(): Promise<void> {
 
     await upsertReport(tx, {
       reportType: "Tree Survival Summary",
-      requestedBy: manager.id,
+      requestedBy: seededUserIds.managerId,
       status: "COMPLETE",
-      parameters: { projectId: heraProject.id, month: "2025-02" },
+      parameters: { projectId: referenceData.heraProjectId, month: "2025-02" },
       outputUrl: "https://xyz.com/reports/tree-survival-summary.pdf",
       completedAt: new Date("2025-02-28T10:00:00Z"),
     });
 
     await upsertReport(tx, {
       reportType: "Inspector Activity Report",
-      requestedBy: admin.id,
+      requestedBy: seededUserIds.adminId,
       status: "PENDING",
-      parameters: { inspectorId: inspector1.id },
+      parameters: { inspectorId: seededUserIds.inspector1Id },
       outputUrl: null,
       completedAt: null,
     });
