@@ -43,7 +43,6 @@ const userSelect = {
 
 // ---------- SERVICE ----------
 export const UserManagementService = {
-
   // GET USERS
   getUsers: async (authUser: AuthUser, projectId?: string) => {
     const where: Record<string, unknown> = {};
@@ -61,10 +60,7 @@ export const UserManagementService = {
 
     where["userProjects"] = {
       some: {
-        AND: [
-          managerFilter,
-          parsed ? { projectId: parsed } : {},
-        ],
+        AND: [managerFilter, parsed ? { projectId: parsed } : {}],
       },
     };
 
@@ -147,11 +143,7 @@ export const UserManagementService = {
   },
 
   // UPDATE USER
-  updateUser: async (
-    authUser: AuthUser,
-    id: string,
-    data: UpdateUserInput,
-  ) => {
+  updateUser: async (authUser: AuthUser, id: string, data: UpdateUserInput) => {
     const userId = Number(id);
 
     if (isNaN(userId)) {

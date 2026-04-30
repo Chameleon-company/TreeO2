@@ -6,15 +6,11 @@ import {
 } from "./userManagement.service";
 
 export const UserManagementController = {
-
   getUsers: async (req: Request, res: Response) => {
     const user = req.user as unknown as AuthUser;
     const project = req.query.project as string | undefined;
 
-    const users = await UserManagementService.getUsers(
-      user,
-      project,
-    );
+    const users = await UserManagementService.getUsers(user, project);
     return res.json(users);
   },
 
@@ -22,10 +18,7 @@ export const UserManagementController = {
     const user = req.user as unknown as AuthUser;
     const id = req.params.id;
 
-    const result = await UserManagementService.getUserById(
-      user,
-      id,
-    );
+    const result = await UserManagementService.getUserById(user, id);
     return res.json(result);
   },
 
@@ -41,11 +34,7 @@ export const UserManagementController = {
     const id = req.params.id;
     const body = req.body as Partial<CreateUserInput>;
 
-    const updated = await UserManagementService.updateUser(
-      user,
-      id,
-      body,
-    );
+    const updated = await UserManagementService.updateUser(user, id, body);
     return res.json(updated);
   },
 
