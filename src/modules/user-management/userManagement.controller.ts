@@ -1,40 +1,58 @@
 import { Request, Response } from "express";
-import { UserManagementService } from "./userManagement.service";
+import {
+  UserManagementService,
+  AuthUser,
+  CreateUserInput,
+} from "./userManagement.service";
 
 export const UserManagementController = {
 
-  getUsers: async (req: any, res: Response) => {
+  getUsers: async (req: Request, res: Response) => {
+    const user = req.user as unknown as AuthUser;
+    const project = req.query.project as string | undefined;
+
     const users = await UserManagementService.getUsers(
-      req.user,
-      req.query.project,
+      user,
+      project,
     );
     return res.json(users);
   },
 
-  getUserById: async (req: any, res: Response) => {
-    const user = await UserManagementService.getUserById(
-      req.user,
-      req.params.id,
+  getUserById: async (req: Request, res: Response) => {
+    const user = req.user as unknown as AuthUser;
+    const id = req.params.id;
+
+    const result = await UserManagementService.getUserById(
+      user,
+      id,
     );
-    return res.json(user);
+    return res.json(result);
   },
 
-  createUser: async (req: any, res: Response) => {
-    const user = await UserManagementService.createUser(req.body);
+  createUser: async (req: Request, res: Response) => {
+    const body = req.body as CreateUserInput;
+
+    const user = await UserManagementService.createUser(body);
     return res.status(201).json(user);
   },
 
-  updateUser: async (req: any, res: Response) => {
+  updateUser: async (req: Request, res: Response) => {
+    const user = req.user as unknown as AuthUser;
+    const id = req.params.id;
+    const body = req.body as Partial<CreateUserInput>;
+
     const updated = await UserManagementService.updateUser(
-      req.user,
-      req.params.id,
-      req.body,
+      user,
+      id,
+      body,
     );
     return res.json(updated);
   },
 
-  deleteUser: async (req: any, res: Response) => {
-    await UserManagementService.deleteUser(req.params.id);
+  deleteUser: async (req: Request, res: Response) => {
+    const id = req.params.id;
+
+    await UserManagementService.deleteUser(id);
     return res.json({ message: "User deactivated successfully" });
   },
 };
