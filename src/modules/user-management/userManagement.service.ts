@@ -163,7 +163,11 @@ export const UserManagementService = {
     }
 
     if (data.projectIds?.length === 0) {
-      throw new AppError(400, ERROR_CODES.VAL_003, "projectIds cannot be empty");
+      throw new AppError(
+        400,
+        ERROR_CODES.VAL_003,
+        "projectIds cannot be empty",
+      );
     }
 
     if (data.projectIds) {
@@ -198,11 +202,7 @@ export const UserManagementService = {
   },
 
   // UPDATE USER
-  updateUser: async (
-    authUser: AuthUser,
-    id: string,
-    data: UpdateUserInput,
-  ) => {
+  updateUser: async (authUser: AuthUser, id: string, data: UpdateUserInput) => {
     const userId = Number(id);
 
     if (Number.isNaN(userId)) {

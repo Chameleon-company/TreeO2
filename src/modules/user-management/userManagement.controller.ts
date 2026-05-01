@@ -21,7 +21,8 @@ function getAuthUser(req: AuthenticatedRequest): AuthUser {
 export const UserManagementController = {
   getUsers: async (req: AuthenticatedRequest, res: Response) => {
     const user = getAuthUser(req);
-    const project = typeof req.query.project === "string" ? req.query.project : undefined;
+    const project =
+      typeof req.query.project === "string" ? req.query.project : undefined;
 
     const result = await UserManagementService.getUsers(user, project);
     return res.json(result);
@@ -30,10 +31,7 @@ export const UserManagementController = {
   getUserById: async (req: AuthenticatedRequest, res: Response) => {
     const user = getAuthUser(req);
 
-    const result = await UserManagementService.getUserById(
-      user,
-      req.params.id,
-    );
+    const result = await UserManagementService.getUserById(user, req.params.id);
 
     return res.json(result);
   },
