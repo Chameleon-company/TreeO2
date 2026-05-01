@@ -23,11 +23,11 @@ const localizationController = new LocalizationController();
  *         required: false
  *         description: Filter localized strings by context
  *       - in: query
- *         name: cultureCode
+ *         name: preferredLanguage
  *         schema:
  *           type: string
  *         required: false
- *         description: Filter localized strings by culture code (for example en-US)
+ *         description: Filter localized strings by preferred language (for example en-US)
  *     responses:
  *       200:
  *         description: List of localized strings

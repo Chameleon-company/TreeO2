@@ -314,7 +314,7 @@ Create a localized string.
 ##### Request Body
 ```json
 {
-  "cultureCode": "en-US",
+  "preferredLanguage": "en-US",
   "stringKey": "treeTypes.oak.name",
   "value": "Oak",
   "context": "API"
@@ -417,7 +417,7 @@ Delete a localized string.
 ### 9.6 Validation Rules
 
 #### List Validation
-- `cultureCode`, `preferredLanguage`, and `fallbackLanguage` must be non-empty strings (max 10)
+- `preferredLanguage` must be non-empty strings (max 10) or it would fall back to the default en-US.
 - `context` must be one of `API`, `MOBILE`, `ADMIN`, `PUBLIC`
 - `stringKeys` can be a single string, comma-separated string, or array of strings
 
