@@ -551,7 +551,7 @@ No separate schema-only test file was added because the repo does not currently 
 
 These tests exercise:
 
-`route -> middleware -> controller -> service -> response`
+`route -> middleware -> controller -> service -> Prisma -> Postgres -> response`
 
 Covered scenarios:
 
@@ -578,6 +578,9 @@ Covered scenarios:
 - returns `400` for missing `name`
 - returns `400` for blank `name`
 - returns `400` for invalid density
+- returns `400` when `name` exceeds DB length limit
+- returns `400` when `key` exceeds DB length limit
+- returns `400` when `scientific_name` exceeds DB length limit
 - returns `409` for duplicate `key`
 
 ##### PUT `/tree-types/:id`
@@ -588,6 +591,9 @@ Covered scenarios:
 - returns `400` for invalid id
 - returns `400` for empty body
 - returns `400` for invalid values
+- returns `400` when updated `name` exceeds DB length limit
+- returns `400` when updated `key` exceeds DB length limit
+- returns `400` when updated `scientific_name` exceeds DB length limit
 - returns `404` when missing
 - returns `409` for duplicate `key`
 
@@ -638,14 +644,15 @@ Current test strategy for this module:
 
 - Jest is used as the test runner
 - integration tests use `supertest`
-- Prisma is mocked in tests
+- the main `tree-types` integration suite uses the real Prisma client and real Postgres-backed data
 - logger is mocked in tests
 - integration auth behaviour uses the current development auth scaffold
 
 This matches the current repo state where:
 - Jest is already configured
 - test files already live under `tests/unit` and `tests/integration`
-- no dedicated test database pattern is established yet
+- CI provisions a Postgres test database and applies the Prisma schema before tests
+- the `tree-types` API integration suite creates and cleans up its own test data
 
 ---
 
@@ -675,7 +682,6 @@ npm test -- --runInBand tests/unit/tree-types.test.ts tests/integration/tree-typ
 
 - auth and role checks depend on the existing scaffold and are not fully production-complete yet
 - duplicate key protection is currently handled in service logic, not by a visible DB uniqueness constraint
-- tests mock Prisma rather than using a real database
 - there is not yet a dedicated `project-tree-types` deletion/assignment workflow connected to this document beyond reference checks
 
 ---
@@ -690,6 +696,7 @@ The `tree-types` module is now fully wired into the backend with:
 - authenticated read access
 - admin-only mutation access
 - reference-safe delete behavior
-- unit and integration test coverage
+- unit test coverage
+- real DB-backed API integration coverage
 
 This module now serves as one of the more complete examples of the project’s current module-based API structure and can be used as a reference for implementing similar CRUD-style master-data APIs.
