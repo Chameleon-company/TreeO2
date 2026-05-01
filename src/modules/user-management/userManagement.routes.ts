@@ -21,26 +21,53 @@ const router = Router();
  * @swagger
  * tags:
  *   name: User Management
- *   description: APIs for managing users
+ *   description: User management APIs (RBAC enforced)
  */
 
 /**
  * @swagger
  * /users:
  *   get:
- *     summary: Get all users
+ *     summary: Get users (Admin full access, Manager scoped by project)
  *     tags: [User Management]
  *     security:
  *       - bearerAuth: []
+ *     description: |
+ *       Roles:
+ *       - ADMIN: Can fetch all users
+ *       - MANAGER: Can fetch users only within assigned projects
+ *     parameters:
+ *       - in: query
+ *         name: project
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Filter users by projectId
  *     responses:
  *       200:
  *         description: List of users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: number
+ *                   name:
+ *                     type: string
+ *                   email:
+ *                     type: string
+ *                   accountActive:
+ *                     type: boolean
+ *                   canSignIn:
+ *                     type: boolean
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
-router.get(
-  "/",
-  authMiddleware,
-  asyncHandler(UserManagementController.getUsers),
-);
 
 /**
  * @swagger
@@ -50,32 +77,76 @@ router.get(
  *     tags: [User Management]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
  *     responses:
  *       200:
  *         description: User details
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  *       404:
  *         description: User not found
  */
-router.get(
-  "/:id",
-  authMiddleware,
-  asyncHandler(UserManagementController.getUserById),
-);
 
 /**
  * @swagger
  * /users:
  *   post:
- *     summary: Create a user (Admin only)
+ *     summary: Create user (Admin only)
  *     tags: [User Management]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - roleId
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               roleId:
+ *                 type: number
+ *               projectIds:
+ *                 type: array
+ *                 items:
+ *                   type: number
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       409:
+ *         description: Email already exists
+ */
+
+/**
+ * @swagger
+ * /users/{id}:
+ *   put:
+ *     summary: Update user (Admin full access, Manager scoped with restrictions)
+ *     tags: [User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     description: |
+ *       Roles:
+ *       - ADMIN: Can update all fields
+ *       - MANAGER: Can update only allowed fields within assigned projects
+ *
+ *       Managers CANNOT update:
+ *       - roleId
+ *       - accountActive
+ *       - canSignIn
  *     requestBody:
  *       required: true
  *       content:
@@ -94,9 +165,52 @@ router.get(
  *                 items:
  *                   type: number
  *     responses:
- *       201:
- *         description: User created
+ *       200:
+ *         description: User updated successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (role or scope restriction)
+ *       404:
+ *         description: User not found
+ *       409:
+ *         description: Email already exists
  */
+
+/**
+ * @swagger
+ * /users/{id}:
+ *   delete:
+ *     summary: Soft delete user (Admin only)
+ *     tags: [User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User deactivated successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: User not found
+ */
+
+router.get(
+  "/",
+  authMiddleware,
+  roleMiddleware(["ADMIN", "MANAGER"]),
+  asyncHandler(UserManagementController.getUsers),
+);
+
+router.get(
+  "/:id",
+  authMiddleware,
+  asyncHandler(UserManagementController.getUserById),
+);
+
 router.post(
   "/",
   authMiddleware,
@@ -104,34 +218,13 @@ router.post(
   asyncHandler(UserManagementController.createUser),
 );
 
-/**
- * @swagger
- * /users/{id}:
- *   put:
- *     summary: Update a user (Admin only)
- *     tags: [User Management]
- *     security:
- *       - bearerAuth: []
- */
 router.put(
   "/:id",
   authMiddleware,
-  roleMiddleware(["ADMIN"]),
+  roleMiddleware(["ADMIN", "MANAGER"]),
   asyncHandler(UserManagementController.updateUser),
 );
 
-/**
- * @swagger
- * /users/{id}:
- *   delete:
- *     summary: Delete a user (Admin only)
- *     tags: [User Management]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: User deleted
- */
 router.delete(
   "/:id",
   authMiddleware,

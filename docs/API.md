@@ -203,98 +203,82 @@ Notes:
 
 ## 9. USER MANAGEMENT API
 
-This module manages users in the TreeO2 system. It supports user creation, retrieval, updating, and soft deletion with role-based and project-based access control.
+This module manages users with role-based and project-based access control.
 
-**Module Path:** `src/modules/user-management/`
+Module Path: `src/modules/user-management/`
 
-### Files
+---
 
-* `userManagement.routes.ts`
-* `userManagement.controller.ts`
-* `userManagement.service.ts`
-* `index.ts`
+### 9.1 Access Control
 
-### 9.1 Purpose
+| Endpoint          | ADMIN | MANAGER (Scoped) | INSPECTOR | FARMER |
+|------------------|-------|------------------|-----------|--------|
+| GET /users       | Yes   | Yes              | No        | No     |
+| GET /users/:id   | Yes   | Yes (project)    | Self      | Self   |
+| POST /users      | Yes   | No               | No        | No     |
+| PUT /users/:id   | Yes   | Yes (restricted) | No        | No     |
+| DELETE /users/:id| Yes   | No               | No        | No     |
 
-Manages system users for authentication, authorization, project assignment, and tree scan ownership.
+---
 
-### 9.2 Architecture Flow
+### 9.2 Manager Restrictions
 
-```text
-Route → Controller → Service → Prisma → Database → Response
-```
+Managers CAN:
+- Update users within assigned projects
 
-### 9.3 Security
+Managers CANNOT:
+- Update roleId
+- Update accountActive
+- Update canSignIn
 
-* JWT authentication required
-* Middleware:
+---
 
-  * `authMiddleware`
-  * `roleMiddleware`
+### 9.3 Validation Rules
 
-### 9.4 Access Control
+- email must be valid format
+- email must be unique (409)
+- roleId must exist
+- projectIds must:
+  - be valid IDs
+  - not contain duplicates
 
-| Endpoint          | ADMIN | MANAGER       | INSPECTOR | FARMER |
-| ----------------- | ----- | ------------- | --------- | ------ |
-| GET /users        | Yes   | Yes           | No        | No     |
-| GET /users/:id    | Yes   | Project-based | Self      | Self   |
-| POST /users       | Yes   | No            | No        | No     |
-| PUT /users/:id    | Yes   | No            | No        | No     |
-| DELETE /users/:id | Yes   | No            | No        | No     |
+---
 
-### 9.5 Endpoints
+### 9.4 Endpoints
 
 #### GET /users
-
-Fetch all users (optional project filter)
+Fetch users (Admin full access, Manager scoped by project)
 
 #### GET /users/:id
-
-Fetch user by ID with role-based access
+Fetch single user with role-based access control
 
 #### POST /users
-
-Create user (ADMIN only)
+Create user (Admin only)
 
 #### PUT /users/:id
-
-Update user (ADMIN only)
+Update user (Admin full, Manager scoped with restrictions)
 
 #### DELETE /users/:id
+Soft delete user (Admin only)
 
-Soft delete user (ADMIN only)
+---
+
+### 9.5 Response Codes
+
+- 200 OK
+- 201 Created
+- 400 Validation error
+- 401 Unauthorized
+- 403 Forbidden
+- 404 Not found
+- 409 Conflict
+
+---
 
 ### 9.6 Business Logic
 
-* Prisma-based database operations
-* Role and project-based access control
-* Soft delete (disable account instead of removing)
-* Prevent deletion if linked to `treeScan`
-
-### 9.7 Response Codes
-
-* 200 Success
-* 201 Created
-* 400 Bad Request
-* 401 Unauthorized
-* 403 Forbidden
-* 404 Not Found
-
-### 9.8 Swagger
-
-Defined in `userManagement.routes.ts`
-Available at: `http://localhost:3000/api-docs`
-
-### 9.9 Testing
-
-* Unit tests: service logic
-* Integration tests: full API flow (route → controller → service)
-
-### 9.10 Summary
-
-* Modular architecture
-* Secure authentication
-* Role-based access control
-* Soft delete system
-* Clean separation of concerns
-* Fully tested and documented API
+- Prisma-based data access
+- Soft delete (disable user instead of removing)
+- Role-based access control (RBAC)
+- Project-scoped access for MANAGER
+- Prevent deletion if user linked to treeScan records
