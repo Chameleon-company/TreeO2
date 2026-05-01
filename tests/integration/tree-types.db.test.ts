@@ -57,29 +57,6 @@ describeIfDb("Tree Types DB integration", () => {
     await prisma.$disconnect();
   });
 
-  it("enforces unique key at the database level", async () => {
-    const uniqueKey = `db-unique-${Date.now()}`;
-
-    const firstTreeType = await prisma.treeType.create({
-      data: {
-        name: "DB Unique Tree Type",
-        key: uniqueKey,
-      },
-    });
-    treeTypeIds.push(firstTreeType.id);
-
-    await expect(
-      prisma.treeType.create({
-        data: {
-          name: "Duplicate DB Unique Tree Type",
-          key: uniqueKey,
-        },
-      }),
-    ).rejects.toMatchObject({
-      code: "P2002",
-    });
-  });
-
   it("blocks delete when referenced by project-tree-types on a real database", async () => {
     const suffix = Date.now();
     const treeType = await prisma.treeType.create({

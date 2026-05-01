@@ -1,7 +1,7 @@
 model TreeType {
   id               Int               @id @default(autoincrement())
   name             String            @db.VarChar(200)
-  key              String?           @unique @db.VarChar(200)
+  key              String?           @db.VarChar(200)
   scientificName   String?           @map("scientific_name") @db.VarChar(200)
   dryWeightDensity Decimal           @default(595.0) @map("dry_weight_density") @db.Decimal(8, 3)
   createdAt        DateTime          @default(now()) @map("created_at")
