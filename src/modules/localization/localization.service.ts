@@ -82,8 +82,10 @@ export class LocalizationService {
         }
       }
 
-      return Array.from(localizedByKey.values()).sort((a, b) =>
-        a.stringKey.localeCompare(b.stringKey) || a.context.localeCompare(b.context),
+      return Array.from(localizedByKey.values()).sort(
+        (a, b) =>
+          a.stringKey.localeCompare(b.stringKey) ||
+          a.context.localeCompare(b.context),
       );
     }
 
@@ -101,10 +103,7 @@ export class LocalizationService {
 
     return prisma.localizedString.findMany({
       where,
-      orderBy: [
-        { context: "asc" },
-        { stringKey: "asc" },
-      ],
+      orderBy: [{ context: "asc" }, { stringKey: "asc" }],
     });
   }
 
