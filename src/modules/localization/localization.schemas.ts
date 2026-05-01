@@ -22,7 +22,6 @@ const normalizeStringKeys = (raw?: string | string[]): string[] | undefined => {
 
 export const listLocalizedStringsQuerySchema = z
   .object({
-    cultureCode: z.string().trim().min(1).max(10).optional(),
     context: z.enum(LOCALIZATION_CONTEXTS).optional(),
     preferredLanguage: z.string().trim().min(1).max(10).optional(),
     preferred_language: z.string().trim().min(1).max(10).optional(),
@@ -30,7 +29,6 @@ export const listLocalizedStringsQuerySchema = z
     string_keys: stringKeyListSchema,
   })
   .transform((query) => ({
-    cultureCode: query.cultureCode,
     context: query.context,
     preferredLanguage: query.preferredLanguage ?? query.preferred_language,
     stringKeys:

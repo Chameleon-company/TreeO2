@@ -90,6 +90,7 @@ export class LocalizationService {
     }
 
     const where = {
+      cultureCode: DEFAULT_LOCALIZATION_CULTURE_CODE,
       ...(filters.context ? { context: filters.context } : {}),
       ...(filters.stringKeys?.length
         ? {
@@ -98,7 +99,6 @@ export class LocalizationService {
             },
           }
         : {}),
-      cultureCode: DEFAULT_LOCALIZATION_CULTURE_CODE,
     };
 
     return prisma.localizedString.findMany({

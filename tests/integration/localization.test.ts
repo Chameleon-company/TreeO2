@@ -137,7 +137,7 @@ describe("Localization API", () => {
 
     const response = await request(app)
       .get("/localized-strings")
-      .query({ cultureCode: primaryCultureCode, context: "API" })
+      .query({ preferred_language: primaryCultureCode, context: "API" })
       .set(authHeader(TOKENS.MANAGER));
 
     expect(response.status).toBe(200);

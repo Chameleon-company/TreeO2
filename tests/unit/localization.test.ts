@@ -63,7 +63,6 @@ describe("LocalizationService", () => {
         context: "API",
       },
       orderBy: [
-        { cultureCode: "asc" },
         { context: "asc" },
         { stringKey: "asc" },
       ],
@@ -76,9 +75,10 @@ describe("LocalizationService", () => {
     await service.listLocalizedStrings({});
 
     expect(localizedStringModel.findMany).toHaveBeenCalledWith({
-      where: {},
+      where: {
+        cultureCode: "en-US",
+      },
       orderBy: [
-        { cultureCode: "asc" },
         { context: "asc" },
         { stringKey: "asc" },
       ],
