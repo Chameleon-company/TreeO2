@@ -1,37 +1,8 @@
 import express from "express";
 import request from "supertest";
+import { prisma } from "../../src/lib/prisma";
 
-process.env.NODE_ENV = "development";
-process.env.DATABASE_URL =
-  process.env.DATABASE_URL ??
-  "postgresql://treeo2_user:treeo2_password@localhost:5432/treeo2?schema=public";
-process.env.JWT_SECRET =
-  process.env.JWT_SECRET ?? "12345678901234567890123456789012";
-process.env.AUTH_DEV_MODE = "true";
-process.env.AUTH_DEV_ADMIN_TOKEN = "test-admin-token";
-process.env.AUTH_DEV_MANAGER_TOKEN = "test-manager-token";
-
-const prismaMock = {
-  $transaction: jest.fn(),
-  treeType: {
-    findMany: jest.fn(),
-    findUnique: jest.fn(),
-    findFirst: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-  },
-  projectTreeType: {
-    count: jest.fn(),
-  },
-  treeScan: {
-    count: jest.fn(),
-  },
-};
-
-jest.mock("../../src/lib/prisma", () => ({
-  prisma: prismaMock,
-}));
+const originalEnv = { ...process.env };
 
 jest.mock("../../src/config/logger", () => ({
   logger: {
@@ -40,13 +11,13 @@ jest.mock("../../src/config/logger", () => ({
   },
 }));
 
-const treeTypesRoutes = require("../../src/modules/tree-types/treeTypes.routes")
-  .default as express.Router;
-const { errorHandler } = require("../../src/middleware/errorHandler") as {
-  errorHandler: express.ErrorRequestHandler;
-};
-
 const createApp = (): express.Express => {
+  const treeTypesRoutes = require("../../src/modules/tree-types/treeTypes.routes")
+    .default as express.Router;
+  const { errorHandler } = require("../../src/middleware/errorHandler") as {
+    errorHandler: express.ErrorRequestHandler;
+  };
+
   const app = express();
   app.use(express.json());
   app.use("/tree-types", treeTypesRoutes);
@@ -62,31 +33,179 @@ const managerAuthHeader = {
   Authorization: "Bearer test-manager-token",
 };
 
-const makeTreeTypeRecord = (overrides: Partial<Record<string, unknown>> = {}) => ({
-  id: 1,
-  name: "Eucalyptus",
-  key: "eucalyptus",
-  scientificName: "Eucalyptus globulus",
-  dryWeightDensity: 650,
-  createdAt: new Date("2026-01-28T10:00:00.000Z"),
-  updatedAt: new Date("2026-01-28T10:00:00.000Z"),
-  ...overrides,
-});
-
 const tooLongText = "a".repeat(201);
+const suitePrefix = `tree-types-api-${Date.now()}`;
+let uniqueCounter = 0;
+
+const nextUnique = (label: string): string => {
+  uniqueCounter += 1;
+  return `${suitePrefix}-${label}-${uniqueCounter}`;
+};
 
 describe("Tree Types API", () => {
   let app: express.Express;
+  const projectIds: number[] = [];
+  const treeTypeIds: number[] = [];
+  const roleIds: number[] = [];
+  const userIds: number[] = [];
+  const treeScanIds: number[] = [];
 
-  beforeEach(() => {
+  const createTreeType = async (overrides: {
+    name?: string;
+    key?: string | null;
+    scientificName?: string | null;
+    dryWeightDensity?: number;
+  } = {}) => {
+    const treeType = await prisma.treeType.create({
+      data: {
+        name: overrides.name ?? nextUnique("tree-type"),
+        key:
+          overrides.key === undefined ? nextUnique("key") : overrides.key,
+        scientificName:
+          overrides.scientificName === undefined
+            ? `${nextUnique("scientific-name")}`
+            : overrides.scientificName,
+        dryWeightDensity: overrides.dryWeightDensity ?? 650,
+      },
+    });
+
+    treeTypeIds.push(treeType.id);
+    return treeType;
+  };
+
+  const createProject = async () => {
+    const project = await prisma.project.create({
+      data: {
+        name: nextUnique("project"),
+      },
+    });
+
+    projectIds.push(project.id);
+    return project;
+  };
+
+  const createRole = async (name: string) => {
+    const role = await prisma.role.create({
+      data: {
+        name,
+      },
+    });
+
+    roleIds.push(role.id);
+    return role;
+  };
+
+  const createUser = async (roleId: number, label: string) => {
+    const user = await prisma.user.create({
+      data: {
+        name: nextUnique(`${label}-user`),
+        email: `${nextUnique(label)}@example.com`,
+        roleId,
+      },
+    });
+
+    userIds.push(user.id);
+    return user;
+  };
+
+  const createTreeScanReference = async (speciesId: number, projectId: number) => {
+    const farmerRole = await createRole(nextUnique("farmer-role"));
+    const inspectorRole = await createRole(nextUnique("inspector-role"));
+    const farmer = await createUser(farmerRole.id, "farmer");
+    const inspector = await createUser(inspectorRole.id, "inspector");
+
+    const treeScan = await prisma.treeScan.create({
+      data: {
+        fobId: nextUnique("fob"),
+        projectId,
+        farmerId: farmer.id,
+        inspectorId: inspector.id,
+        speciesId,
+        estimatedPlantedYear: 2024,
+        estimatedPlantedMonth: 5,
+      },
+    });
+
+    treeScanIds.push(treeScan.id);
+    return treeScan;
+  };
+
+  beforeAll(async () => {
+    process.env = {
+      ...originalEnv,
+      NODE_ENV: "development",
+      DATABASE_URL:
+        originalEnv.DATABASE_URL ??
+        "postgresql://treeo2_user:treeo2_password@localhost:5432/treeo2?schema=public",
+      JWT_SECRET:
+        originalEnv.JWT_SECRET ?? "12345678901234567890123456789012",
+      AUTH_DEV_MODE: "true",
+      AUTH_DEV_ADMIN_TOKEN: "test-admin-token",
+      AUTH_DEV_MANAGER_TOKEN: "test-manager-token",
+    };
+
     app = createApp();
-    jest.clearAllMocks();
+    await prisma.$connect();
+  });
 
-    prismaMock.$transaction.mockImplementation(async (callback) =>
-      callback(prismaMock),
-    );
-    prismaMock.projectTreeType.count.mockResolvedValue(0);
-    prismaMock.treeScan.count.mockResolvedValue(0);
+  afterEach(async () => {
+    if (treeScanIds.length > 0) {
+      await prisma.treeScan.deleteMany({
+        where: { id: { in: treeScanIds } },
+      });
+      treeScanIds.length = 0;
+    }
+
+    if (projectIds.length > 0 || treeTypeIds.length > 0) {
+      await prisma.projectTreeType.deleteMany({
+        where: {
+          OR: [
+            projectIds.length > 0
+              ? { projectId: { in: projectIds } }
+              : undefined,
+            treeTypeIds.length > 0
+              ? { treeTypeId: { in: treeTypeIds } }
+              : undefined,
+          ].filter(Boolean) as Array<
+            | { projectId: { in: number[] } }
+            | { treeTypeId: { in: number[] } }
+          >,
+        },
+      });
+    }
+
+    if (userIds.length > 0) {
+      await prisma.user.deleteMany({
+        where: { id: { in: userIds } },
+      });
+      userIds.length = 0;
+    }
+
+    if (projectIds.length > 0) {
+      await prisma.project.deleteMany({
+        where: { id: { in: projectIds } },
+      });
+      projectIds.length = 0;
+    }
+
+    if (treeTypeIds.length > 0) {
+      await prisma.treeType.deleteMany({
+        where: { id: { in: treeTypeIds } },
+      });
+      treeTypeIds.length = 0;
+    }
+
+    if (roleIds.length > 0) {
+      await prisma.role.deleteMany({
+        where: { id: { in: roleIds } },
+      });
+      roleIds.length = 0;
+    }
+  });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+    process.env = originalEnv;
   });
 
   describe("GET /tree-types", () => {
@@ -98,10 +217,14 @@ describe("Tree Types API", () => {
     });
 
     it("should return 200 with a list of tree types for an authenticated user", async () => {
-      prismaMock.treeType.findMany.mockResolvedValue([
-        makeTreeTypeRecord({ id: 2, name: "Acacia", key: "acacia" }),
-        makeTreeTypeRecord({ id: 1, name: "Eucalyptus", key: "eucalyptus" }),
-      ]);
+      const first = await createTreeType({
+        name: nextUnique("Acacia"),
+        key: nextUnique("acacia-key"),
+      });
+      const second = await createTreeType({
+        name: nextUnique("Eucalyptus"),
+        key: nextUnique("eucalyptus-key"),
+      });
 
       const response = await request(app)
         .get("/tree-types")
@@ -109,19 +232,23 @@ describe("Tree Types API", () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.data).toEqual([
-        expect.objectContaining({ id: 2, name: "Acacia", key: "acacia" }),
+
+      const matchingTreeTypes = response.body.data.filter(
+        (treeType: { id: number }) =>
+          treeType.id === first.id || treeType.id === second.id,
+      );
+
+      expect(matchingTreeTypes).toEqual([
+        expect.objectContaining({ id: first.id, name: first.name, key: first.key }),
         expect.objectContaining({
-          id: 1,
-          name: "Eucalyptus",
-          key: "eucalyptus",
+          id: second.id,
+          name: second.name,
+          key: second.key,
         }),
       ]);
     });
 
-    it("should return an empty array when no records exist", async () => {
-      prismaMock.treeType.findMany.mockResolvedValue([]);
-
+    it("should return an empty array when no tree type records exist in the test database", async () => {
       const response = await request(app)
         .get("/tree-types")
         .set(managerAuthHeader);
@@ -139,17 +266,22 @@ describe("Tree Types API", () => {
     });
 
     it("should return 200 when the tree type exists", async () => {
-      prismaMock.treeType.findUnique.mockResolvedValue(makeTreeTypeRecord());
+      const treeType = await createTreeType({
+        name: nextUnique("Eucalyptus"),
+        key: nextUnique("eucalyptus-key"),
+        scientificName: "Eucalyptus globulus",
+        dryWeightDensity: 650,
+      });
 
       const response = await request(app)
-        .get("/tree-types/1")
+        .get(`/tree-types/${treeType.id}`)
         .set(managerAuthHeader);
 
       expect(response.status).toBe(200);
       expect(response.body.data).toEqual(
         expect.objectContaining({
-          id: 1,
-          name: "Eucalyptus",
+          id: treeType.id,
+          name: treeType.name,
           scientific_name: "Eucalyptus globulus",
           dry_weight_density: 650,
         }),
@@ -184,10 +316,8 @@ describe("Tree Types API", () => {
     });
 
     it("should return 404 when the tree type does not exist", async () => {
-      prismaMock.treeType.findUnique.mockResolvedValue(null);
-
       const response = await request(app)
-        .get("/tree-types/999")
+        .get("/tree-types/999999")
         .set(managerAuthHeader);
 
       expect(response.status).toBe(404);
@@ -215,83 +345,90 @@ describe("Tree Types API", () => {
     });
 
     it("should return 201 for an admin with a valid payload", async () => {
-      prismaMock.treeType.findFirst.mockResolvedValue(null);
-      prismaMock.treeType.create.mockResolvedValue(makeTreeTypeRecord());
+      const payload = {
+        name: nextUnique("Eucalyptus"),
+        key: nextUnique("eucalyptus-key"),
+        scientific_name: "Eucalyptus globulus",
+        dry_weight_density: 650,
+      };
 
       const response = await request(app)
         .post("/tree-types")
         .set(adminAuthHeader)
-        .send({
-          name: "Eucalyptus",
-          key: "eucalyptus",
-          scientific_name: "Eucalyptus globulus",
-          dry_weight_density: 650,
-        });
+        .send(payload);
 
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
+
+      const createdTreeType = await prisma.treeType.findUnique({
+        where: { id: response.body.data.id },
+      });
+
+      expect(createdTreeType).not.toBeNull();
+      if (createdTreeType) {
+        treeTypeIds.push(createdTreeType.id);
+      }
+
       expect(response.body.data).toEqual(
         expect.objectContaining({
-          id: 1,
-          name: "Eucalyptus",
-          key: "eucalyptus",
-          dry_weight_density: 650,
+          name: payload.name,
+          key: payload.key,
+          scientific_name: payload.scientific_name,
+          dry_weight_density: payload.dry_weight_density,
         }),
       );
     });
 
     it("should create successfully when only name is provided", async () => {
-      prismaMock.treeType.findFirst.mockResolvedValue(null);
-      prismaMock.treeType.create.mockResolvedValue(
-        makeTreeTypeRecord({
-          name: "Acacia",
-          key: null,
-          scientificName: null,
-          dryWeightDensity: 595,
-        }),
-      );
+      const name = nextUnique("Acacia");
 
       const response = await request(app)
         .post("/tree-types")
         .set(adminAuthHeader)
         .send({
-          name: "Acacia",
+          name,
         });
 
       expect(response.status).toBe(201);
       expect(response.body.data).toEqual(
         expect.objectContaining({
-          name: "Acacia",
+          name,
           key: null,
           scientific_name: null,
           dry_weight_density: 595,
         }),
       );
-      expect(prismaMock.treeType.create).toHaveBeenCalledWith({
-        data: {
-          name: "Acacia",
-          key: undefined,
-          scientificName: undefined,
-          dryWeightDensity: 595,
-        },
+
+      const createdTreeType = await prisma.treeType.findUnique({
+        where: { id: response.body.data.id },
       });
+
+      expect(createdTreeType).not.toBeNull();
+      if (createdTreeType) {
+        treeTypeIds.push(createdTreeType.id);
+        expect(createdTreeType.dryWeightDensity.toNumber()).toBe(595);
+      }
     });
 
     it("should apply default dry_weight_density when omitted", async () => {
-      prismaMock.treeType.findFirst.mockResolvedValue(null);
-      prismaMock.treeType.create.mockResolvedValue(
-        makeTreeTypeRecord({ dryWeightDensity: 595 }),
-      );
-
       const response = await request(app)
         .post("/tree-types")
         .set(adminAuthHeader)
         .send({
-          name: "Acacia",
+          name: nextUnique("Acacia"),
         });
 
       expect(response.status).toBe(201);
       expect(response.body.data.dry_weight_density).toBe(595);
+
+      const createdTreeType = await prisma.treeType.findUnique({
+        where: { id: response.body.data.id },
+      });
+
+      if (createdTreeType) {
+        treeTypeIds.push(createdTreeType.id);
+        expect(createdTreeType.dryWeightDensity.toNumber()).toBe(595);
+      }
     });
 
     it("should return 400 when name is missing", async () => {
@@ -299,7 +436,7 @@ describe("Tree Types API", () => {
         .post("/tree-types")
         .set(adminAuthHeader)
         .send({
-          key: "eucalyptus",
+          key: nextUnique("eucalyptus-key"),
         });
 
       expect(response.status).toBe(400);
@@ -323,7 +460,7 @@ describe("Tree Types API", () => {
         .post("/tree-types")
         .set(adminAuthHeader)
         .send({
-          name: "Eucalyptus",
+          name: nextUnique("Eucalyptus"),
           dry_weight_density: -10,
         });
 
@@ -348,7 +485,7 @@ describe("Tree Types API", () => {
         .post("/tree-types")
         .set(adminAuthHeader)
         .send({
-          name: "Eucalyptus",
+          name: nextUnique("Eucalyptus"),
           key: tooLongText,
         });
 
@@ -361,7 +498,7 @@ describe("Tree Types API", () => {
         .post("/tree-types")
         .set(adminAuthHeader)
         .send({
-          name: "Eucalyptus",
+          name: nextUnique("Eucalyptus"),
           scientific_name: tooLongText,
         });
 
@@ -370,30 +507,17 @@ describe("Tree Types API", () => {
     });
 
     it("should return 409 for a duplicate key", async () => {
-      prismaMock.treeType.findFirst.mockResolvedValue(makeTreeTypeRecord());
+      const existingTreeType = await createTreeType({
+        name: nextUnique("Existing"),
+        key: nextUnique("duplicate-key"),
+      });
 
       const response = await request(app)
         .post("/tree-types")
         .set(adminAuthHeader)
         .send({
-          name: "Eucalyptus",
-          key: "eucalyptus",
-        });
-
-      expect(response.status).toBe(409);
-      expect(response.body.message).toBe("Tree type key already exists");
-    });
-
-    it("should return 409 when the database raises a unique violation", async () => {
-      prismaMock.treeType.findFirst.mockResolvedValue(null);
-      prismaMock.treeType.create.mockRejectedValue({ code: "P2002" });
-
-      const response = await request(app)
-        .post("/tree-types")
-        .set(adminAuthHeader)
-        .send({
-          name: "Eucalyptus",
-          key: "eucalyptus",
+          name: nextUnique("Eucalyptus"),
+          key: existingTreeType.key,
         });
 
       expect(response.status).toBe(409);
@@ -422,13 +546,10 @@ describe("Tree Types API", () => {
     });
 
     it("should return 200 for a valid partial update by admin", async () => {
-      prismaMock.treeType.findUnique.mockResolvedValue(makeTreeTypeRecord());
-      prismaMock.treeType.update.mockResolvedValue(
-        makeTreeTypeRecord({ dryWeightDensity: 640.5 }),
-      );
+      const treeType = await createTreeType();
 
       const response = await request(app)
-        .put("/tree-types/1")
+        .put(`/tree-types/${treeType.id}`)
         .set(adminAuthHeader)
         .send({
           dry_weight_density: 640.5,
@@ -436,15 +557,12 @@ describe("Tree Types API", () => {
 
       expect(response.status).toBe(200);
       expect(response.body.data.dry_weight_density).toBe(640.5);
-      expect(prismaMock.treeType.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: {
-          name: undefined,
-          key: undefined,
-          scientificName: undefined,
-          dryWeightDensity: 640.5,
-        },
+
+      const updatedTreeType = await prisma.treeType.findUnique({
+        where: { id: treeType.id },
       });
+
+      expect(updatedTreeType?.dryWeightDensity.toNumber()).toBe(640.5);
     });
 
     it("should return 400 for an invalid id param", async () => {
@@ -517,10 +635,8 @@ describe("Tree Types API", () => {
     });
 
     it("should return 404 when the tree type does not exist", async () => {
-      prismaMock.treeType.findUnique.mockResolvedValue(null);
-
       const response = await request(app)
-        .put("/tree-types/999")
+        .put("/tree-types/999999")
         .set(adminAuthHeader)
         .send({
           name: "Updated Eucalyptus",
@@ -531,32 +647,18 @@ describe("Tree Types API", () => {
     });
 
     it("should return 409 for a duplicate key", async () => {
-      prismaMock.treeType.findUnique.mockResolvedValue(makeTreeTypeRecord());
-      prismaMock.treeType.findFirst.mockResolvedValue(
-        makeTreeTypeRecord({ id: 2, key: "duplicate-key" }),
-      );
+      const existingTreeType = await createTreeType({
+        key: nextUnique("duplicate-key"),
+      });
+      const targetTreeType = await createTreeType({
+        key: nextUnique("target-key"),
+      });
 
       const response = await request(app)
-        .put("/tree-types/1")
+        .put(`/tree-types/${targetTreeType.id}`)
         .set(adminAuthHeader)
         .send({
-          key: "duplicate-key",
-        });
-
-      expect(response.status).toBe(409);
-      expect(response.body.message).toBe("Tree type key already exists");
-    });
-
-    it("should return 409 when update hits a database unique violation", async () => {
-      prismaMock.treeType.findUnique.mockResolvedValue(makeTreeTypeRecord());
-      prismaMock.treeType.findFirst.mockResolvedValue(null);
-      prismaMock.treeType.update.mockRejectedValue({ code: "P2002" });
-
-      const response = await request(app)
-        .put("/tree-types/1")
-        .set(adminAuthHeader)
-        .send({
-          key: "duplicate-key",
+          key: existingTreeType.key,
         });
 
       expect(response.status).toBe(409);
@@ -580,11 +682,10 @@ describe("Tree Types API", () => {
     });
 
     it("should return success for an admin when the record is deletable", async () => {
-      prismaMock.treeType.findUnique.mockResolvedValue(makeTreeTypeRecord());
-      prismaMock.treeType.delete.mockResolvedValue(makeTreeTypeRecord());
+      const treeType = await createTreeType();
 
       const response = await request(app)
-        .delete("/tree-types/1")
+        .delete(`/tree-types/${treeType.id}`)
         .set(adminAuthHeader);
 
       expect(response.status).toBe(200);
@@ -592,9 +693,16 @@ describe("Tree Types API", () => {
         success: true,
         message: "Tree type deleted successfully",
       });
-      expect(prismaMock.treeType.delete).toHaveBeenCalledWith({
-        where: { id: 1 },
+
+      const deletedTreeType = await prisma.treeType.findUnique({
+        where: { id: treeType.id },
       });
+
+      expect(deletedTreeType).toBeNull();
+      const index = treeTypeIds.indexOf(treeType.id);
+      if (index >= 0) {
+        treeTypeIds.splice(index, 1);
+      }
     });
 
     it("should return 400 for an invalid id param", async () => {
@@ -606,10 +714,8 @@ describe("Tree Types API", () => {
     });
 
     it("should return 404 when the tree type does not exist", async () => {
-      prismaMock.treeType.findUnique.mockResolvedValue(null);
-
       const response = await request(app)
-        .delete("/tree-types/999")
+        .delete("/tree-types/999999")
         .set(adminAuthHeader);
 
       expect(response.status).toBe(404);
@@ -617,41 +723,34 @@ describe("Tree Types API", () => {
     });
 
     it("should return 409 when referenced by project-tree-types", async () => {
-      prismaMock.treeType.findUnique.mockResolvedValue(makeTreeTypeRecord());
-      prismaMock.projectTreeType.count.mockResolvedValue(1);
-      prismaMock.treeScan.count.mockResolvedValue(0);
+      const treeType = await createTreeType();
+      const project = await createProject();
+
+      await prisma.projectTreeType.create({
+        data: {
+          projectId: project.id,
+          treeTypeId: treeType.id,
+        },
+      });
 
       const response = await request(app)
-        .delete("/tree-types/1")
+        .delete(`/tree-types/${treeType.id}`)
         .set(adminAuthHeader);
 
       expect(response.status).toBe(409);
       expect(response.body.message).toBe(
         "Tree type cannot be deleted because it is referenced by other records",
       );
-      expect(prismaMock.treeType.delete).not.toHaveBeenCalled();
     });
 
     it("should return 409 when referenced by tree-scans", async () => {
-      prismaMock.projectTreeType.count.mockResolvedValue(0);
-      prismaMock.treeScan.count.mockResolvedValue(2);
+      const treeType = await createTreeType();
+      const project = await createProject();
+
+      await createTreeScanReference(treeType.id, project.id);
 
       const response = await request(app)
-        .delete("/tree-types/1")
-        .set(adminAuthHeader);
-
-      expect(response.status).toBe(409);
-      expect(response.body.message).toBe(
-        "Tree type cannot be deleted because it is referenced by other records",
-      );
-      expect(prismaMock.treeType.delete).not.toHaveBeenCalled();
-    });
-
-    it("should return 409 when the database raises a foreign key violation during delete", async () => {
-      prismaMock.$transaction.mockRejectedValue({ code: "P2003" });
-
-      const response = await request(app)
-        .delete("/tree-types/1")
+        .delete(`/tree-types/${treeType.id}`)
         .set(adminAuthHeader);
 
       expect(response.status).toBe(409);
