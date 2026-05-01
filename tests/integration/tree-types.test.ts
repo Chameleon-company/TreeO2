@@ -73,6 +73,8 @@ const makeTreeTypeRecord = (overrides: Partial<Record<string, unknown>> = {}) =>
   ...overrides,
 });
 
+const tooLongText = "a".repeat(201);
+
 describe("Tree Types API", () => {
   let app: express.Express;
 
@@ -329,6 +331,44 @@ describe("Tree Types API", () => {
       expect(response.body.success).toBe(false);
     });
 
+    it("should return 400 when name exceeds the DB length limit", async () => {
+      const response = await request(app)
+        .post("/tree-types")
+        .set(adminAuthHeader)
+        .send({
+          name: tooLongText,
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
+    it("should return 400 when key exceeds the DB length limit", async () => {
+      const response = await request(app)
+        .post("/tree-types")
+        .set(adminAuthHeader)
+        .send({
+          name: "Eucalyptus",
+          key: tooLongText,
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
+    it("should return 400 when scientific_name exceeds the DB length limit", async () => {
+      const response = await request(app)
+        .post("/tree-types")
+        .set(adminAuthHeader)
+        .send({
+          name: "Eucalyptus",
+          scientific_name: tooLongText,
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
     it("should return 409 for a duplicate key", async () => {
       prismaMock.treeType.findFirst.mockResolvedValue(makeTreeTypeRecord());
 
@@ -434,6 +474,42 @@ describe("Tree Types API", () => {
         .set(adminAuthHeader)
         .send({
           dry_weight_density: 0,
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
+    it("should return 400 when updated name exceeds the DB length limit", async () => {
+      const response = await request(app)
+        .put("/tree-types/1")
+        .set(adminAuthHeader)
+        .send({
+          name: tooLongText,
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
+    it("should return 400 when updated key exceeds the DB length limit", async () => {
+      const response = await request(app)
+        .put("/tree-types/1")
+        .set(adminAuthHeader)
+        .send({
+          key: tooLongText,
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
+    it("should return 400 when updated scientific_name exceeds the DB length limit", async () => {
+      const response = await request(app)
+        .put("/tree-types/1")
+        .set(adminAuthHeader)
+        .send({
+          scientific_name: tooLongText,
         });
 
       expect(response.status).toBe(400);
