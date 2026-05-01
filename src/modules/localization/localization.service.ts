@@ -25,7 +25,6 @@ export interface ListLocalizedStringsInput {
   cultureCode?: string;
   context?: LocalizationContext;
   preferredLanguage?: string;
-  fallbackLanguage?: string;
   stringKeys?: string[];
 }
 
@@ -46,8 +45,6 @@ export class LocalizationService {
   ): Promise<LocalizedString[]> {
     if (filters.preferredLanguage) {
       const preferredLanguage = filters.preferredLanguage;
-      const fallbackLanguage =
-        filters.fallbackLanguage ?? DEFAULT_LOCALIZATION_CULTURE_CODE;
 
       const entries = await prisma.localizedString.findMany({
         where: {
@@ -60,7 +57,7 @@ export class LocalizationService {
               }
             : {}),
           cultureCode: {
-            in: [preferredLanguage, fallbackLanguage],
+            in: [preferredLanguage, DEFAULT_LOCALIZATION_CULTURE_CODE],
           },
         },
         orderBy: [{ stringKey: "asc" }, { cultureCode: "asc" }],
@@ -69,10 +66,11 @@ export class LocalizationService {
       const localizedByKey = new Map<string, LocalizedString>();
 
       for (const entry of entries) {
-        const existing = localizedByKey.get(entry.stringKey);
+        const key = `${entry.stringKey}:${entry.context}`;
+        const existing = localizedByKey.get(key);
 
         if (!existing) {
-          localizedByKey.set(entry.stringKey, entry);
+          localizedByKey.set(key, entry);
           continue;
         }
 
@@ -80,17 +78,16 @@ export class LocalizationService {
           existing.cultureCode !== preferredLanguage &&
           entry.cultureCode === preferredLanguage
         ) {
-          localizedByKey.set(entry.stringKey, entry);
+          localizedByKey.set(key, entry);
         }
       }
 
       return Array.from(localizedByKey.values()).sort((a, b) =>
-        a.stringKey.localeCompare(b.stringKey),
+        a.stringKey.localeCompare(b.stringKey) || a.context.localeCompare(b.context),
       );
     }
 
     const where = {
-      ...(filters.cultureCode ? { cultureCode: filters.cultureCode } : {}),
       ...(filters.context ? { context: filters.context } : {}),
       ...(filters.stringKeys?.length
         ? {
@@ -99,12 +96,12 @@ export class LocalizationService {
             },
           }
         : {}),
+      cultureCode: DEFAULT_LOCALIZATION_CULTURE_CODE,
     };
 
     return prisma.localizedString.findMany({
       where,
       orderBy: [
-        { cultureCode: "asc" },
         { context: "asc" },
         { stringKey: "asc" },
       ],

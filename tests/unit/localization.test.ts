@@ -6,24 +6,6 @@ import {
   jest,
 } from "@jest/globals";
 
-jest.mock("../../src/config/env", () => ({
-  env: {
-    NODE_ENV: "development",
-    LOG_TO_FILE: false,
-    PORT: 3000,
-    RATE_LIMIT_WINDOW_MS: 900000,
-    RATE_LIMIT_MAX: 100,
-    JWT_SECRET: "12345678901234567890123456789012",
-    JWT_EXPIRES_IN: "24h",
-    DATABASE_URL: "postgresql://user:pass@localhost:5432/treeo2",
-    DB_HOST: "localhost",
-    DB_PORT: 5432,
-    DB_NAME: "treeo2",
-    DB_USER: "treeo2_user",
-    DB_PASSWORD: "treeo2_password",
-  },
-}));
-
 import { AppError } from "../../src/middleware/errorHandler";
 import { LocalizationService } from "../../src/modules/localization/localization.service";
 import { ERROR_CODES } from "../../src/utils/errorCodes";

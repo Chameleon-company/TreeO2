@@ -26,8 +26,6 @@ export const listLocalizedStringsQuerySchema = z
     context: z.enum(LOCALIZATION_CONTEXTS).optional(),
     preferredLanguage: z.string().trim().min(1).max(10).optional(),
     preferred_language: z.string().trim().min(1).max(10).optional(),
-    fallbackLanguage: z.string().trim().min(1).max(10).optional(),
-    fallback_language: z.string().trim().min(1).max(10).optional(),
     stringKeys: stringKeyListSchema,
     string_keys: stringKeyListSchema,
   })
@@ -35,7 +33,6 @@ export const listLocalizedStringsQuerySchema = z
     cultureCode: query.cultureCode,
     context: query.context,
     preferredLanguage: query.preferredLanguage ?? query.preferred_language,
-    fallbackLanguage: query.fallbackLanguage ?? query.fallback_language,
     stringKeys:
       normalizeStringKeys(query.stringKeys) ??
       normalizeStringKeys(query.string_keys),
@@ -53,7 +50,7 @@ export const createLocalizedStringSchema = z.object({
   cultureCode: z.string().trim().min(1).max(10),
   stringKey: z.string().trim().min(1).max(255),
   value: z.string().trim().min(1),
-  context: z.string().trim().min(1).max(50),
+  context: z.enum(LOCALIZATION_CONTEXTS),
 });
 
 export const updateLocalizedStringSchema = z
@@ -61,7 +58,7 @@ export const updateLocalizedStringSchema = z
     cultureCode: z.string().trim().min(1).max(10).optional(),
     stringKey: z.string().trim().min(1).max(255).optional(),
     value: z.string().trim().min(1).optional(),
-    context: z.string().trim().min(1).max(50).optional(),
+    context: z.enum(LOCALIZATION_CONTEXTS).optional(),
   })
   .refine(
     (payload) =>
