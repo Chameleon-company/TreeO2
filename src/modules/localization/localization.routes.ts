@@ -23,11 +23,21 @@ const localizationController = new LocalizationController();
  *         required: false
  *         description: Filter localized strings by context
  *       - in: query
- *         name: preferredLanguage
+ *         name: preferredLanguage/preferred_language
  *         schema:
  *           type: string
  *         required: false
  *         description: Filter localized strings by preferred language (for example en-US)
+ *       - in: query
+ *         name: stringKeys/string_keys
+ *         schema:
+ *           oneOf:
+ *             - type: string
+ *             - type: array
+ *               items:
+ *                 type: string
+ *         required: false
+ *         description: Filter localized strings by one or more string keys
  *     responses:
  *       200:
  *         description: List of localized strings
@@ -69,6 +79,7 @@ router.get(
  *                 type: string
  *               context:
  *                 type: string
+ *                 enum: [API, MOBILE, ADMIN, PUBLIC]
  *     responses:
  *       201:
  *         description: Created
