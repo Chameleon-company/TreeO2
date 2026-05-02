@@ -1051,9 +1051,7 @@ The Project Management API follows the TreeO2 backend engineering standard:
 
 ---
 
----
-
-## 10. Localization API
+## 11. Localization API
 
 This module manages localized string resources used across the TreeO2 platform. It provides read and administrative write operations for multilingual content with context filtering, language fallback support, and role-based access control.
 
@@ -1070,7 +1068,7 @@ This module manages localized string resources used across the TreeO2 platform. 
 The Localization API is responsible for creating, retrieving, updating, and deleting localized strings in the system.
 
 
-### 10.2 Architecture Flow
+### 11.2 Architecture Flow
 
 Every request in this module follows a simple class-based flow:
 
@@ -1101,7 +1099,7 @@ localization.routes.ts (Router + middleware)
 - Reads and writes localized strings via Prisma
 - Returns data or throws handled errors
 
-### 10.3 Security
+### 11.3 Security
 
 All endpoints are protected using Bearer Token authentication.
 
@@ -1118,7 +1116,7 @@ Middleware used:
 | PUT /localized-strings/{id} | Yes | No | No | No | No |
 | DELETE /localized-strings/{id} | Yes | No | No | No | No |
 
-### 10.5 Endpoints
+### 11.5 Endpoints
 
 #### GET /localized-strings
 
@@ -1263,7 +1261,7 @@ Delete a localized string.
 - `403` Insufficient permissions
 - `404` Localized string not found
 
-### 10.6 Validation Rules
+### 11.6 Validation Rules
 
 #### List Validation
 - `preferredLanguage` / `preferred_language` must be non-empty strings (max 10).
@@ -1287,7 +1285,7 @@ Delete a localized string.
 - `id` must be a positive integer
 - Target localized string must exist
 
-### 10.7 Error Handling
+### 11.7 Error Handling
 
 Uses centralised error middleware.
 
@@ -1307,7 +1305,7 @@ Uses centralised error middleware.
 - Resource not found (`DATA_001`)
 - Internal server error (`SYS_001`)
 
-### 10.8 Swagger Documentation
+### 11.8 Swagger Documentation
 
 All endpoints are documented in:
 
@@ -1360,7 +1358,7 @@ Swagger supports:
 - Valid delete succeeds
 - Missing target rejected
 
-### 10.10 Summary
+### 11.10 Summary
 
 The Localization API follows the TreeO2 backend engineering standard:
 
