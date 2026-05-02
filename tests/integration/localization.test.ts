@@ -253,7 +253,7 @@ describe("Localization API", () => {
     expect(response.body.message).toBe("VAL_002: Invalid request body");
   });
 
-  it("returns 500 for duplicate localized strings with current error mapping", async () => {
+  it("returns 409 for duplicate localized strings with current error mapping", async () => {
     await ensureTestCultures();
     const key = `${testKeyPrefix}duplicate.${Date.now()}`;
 
@@ -276,9 +276,9 @@ describe("Localization API", () => {
         context: "ADMIN",
       });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(409);
     expect(response.body.success).toBe(false);
-    expect(response.body.message).toBe("SYS_001: Internal server error");
+    expect(response.body.message).toBe("CON_001: Conflict detected");
   });
 
   it("handles PUT /localized-strings/:id", async () => {

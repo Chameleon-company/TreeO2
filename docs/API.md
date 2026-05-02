@@ -1063,7 +1063,7 @@ This module manages localized string resources used across the TreeO2 platform. 
 - `localization.service.ts`
 - `index.ts`
 
-### 10.1 Purpose
+### 11.1 Purpose
 
 The Localization API is responsible for creating, retrieving, updating, and deleting localized strings in the system.
 
@@ -1107,7 +1107,7 @@ Middleware used:
 - `authMiddleware`
 - `roleMiddleware`
 
-### 10.4 Access Control Matrix
+### 11.4 Access Control Matrix
 
 | Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
 |---|---|---|---|---|---|
@@ -1321,7 +1321,7 @@ Swagger supports:
 - Response definitions
 - Security schemas
 
-### 10.9 Testing
+### 11.9 Testing
 
 #### Test Files
 - `tests/unit/localization.test.ts`
