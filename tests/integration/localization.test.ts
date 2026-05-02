@@ -278,7 +278,7 @@ describe("Localization API", () => {
 
     expect(response.status).toBe(409);
     expect(response.body.success).toBe(false);
-    expect(response.body.message).toBe("CON_001: Conflict detected");
+    expect(response.body.message).toBe("DATA_002: Duplicate entry");
   });
 
   it("handles PUT /localized-strings/:id", async () => {
