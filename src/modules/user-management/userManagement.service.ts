@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { ERROR_CODES } from "../../utils/errorCodes";
 import { AppError } from "../../middleware/errorHandler";
+import type { Prisma } from "@prisma/client";
 
 export type AuthUser = {
   id: number;
@@ -17,16 +18,6 @@ export type CreateUserInput = {
 
 type UpdateUserInput = Partial<CreateUserInput>;
 
-// ---------- TYPES (FIX for `any`) ----------
-type UserWhere = {
-  userProjects?: {
-    some: {
-      projectId: number | { in: number[] };
-    };
-  };
-};
-
-// ---------- SELECT ----------
 const userSelect = {
   id: true,
   name: true,
@@ -38,19 +29,25 @@ const userSelect = {
   userProjects: { include: { project: true } },
 };
 
-// ---------- SERVICE ----------
+const validateRole = (role: string) => {
+  const valid = ["ADMIN", "MANAGER", "INSPECTOR", "FARMER"];
+  if (!valid.includes(role)) {
+    throw new AppError(403, ERROR_CODES.AUTH_004, ERROR_CODES.AUTH_004);
+  }
+};
+
 export const UserManagementService = {
-  // GET USERS
   getUsers: async (authUser: AuthUser, projectId?: string) => {
-    const where: UserWhere = {};
+    validateRole(authUser.role);
 
     const parsed = projectId ? Number(projectId) : undefined;
 
     if (projectId && Number.isNaN(parsed)) {
-      throw new AppError(400, ERROR_CODES.VAL_002, "Invalid project ID");
+      throw new AppError(400, ERROR_CODES.VAL_002, ERROR_CODES.VAL_002);
     }
 
-    // ADMIN
+    const where: Prisma.UserWhereInput = {};
+
     if (authUser.role === "ADMIN") {
       if (parsed !== undefined) {
         where.userProjects = { some: { projectId: parsed } };
@@ -63,21 +60,16 @@ export const UserManagementService = {
       });
     }
 
-    // MANAGER
     if (authUser.role === "MANAGER") {
       const allowed = authUser.projectIds ?? [];
 
-      if (parsed !== undefined) {
-        if (!allowed.includes(parsed)) {
-          throw new AppError(403, ERROR_CODES.AUTH_001, "Forbidden");
-        }
-
-        where.userProjects = { some: { projectId: parsed } };
-      } else {
-        where.userProjects = {
-          some: { projectId: { in: allowed } },
-        };
+      if (parsed !== undefined && !allowed.includes(parsed)) {
+        throw new AppError(403, ERROR_CODES.AUTH_004, ERROR_CODES.AUTH_004);
       }
+
+      where.userProjects = parsed
+        ? { some: { projectId: parsed } }
+        : { some: { projectId: { in: allowed } } };
 
       return prisma.user.findMany({
         where,
@@ -86,15 +78,16 @@ export const UserManagementService = {
       });
     }
 
-    throw new AppError(403, ERROR_CODES.AUTH_001, "Forbidden");
+    throw new AppError(403, ERROR_CODES.AUTH_004, ERROR_CODES.AUTH_004);
   },
 
-  // GET USER BY ID
   getUserById: async (authUser: AuthUser, id: string) => {
+    validateRole(authUser.role);
+
     const userId = Number(id);
 
     if (Number.isNaN(userId)) {
-      throw new AppError(400, ERROR_CODES.VAL_002, "Invalid user ID");
+      throw new AppError(400, ERROR_CODES.VAL_002, ERROR_CODES.VAL_002);
     }
 
     const user = await prisma.user.findUnique({
@@ -103,7 +96,7 @@ export const UserManagementService = {
     });
 
     if (!user) {
-      throw new AppError(404, ERROR_CODES.DATA_001, "User not found");
+      throw new AppError(404, ERROR_CODES.DATA_001, ERROR_CODES.DATA_001);
     }
 
     if (authUser.role === "ADMIN") {
@@ -116,42 +109,30 @@ export const UserManagementService = {
       );
 
       if (!allowed) {
-        throw new AppError(403, ERROR_CODES.AUTH_001, "Forbidden");
+        throw new AppError(403, ERROR_CODES.AUTH_004, ERROR_CODES.AUTH_004);
       }
 
       return user;
     }
 
-    const selfAccessRoles = ["INSPECTOR", "FARMER"];
-
-    if (selfAccessRoles.includes(authUser.role)) {
+    if (authUser.role === "INSPECTOR" || authUser.role === "FARMER") {
       if (authUser.id !== userId) {
-        throw new AppError(403, ERROR_CODES.AUTH_001, "Forbidden");
+        throw new AppError(403, ERROR_CODES.AUTH_004, ERROR_CODES.AUTH_004);
       }
-
       return user;
     }
 
-    throw new AppError(403, ERROR_CODES.AUTH_001, "Forbidden");
+    throw new AppError(403, ERROR_CODES.AUTH_004, ERROR_CODES.AUTH_004);
   },
 
-  // CREATE USER
   createUser: async (data: CreateUserInput) => {
     if (!data.name?.trim()) {
-      throw new AppError(400, ERROR_CODES.VAL_003, "Name is required");
-    }
-
-    if (typeof data.email !== "string") {
-      throw new AppError(400, ERROR_CODES.VAL_003, "Email must be a string");
+      throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(data.email)) {
-      throw new AppError(400, ERROR_CODES.VAL_003, "Invalid email format");
-    }
-
-    if (!Number.isInteger(data.roleId)) {
-      throw new AppError(400, ERROR_CODES.VAL_003, "Invalid roleId");
+      throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
     }
 
     const role = await prisma.role.findUnique({
@@ -159,23 +140,7 @@ export const UserManagementService = {
     });
 
     if (!role) {
-      throw new AppError(400, ERROR_CODES.VAL_003, "Invalid roleId");
-    }
-
-    if (data.projectIds?.length === 0) {
-      throw new AppError(
-        400,
-        ERROR_CODES.VAL_003,
-        "projectIds cannot be empty",
-      );
-    }
-
-    if (data.projectIds) {
-      const unique = new Set(data.projectIds);
-
-      if (unique.size !== data.projectIds.length) {
-        throw new AppError(400, ERROR_CODES.VAL_003, "Duplicate projectIds");
-      }
+      throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
     }
 
     const existing = await prisma.user.findUnique({
@@ -183,7 +148,7 @@ export const UserManagementService = {
     });
 
     if (existing) {
-      throw new AppError(409, ERROR_CODES.DATA_002, "Email already exists");
+      throw new AppError(409, ERROR_CODES.DATA_002, ERROR_CODES.DATA_002);
     }
 
     return prisma.user.create({
@@ -191,26 +156,18 @@ export const UserManagementService = {
         name: data.name.trim(),
         email: data.email.trim(),
         roleId: data.roleId,
-        userProjects: data.projectIds
-          ? {
-              create: data.projectIds.map((p) => ({ projectId: p })),
-            }
-          : undefined,
       },
       select: userSelect,
     });
   },
 
-  // UPDATE USER
   updateUser: async (authUser: AuthUser, id: string, data: UpdateUserInput) => {
+    validateRole(authUser.role);
+
     const userId = Number(id);
 
     if (Number.isNaN(userId)) {
-      throw new AppError(400, ERROR_CODES.VAL_002, "Invalid user ID");
-    }
-
-    if (!data || Object.keys(data).length === 0) {
-      throw new AppError(400, ERROR_CODES.VAL_003, "Empty update payload");
+      throw new AppError(400, ERROR_CODES.VAL_002, ERROR_CODES.VAL_002);
     }
 
     const existing = await prisma.user.findUnique({
@@ -219,7 +176,7 @@ export const UserManagementService = {
     });
 
     if (!existing) {
-      throw new AppError(404, ERROR_CODES.DATA_001, "User not found");
+      throw new AppError(404, ERROR_CODES.DATA_001, ERROR_CODES.DATA_001);
     }
 
     if (authUser.role === "MANAGER") {
@@ -228,41 +185,17 @@ export const UserManagementService = {
       );
 
       if (!allowed) {
-        throw new AppError(403, ERROR_CODES.AUTH_001, "Forbidden");
+        throw new AppError(403, ERROR_CODES.AUTH_004, ERROR_CODES.AUTH_004);
       }
 
-      const restrictedFields = ["roleId", "accountActive", "canSignIn"];
+      const restricted = ["roleId", "accountActive", "canSignIn"];
 
-      const hasRestricted = restrictedFields.some((f) =>
+      const hasRestricted = restricted.some((f) =>
         Object.prototype.hasOwnProperty.call(data, f),
       );
 
       if (hasRestricted) {
-        throw new AppError(
-          403,
-          ERROR_CODES.AUTH_001,
-          "Managers cannot update restricted fields",
-        );
-      }
-    }
-
-    if (data.email !== undefined) {
-      if (typeof data.email !== "string") {
-        throw new AppError(400, ERROR_CODES.VAL_003, "Email must be a string");
-      }
-
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-      if (!emailRegex.test(data.email)) {
-        throw new AppError(400, ERROR_CODES.VAL_003, "Invalid email format");
-      }
-
-      const duplicate = await prisma.user.findFirst({
-        where: { email: data.email, NOT: { id: userId } },
-      });
-
-      if (duplicate) {
-        throw new AppError(409, ERROR_CODES.DATA_002, "Email already exists");
+        throw new AppError(403, ERROR_CODES.AUTH_004, ERROR_CODES.AUTH_004);
       }
     }
 
@@ -273,12 +206,11 @@ export const UserManagementService = {
     });
   },
 
-  // DELETE USER
   deleteUser: async (id: string) => {
     const userId = Number(id);
 
     if (Number.isNaN(userId)) {
-      throw new AppError(400, ERROR_CODES.VAL_002, "Invalid user ID");
+      throw new AppError(400, ERROR_CODES.VAL_002, ERROR_CODES.VAL_002);
     }
 
     const user = await prisma.user.findUnique({
@@ -286,7 +218,7 @@ export const UserManagementService = {
     });
 
     if (!user) {
-      throw new AppError(404, ERROR_CODES.DATA_001, "User not found");
+      throw new AppError(404, ERROR_CODES.DATA_001, ERROR_CODES.DATA_001);
     }
 
     const linked = await prisma.treeScan.findFirst({
@@ -296,11 +228,7 @@ export const UserManagementService = {
     });
 
     if (linked) {
-      throw new AppError(
-        409,
-        ERROR_CODES.VAL_001,
-        "User linked to scan records",
-      );
+      throw new AppError(409, ERROR_CODES.VAL_001, ERROR_CODES.VAL_001);
     }
 
     await prisma.user.update({

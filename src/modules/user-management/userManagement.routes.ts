@@ -32,10 +32,6 @@ const router = Router();
  *     tags: [User Management]
  *     security:
  *       - bearerAuth: []
- *     description: |
- *       Roles:
- *       - ADMIN: Can fetch all users
- *       - MANAGER: Can fetch users only within assigned projects
  *     parameters:
  *       - in: query
  *         name: project
@@ -46,23 +42,8 @@ const router = Router();
  *     responses:
  *       200:
  *         description: List of users
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: number
- *                   name:
- *                     type: string
- *                   email:
- *                     type: string
- *                   accountActive:
- *                     type: boolean
- *                   canSignIn:
- *                     type: boolean
+ *       400:
+ *         description: Invalid project ID
  *       401:
  *         description: Unauthorized
  *       403:
@@ -77,9 +58,18 @@ const router = Router();
  *     tags: [User Management]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID
  *     responses:
  *       200:
  *         description: User details
+ *       400:
+ *         description: Invalid user ID
  *       401:
  *         description: Unauthorized
  *       403:
@@ -138,6 +128,13 @@ const router = Router();
  *     tags: [User Management]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID
  *     description: |
  *       Roles:
  *       - ADMIN: Can update all fields
@@ -147,6 +144,8 @@ const router = Router();
  *       - roleId
  *       - accountActive
  *       - canSignIn
+ *
+ *       Note: projectIds will be removed in future (handled by separate API)
  *     requestBody:
  *       required: true
  *       content:
@@ -172,7 +171,7 @@ const router = Router();
  *       401:
  *         description: Unauthorized
  *       403:
- *         description: Forbidden (role or scope restriction)
+ *         description: Forbidden
  *       404:
  *         description: User not found
  *       409:
@@ -187,15 +186,26 @@ const router = Router();
  *     tags: [User Management]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID
  *     responses:
  *       200:
  *         description: User deactivated successfully
+ *       400:
+ *         description: Invalid user ID
  *       401:
  *         description: Unauthorized
  *       403:
  *         description: Forbidden
  *       404:
  *         description: User not found
+ *       409:
+ *         description: User linked to scan records
  */
 
 router.get(

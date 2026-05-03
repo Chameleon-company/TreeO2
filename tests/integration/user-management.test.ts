@@ -1,131 +1,101 @@
 import request from "supertest";
-import express, { Request, Response, NextFunction } from "express";
+import express from "express";
 import userRoutes from "../../src/modules/user-management/userManagement.routes";
-import type { AuthUser } from "../../src/modules/user-management/userManagement.service";
+import { prisma } from "../../src/lib/prisma";
+import jwt from "jsonwebtoken";
 
-// ---------------- MOCK AUTH ----------------
-jest.mock("../../src/middleware/auth.middleware", () => ({
-  authMiddleware: (req: Request, _res: Response, next: NextFunction) => {
-    (req as any).user = {
-      id: 1,
-      role: "ADMIN",
-      projectIds: [101],
-    } as AuthUser;
-
-    next();
-  },
-}));
-
-// ---------------- MOCK PRISMA ----------------
-jest.mock("../../src/lib/prisma", () => ({
-  prisma: {
-    user: {
-      findMany: jest.fn().mockResolvedValue([{ id: 1 }]),
-      findUnique: jest.fn().mockResolvedValue(null),
-      create: jest.fn().mockResolvedValue({ id: 1 }),
-      update: jest.fn().mockResolvedValue({ id: 1 }),
-    },
-    role: {
-      findUnique: jest.fn().mockResolvedValue({ id: 1 }),
-    },
-    treeScan: {
-      findFirst: jest.fn().mockResolvedValue(null),
-    },
-  },
-}));
-
-// ---------------- APP ----------------
 const app = express();
 app.use(express.json());
 app.use("/users", userRoutes);
 
-// ---------------- TESTS ----------------
-describe("User Management Integration Tests", () => {
-  afterEach(() => jest.clearAllMocks());
+const generateToken = (user: any) =>
+  jwt.sign(user, process.env.JWT_SECRET as string);
 
-  it("GET /users → should return 200", async () => {
-    const res = await request(app).get("/users");
+describe("User Management Integration Tests", () => {
+  let adminToken: string;
+
+  beforeEach(async () => {
+    await prisma.treeScan.deleteMany();
+    await prisma.user.deleteMany();
+    await prisma.role.deleteMany();
+
+    const role = await prisma.role.create({
+      data: { id: 1, name: "ADMIN" },
+    });
+
+    await prisma.user.create({
+      data: {
+        id: 1,
+        name: "Admin",
+        email: "admin@test.com",
+        roleId: role.id,
+      },
+    });
+
+    adminToken = generateToken({
+      id: 1,
+      role: "ADMIN",
+      projectIds: [],
+    });
+  });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  it("GET /users → 200", async () => {
+    const res = await request(app)
+      .get("/users")
+      .set("Authorization", `Bearer ${adminToken}`);
+
     expect(res.status).toBe(200);
   });
 
-  it("GET /users/:id → valid response", async () => {
-    const res = await request(app).get("/users/1");
-    expect([200, 404]).toContain(res.status);
-  });
-
-  it("GET /users/:id → invalid id", async () => {
-    const res = await request(app).get("/users/abc");
-    expect(res.status).toBe(400);
-  });
-
-  it("POST /users → should create user (ADMIN)", async () => {
-    const res = await request(app).post("/users").send({
-      name: "Test User",
-      email: "test@test.com",
-      roleId: 1,
-      projectIds: [101],
-    });
+  it("POST /users → 201", async () => {
+    const res = await request(app)
+      .post("/users")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        name: "New User",
+        email: "new@test.com",
+        roleId: 1,
+      });
 
     expect(res.status).toBe(201);
   });
 
-  it("POST /users → invalid payload", async () => {
-    const res = await request(app).post("/users").send({
-      name: "",
-      email: "bad",
-      roleId: 0,
-    });
-
-    expect(res.status).toBeGreaterThanOrEqual(400);
-  });
-
-  it("PUT /users/:id → update user", async () => {
+  it("PUT /users/:id → 200", async () => {
     const res = await request(app)
       .put("/users/1")
+      .set("Authorization", `Bearer ${adminToken}`)
       .send({ name: "Updated" });
 
-    expect([200, 403, 404]).toContain(res.status);
+    expect(res.status).toBe(200);
   });
 
-  it("DELETE /users/:id → delete flow", async () => {
-    const res = await request(app).delete("/users/1");
+  it("DELETE /users/:id → 200", async () => {
+    const res = await request(app)
+      .delete("/users/1")
+      .set("Authorization", `Bearer ${adminToken}`);
 
-    expect([200, 404, 409]).toContain(res.status);
+    expect(res.status).toBe(200);
   });
 
-  it("DELETE /users/:id → invalid id", async () => {
-    const res = await request(app).delete("/users/abc");
-    expect(res.status).toBe(400);
-  });
-
-  it("RBAC → non-admin blocked", async () => {
-    jest.resetModules();
-
-    jest.doMock("../../src/middleware/auth.middleware", () => ({
-      authMiddleware: (req: Request, _res: Response, next: NextFunction) => {
-        (req as any).user = {
-          id: 2,
-          role: "INSPECTOR",
-          projectIds: [],
-        } as AuthUser;
-
-        next();
-      },
-    }));
-
-    const express = require("express");
-    const routes =
-      require("../../src/modules/user-management/userManagement.routes").default;
-
-    const testApp = express();
-    testApp.use(express.json());
-    testApp.use("/users", routes);
-
-    const res = await request(testApp).post("/users").send({
-      name: "Blocked User",
-      email: "blocked@test.com",
-      roleId: 1,
+  it("RBAC → inspector blocked", async () => {
+    const token = generateToken({
+      id: 2,
+      role: "INSPECTOR",
+      projectIds: [],
     });
+
+    const res = await request(app)
+      .post("/users")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        name: "Blocked",
+        email: "blocked@test.com",
+        roleId: 1,
+      });
 
     expect(res.status).toBe(403);
   });

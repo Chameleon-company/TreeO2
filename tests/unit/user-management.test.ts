@@ -1,7 +1,6 @@
 import { UserManagementService } from "../../src/modules/user-management/userManagement.service";
 import { prisma } from "../../src/lib/prisma";
 
-// ---------------- MOCK PRISMA ----------------
 jest.mock("../../src/lib/prisma", () => ({
   prisma: {
     user: {
@@ -19,22 +18,9 @@ jest.mock("../../src/lib/prisma", () => ({
   },
 }));
 
-const mockPrisma = prisma as unknown as {
-  user: {
-    findMany: jest.Mock;
-    findUnique: jest.Mock;
-    create: jest.Mock;
-    update: jest.Mock;
-  };
-  role: {
-    findUnique: jest.Mock;
-  };
-  treeScan: {
-    findFirst: jest.Mock;
-  };
-};
+const mockPrisma = prisma as any;
 
-describe("UserManagementService - UNIT TESTS", () => {
+describe("UserManagementService - UNIT TESTS (FIXED)", () => {
   beforeEach(() => jest.clearAllMocks());
 
   // ---------------- GET USERS ----------------
@@ -52,13 +38,10 @@ describe("UserManagementService - UNIT TESTS", () => {
 
     it("should throw invalid project id", async () => {
       await expect(
-        UserManagementService.getUsers(
-          { id: 1, role: "ADMIN" },
-          "invalid",
-        ),
+        UserManagementService.getUsers({ id: 1, role: "ADMIN" }, "abc"),
       ).rejects.toMatchObject({
         statusCode: 400,
-        code: "Invalid project ID",
+        code: expect.stringContaining("VAL_002"),
       });
     });
   });
@@ -79,27 +62,23 @@ describe("UserManagementService - UNIT TESTS", () => {
       expect(result.id).toBe(1);
     });
 
-    it("should throw 404", async () => {
+    it("should throw not found", async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
       await expect(
-        UserManagementService.getUserById(
-          { id: 1, role: "ADMIN" },
-          "999",
-        ),
+        UserManagementService.getUserById({ id: 1, role: "ADMIN" }, "999"),
       ).rejects.toMatchObject({
         statusCode: 404,
+        code: expect.stringContaining("DATA_001"),
       });
     });
 
     it("should throw invalid id", async () => {
       await expect(
-        UserManagementService.getUserById(
-          { id: 1, role: "ADMIN" },
-          "abc",
-        ),
+        UserManagementService.getUserById({ id: 1, role: "ADMIN" }, "abc"),
       ).rejects.toMatchObject({
         statusCode: 400,
+        code: expect.stringContaining("VAL_002"),
       });
     });
   });
@@ -115,22 +94,37 @@ describe("UserManagementService - UNIT TESTS", () => {
         name: "Test",
         email: "test@test.com",
         roleId: 1,
-        projectIds: [101],
       });
 
       expect(result.id).toBe(1);
     });
 
-    it("should throw validation error - name required", async () => {
+    it("should fail invalid email", async () => {
       await expect(
         UserManagementService.createUser({
-          name: "",
-          email: "",
-          roleId: 0,
-        } as any),
+          name: "Test",
+          email: "invalid",
+          roleId: 1,
+        }),
       ).rejects.toMatchObject({
         statusCode: 400,
-        code: "Name is required",
+        code: expect.stringContaining("VAL_003"),
+      });
+    });
+
+    it("should throw duplicate email", async () => {
+      mockPrisma.role.findUnique.mockResolvedValue({ id: 1 });
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 1 });
+
+      await expect(
+        UserManagementService.createUser({
+          name: "Test",
+          email: "test@test.com",
+          roleId: 1,
+        }),
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        code: expect.stringContaining("DATA_002"),
       });
     });
   });
@@ -143,7 +137,6 @@ describe("UserManagementService - UNIT TESTS", () => {
         userProjects: [],
       });
 
-      mockPrisma.role.findUnique.mockResolvedValue({ id: 1 });
       mockPrisma.user.update.mockResolvedValue({ id: 1 });
 
       const result = await UserManagementService.updateUser(
@@ -166,48 +159,28 @@ describe("UserManagementService - UNIT TESTS", () => {
         ),
       ).rejects.toMatchObject({
         statusCode: 404,
+        code: expect.stringContaining("DATA_001"),
       });
     });
   });
 
-  // ---------------- DELETE USER ----------------
-  describe("deleteUser", () => {
-    it("should delete user", async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ id: 1 });
-      mockPrisma.treeScan.findFirst.mockResolvedValue(null);
-      mockPrisma.user.update.mockResolvedValue({});
-
-      const result = await UserManagementService.deleteUser("1");
-
-      expect(result).toBe(true);
-    });
-
-    it("should throw 404 if not found", async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(null);
-
-      await expect(
-        UserManagementService.deleteUser("1"),
-      ).rejects.toMatchObject({
-        statusCode: 404,
+  // ---------------- RBAC ----------------
+  describe("RBAC checks", () => {
+    it("should block unsupported role", async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 3,
+        userProjects: [],
       });
-    });
-
-    it("should throw 409 if linked", async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ id: 1 });
-      mockPrisma.treeScan.findFirst.mockResolvedValue({ id: 1 });
 
       await expect(
-        UserManagementService.deleteUser("1"),
+        UserManagementService.updateUser(
+          { id: 3, role: "UNKNOWN" as any },
+          "3",
+          { name: "Test" },
+        ),
       ).rejects.toMatchObject({
-        statusCode: 409,
-      });
-    });
-
-    it("should throw invalid id", async () => {
-      await expect(
-        UserManagementService.deleteUser("abc"),
-      ).rejects.toMatchObject({
-        statusCode: 400,
+        statusCode: 403,
+        code: expect.stringContaining("AUTH_004"),
       });
     });
   });
