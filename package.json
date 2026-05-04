@@ -16,7 +16,6 @@
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --passWithNoTests",
-    "test:integration:db": "RUN_DB_TESTS=true jest --runInBand tests/integration/*.db.test.ts",
     "prisma:generate": "prisma generate --schema prisma",
     "prisma:push": "prisma db push --schema prisma",
     "prisma:migrate:dev": "prisma migrate dev --schema prisma",
