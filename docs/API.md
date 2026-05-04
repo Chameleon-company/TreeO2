@@ -1756,6 +1756,7 @@ Current test strategy for this module:
 - the main integration suite uses real Prisma and a real Postgres database
 - logger is mocked in unit/integration tests
 - integration auth behaviour uses the current development auth scaffold
+- the integration suite assumes a reachable `DATABASE_URL` and an already-synced Prisma schema
 
 This matches the current repo state where:
 - Jest is already configured
@@ -1770,6 +1771,19 @@ Run unit tests only:
 
 ```bash
 npm test -- --runInBand tests/unit/project-tree-types.test.ts
+```
+
+Before running the integration tests:
+
+- make sure Postgres is running
+- make sure `DATABASE_URL` points to the test database
+- make sure the Prisma schema is already applied
+
+Typical local setup:
+
+```bash
+npm run prisma:generate
+npm run prisma:push
 ```
 
 Run integration tests only:
