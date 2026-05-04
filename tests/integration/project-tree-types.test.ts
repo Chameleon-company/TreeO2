@@ -1,26 +1,8 @@
 import express from "express";
 import request from "supertest";
+import { prisma } from "../../src/lib/prisma";
 
 const originalEnv = { ...process.env };
-
-const prismaMock = {
-  projectTreeType: {
-    findMany: jest.fn(),
-    findUnique: jest.fn(),
-    create: jest.fn(),
-    delete: jest.fn(),
-  },
-  project: {
-    findUnique: jest.fn(),
-  },
-  treeType: {
-    findUnique: jest.fn(),
-  },
-};
-
-jest.mock("../../src/lib/prisma", () => ({
-  prisma: prismaMock,
-}));
 
 jest.mock("../../src/config/logger", () => ({
   logger: {
@@ -54,35 +36,61 @@ const farmerAuthHeader = {
   Authorization: "Bearer test-farmer-token",
 };
 
-const makeProjectRecord = (overrides: Partial<Record<string, unknown>> = {}) => ({
-  id: 1,
-  name: "Northern NSW Reforestation",
-  ...overrides,
-});
+const suitePrefix = `project-tree-types-api-${Date.now()}`;
+let uniqueCounter = 0;
 
-const makeTreeTypeRecord = (overrides: Partial<Record<string, unknown>> = {}) => ({
-  id: 3,
-  name: "Mahogany",
-  key: "mahogany",
-  scientificName: "Swietenia macrophylla",
-  dryWeightDensity: 550,
-  ...overrides,
-});
-
-const makeProjectTreeTypeRecord = (
-  overrides: Partial<Record<string, unknown>> = {},
-) => ({
-  projectId: 1,
-  treeTypeId: 3,
-  project: makeProjectRecord(),
-  treeType: makeTreeTypeRecord(),
-  ...overrides,
-});
+const nextUnique = (label: string): string => {
+  uniqueCounter += 1;
+  return `${suitePrefix}-${label}-${uniqueCounter}`;
+};
 
 describe("Project Tree Types API", () => {
   let app: express.Express;
+  const projectIds: number[] = [];
+  const treeTypeIds: number[] = [];
 
-  beforeAll(() => {
+  const createProject = async (name?: string) => {
+    const project = await prisma.project.create({
+      data: {
+        name: name ?? nextUnique("project"),
+      },
+    });
+
+    projectIds.push(project.id);
+    return project;
+  };
+
+  const createTreeType = async (overrides: {
+    name?: string;
+    key?: string | null;
+    scientificName?: string | null;
+    dryWeightDensity?: number;
+  } = {}) => {
+    const treeType = await prisma.treeType.create({
+      data: {
+        name: overrides.name ?? nextUnique("tree-type"),
+        key: overrides.key === undefined ? nextUnique("tree-key") : overrides.key,
+        scientificName:
+          overrides.scientificName === undefined
+            ? nextUnique("scientific-name")
+            : overrides.scientificName,
+        dryWeightDensity: overrides.dryWeightDensity ?? 550,
+      },
+    });
+
+    treeTypeIds.push(treeType.id);
+    return treeType;
+  };
+
+  const createMapping = async (projectId: number, treeTypeId: number) =>
+    prisma.projectTreeType.create({
+      data: {
+        projectId,
+        treeTypeId,
+      },
+    });
+
+  beforeAll(async () => {
     process.env = {
       ...originalEnv,
       NODE_ENV: "development",
@@ -96,15 +104,44 @@ describe("Project Tree Types API", () => {
       AUTH_DEV_MANAGER_TOKEN: "test-manager-token",
       AUTH_DEV_FARMER_TOKEN: "test-farmer-token",
     };
-  });
 
-  afterAll(() => {
-    process.env = originalEnv;
-  });
-
-  beforeEach(() => {
     app = createApp();
-    jest.clearAllMocks();
+    await prisma.$connect();
+  });
+
+  afterEach(async () => {
+    if (projectIds.length > 0 || treeTypeIds.length > 0) {
+      await prisma.projectTreeType.deleteMany({
+        where: {
+          OR: [
+            projectIds.length > 0 ? { projectId: { in: projectIds } } : undefined,
+            treeTypeIds.length > 0 ? { treeTypeId: { in: treeTypeIds } } : undefined,
+          ].filter(Boolean) as Array<
+            | { projectId: { in: number[] } }
+            | { treeTypeId: { in: number[] } }
+          >,
+        },
+      });
+    }
+
+    if (projectIds.length > 0) {
+      await prisma.project.deleteMany({
+        where: { id: { in: projectIds } },
+      });
+      projectIds.length = 0;
+    }
+
+    if (treeTypeIds.length > 0) {
+      await prisma.treeType.deleteMany({
+        where: { id: { in: treeTypeIds } },
+      });
+      treeTypeIds.length = 0;
+    }
+  });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+    process.env = originalEnv;
   });
 
   describe("GET /project-tree-types", () => {
@@ -121,12 +158,18 @@ describe("Project Tree Types API", () => {
         .set(farmerAuthHeader);
 
       expect(response.status).toBe(403);
+      expect(response.body.success).toBe(false);
     });
 
     it("should return 200 for an Admin", async () => {
-      prismaMock.projectTreeType.findMany.mockResolvedValue([
-        makeProjectTreeTypeRecord(),
-      ]);
+      const project = await createProject("Northern NSW Reforestation");
+      const treeType = await createTreeType({
+        name: "Mahogany",
+        key: nextUnique("mahogany"),
+        scientificName: "Swietenia macrophylla",
+        dryWeightDensity: 550,
+      });
+      await createMapping(project.id, treeType.id);
 
       const response = await request(app)
         .get("/project-tree-types")
@@ -134,52 +177,72 @@ describe("Project Tree Types API", () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.data).toEqual([
-        {
-          project_id: 1,
-          tree_type_id: 3,
-          project: {
-            id: 1,
-            name: "Northern NSW Reforestation",
-          },
-          tree_type: {
-            id: 3,
-            name: "Mahogany",
-            key: "mahogany",
-            scientific_name: "Swietenia macrophylla",
-            dry_weight_density: 550,
-          },
+
+      const matchingMapping = response.body.data.find(
+        (item: { project_id: number; tree_type_id: number }) =>
+          item.project_id === project.id && item.tree_type_id === treeType.id,
+      );
+
+      expect(matchingMapping).toEqual({
+        project_id: project.id,
+        tree_type_id: treeType.id,
+        project: {
+          id: project.id,
+          name: "Northern NSW Reforestation",
         },
-      ]);
+        tree_type: {
+          id: treeType.id,
+          name: "Mahogany",
+          key: treeType.key,
+          scientific_name: "Swietenia macrophylla",
+          dry_weight_density: 550,
+        },
+      });
     });
 
     it("should return 200 for a Manager", async () => {
-      prismaMock.projectTreeType.findMany.mockResolvedValue([]);
-
       const response = await request(app)
         .get("/project-tree-types")
         .set(managerAuthHeader);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(Array.isArray(response.body.data)).toBe(true);
+    });
+
+    it("should return an empty array for a project filter when no mappings exist", async () => {
+      const project = await createProject();
+
+      const response = await request(app)
+        .get("/project-tree-types")
+        .query({ project_id: project.id })
+        .set(adminAuthHeader);
 
       expect(response.status).toBe(200);
       expect(response.body.data).toEqual([]);
     });
 
     it("should apply project_id filtering when provided", async () => {
-      prismaMock.projectTreeType.findMany.mockResolvedValue([]);
+      const matchingProject = await createProject();
+      const otherProject = await createProject();
+      const firstTreeType = await createTreeType();
+      const secondTreeType = await createTreeType();
+
+      await createMapping(matchingProject.id, firstTreeType.id);
+      await createMapping(otherProject.id, secondTreeType.id);
 
       const response = await request(app)
         .get("/project-tree-types")
-        .query({ project_id: 7 })
+        .query({ project_id: matchingProject.id })
         .set(adminAuthHeader);
 
       expect(response.status).toBe(200);
-      expect(prismaMock.projectTreeType.findMany).toHaveBeenCalledWith(
+      expect(response.body.data).toEqual([
         expect.objectContaining({
-          where: {
-            projectId: 7,
-          },
+          project_id: matchingProject.id,
+          tree_type_id: firstTreeType.id,
         }),
-      );
+      ]);
     });
 
     it("should return 400 for an invalid project_id query", async () => {
@@ -204,12 +267,15 @@ describe("Project Tree Types API", () => {
     });
 
     it("should return 403 for a non-admin user", async () => {
+      const project = await createProject();
+      const treeType = await createTreeType();
+
       const response = await request(app)
         .post("/project-tree-types")
         .set(managerAuthHeader)
         .send({
-          project_id: 1,
-          tree_type_id: 3,
+          project_id: project.id,
+          tree_type_id: treeType.id,
         });
 
       expect(response.status).toBe(403);
@@ -217,19 +283,20 @@ describe("Project Tree Types API", () => {
     });
 
     it("should return 201 for a valid admin request", async () => {
-      prismaMock.project.findUnique.mockResolvedValue(makeProjectRecord());
-      prismaMock.treeType.findUnique.mockResolvedValue(makeTreeTypeRecord());
-      prismaMock.projectTreeType.findUnique.mockResolvedValue(null);
-      prismaMock.projectTreeType.create.mockResolvedValue(
-        makeProjectTreeTypeRecord(),
-      );
+      const project = await createProject("Northern NSW Reforestation");
+      const treeType = await createTreeType({
+        name: "Mahogany",
+        key: nextUnique("mahogany"),
+        scientificName: "Swietenia macrophylla",
+        dryWeightDensity: 550,
+      });
 
       const response = await request(app)
         .post("/project-tree-types")
         .set(adminAuthHeader)
         .send({
-          project_id: 1,
-          tree_type_id: 3,
+          project_id: project.id,
+          tree_type_id: treeType.id,
         });
 
       expect(response.status).toBe(201);
@@ -237,20 +304,31 @@ describe("Project Tree Types API", () => {
         "Tree type assigned to project successfully",
       );
       expect(response.body.data).toEqual({
-        project_id: 1,
-        tree_type_id: 3,
+        project_id: project.id,
+        tree_type_id: treeType.id,
         project: {
-          id: 1,
+          id: project.id,
           name: "Northern NSW Reforestation",
         },
         tree_type: {
-          id: 3,
+          id: treeType.id,
           name: "Mahogany",
-          key: "mahogany",
+          key: treeType.key,
           scientific_name: "Swietenia macrophylla",
           dry_weight_density: 550,
         },
       });
+
+      const createdMapping = await prisma.projectTreeType.findUnique({
+        where: {
+          projectId_treeTypeId: {
+            projectId: project.id,
+            treeTypeId: treeType.id,
+          },
+        },
+      });
+
+      expect(createdMapping).not.toBeNull();
     });
 
     it("should return 400 when body fields are missing", async () => {
@@ -279,15 +357,14 @@ describe("Project Tree Types API", () => {
     });
 
     it("should return 404 when the project does not exist", async () => {
-      prismaMock.project.findUnique.mockResolvedValue(null);
-      prismaMock.treeType.findUnique.mockResolvedValue(makeTreeTypeRecord());
+      const treeType = await createTreeType();
 
       const response = await request(app)
         .post("/project-tree-types")
         .set(adminAuthHeader)
         .send({
-          project_id: 1,
-          tree_type_id: 3,
+          project_id: 999999,
+          tree_type_id: treeType.id,
         });
 
       expect(response.status).toBe(404);
@@ -295,15 +372,14 @@ describe("Project Tree Types API", () => {
     });
 
     it("should return 404 when the tree type does not exist", async () => {
-      prismaMock.project.findUnique.mockResolvedValue(makeProjectRecord());
-      prismaMock.treeType.findUnique.mockResolvedValue(null);
+      const project = await createProject();
 
       const response = await request(app)
         .post("/project-tree-types")
         .set(adminAuthHeader)
         .send({
-          project_id: 1,
-          tree_type_id: 3,
+          project_id: project.id,
+          tree_type_id: 999999,
         });
 
       expect(response.status).toBe(404);
@@ -311,19 +387,16 @@ describe("Project Tree Types API", () => {
     });
 
     it("should return 409 when the mapping already exists", async () => {
-      prismaMock.project.findUnique.mockResolvedValue(makeProjectRecord());
-      prismaMock.treeType.findUnique.mockResolvedValue(makeTreeTypeRecord());
-      prismaMock.projectTreeType.findUnique.mockResolvedValue({
-        projectId: 1,
-        treeTypeId: 3,
-      });
+      const project = await createProject();
+      const treeType = await createTreeType();
+      await createMapping(project.id, treeType.id);
 
       const response = await request(app)
         .post("/project-tree-types")
         .set(adminAuthHeader)
         .send({
-          project_id: 1,
-          tree_type_id: 3,
+          project_id: project.id,
+          tree_type_id: treeType.id,
         });
 
       expect(response.status).toBe(409);
@@ -350,17 +423,12 @@ describe("Project Tree Types API", () => {
     });
 
     it("should return 200 for a valid admin delete", async () => {
-      prismaMock.projectTreeType.findUnique.mockResolvedValue({
-        projectId: 1,
-        treeTypeId: 3,
-      });
-      prismaMock.projectTreeType.delete.mockResolvedValue({
-        projectId: 1,
-        treeTypeId: 3,
-      });
+      const project = await createProject();
+      const treeType = await createTreeType();
+      await createMapping(project.id, treeType.id);
 
       const response = await request(app)
-        .delete("/project-tree-types/1/3")
+        .delete(`/project-tree-types/${project.id}/${treeType.id}`)
         .set(adminAuthHeader);
 
       expect(response.status).toBe(200);
@@ -368,6 +436,17 @@ describe("Project Tree Types API", () => {
         success: true,
         message: "Tree type removed from project successfully",
       });
+
+      const deletedMapping = await prisma.projectTreeType.findUnique({
+        where: {
+          projectId_treeTypeId: {
+            projectId: project.id,
+            treeTypeId: treeType.id,
+          },
+        },
+      });
+
+      expect(deletedMapping).toBeNull();
     });
 
     it("should return 400 for invalid path params", async () => {
@@ -379,11 +458,12 @@ describe("Project Tree Types API", () => {
       expect(response.body.success).toBe(false);
     });
 
-    it("should return 404 when the mapping does not exist", async () => {
-      prismaMock.projectTreeType.findUnique.mockResolvedValue(null);
+    it("should return 404 when the mapping is missing", async () => {
+      const project = await createProject();
+      const treeType = await createTreeType();
 
       const response = await request(app)
-        .delete("/project-tree-types/1/3")
+        .delete(`/project-tree-types/${project.id}/${treeType.id}`)
         .set(adminAuthHeader);
 
       expect(response.status).toBe(404);

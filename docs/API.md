@@ -1427,7 +1427,6 @@ Swagger UI:
 
 - `tests/integration/project-tree-types.test.ts`
 - `tests/unit/project-tree-types.test.ts`
-- `tests/integration/project-tree-types.db.test.ts`
 
 ---
 
@@ -1683,19 +1682,18 @@ If a different sort order is needed later, it should be changed in:
 
 ### Test Coverage Added
 
-Three test files were implemented:
+Two test files are currently used for this module:
 
 - `tests/integration/project-tree-types.test.ts`
 - `tests/unit/project-tree-types.test.ts`
-- `tests/integration/project-tree-types.db.test.ts`
 
 No separate schema-only test file was added because the repo does not currently have that as an established convention.
 
 #### A. Integration Tests Covered
 
-These tests exercise:
+This suite now exercises the full runtime path:
 
-`route -> middleware -> controller -> service -> response`
+`route -> middleware -> controller -> service -> Prisma -> Postgres -> response`
 
 Covered scenarios:
 
@@ -1705,7 +1703,7 @@ Covered scenarios:
 - returns `200` for Admin
 - returns `200` for Manager
 - returns mapped records
-- returns empty array when no records exist
+- returns empty array for a project filter when no mappings exist
 - applies `project_id` filtering when provided
 - returns `400` for invalid `project_id` query
 
@@ -1749,33 +1747,20 @@ Covered scenarios:
 - throws not found when mapping is missing
 - logs delete action
 
-#### C. Optional DB-Backed Integration Tests Covered
-
-These tests use real Prisma and a real database only when:
-
-`RUN_DB_TESTS=true`
-
-Covered scenarios:
-- composite uniqueness is enforced at DB level
-- an existing mapping can be removed from the real database
-
----
-
 ### Test Strategy Used
 
 Current test strategy for this module:
 
 - Jest is used as the test runner
 - integration tests use `supertest`
-- main route-stack integration tests mock Prisma
+- the main integration suite uses real Prisma and a real Postgres database
 - logger is mocked in unit/integration tests
 - integration auth behaviour uses the current development auth scaffold
-- optional DB-backed tests use real Prisma and a real database only when explicitly enabled
 
 This matches the current repo state where:
 - Jest is already configured
 - test files already live under `tests/unit` and `tests/integration`
-- DB-backed suites are opt-in rather than part of the default test run
+- the integration suite creates and cleans up its own fixture data
 
 ---
 
@@ -1787,22 +1772,16 @@ Run unit tests only:
 npm test -- --runInBand tests/unit/project-tree-types.test.ts
 ```
 
-Run mocked integration tests only:
+Run integration tests only:
 
 ```bash
 npm test -- --runInBand tests/integration/project-tree-types.test.ts
 ```
 
-Run optional DB-backed integration tests:
-
-```bash
-RUN_DB_TESTS=true npm test -- --runInBand tests/integration/project-tree-types.db.test.ts
-```
-
 Run all `project-tree-types` tests:
 
 ```bash
-npm test -- --runInBand tests/unit/project-tree-types.test.ts tests/integration/project-tree-types.test.ts tests/integration/project-tree-types.db.test.ts
+npm test -- --runInBand tests/unit/project-tree-types.test.ts tests/integration/project-tree-types.test.ts
 ```
 
 ---
@@ -1811,8 +1790,6 @@ npm test -- --runInBand tests/unit/project-tree-types.test.ts tests/integration/
 
 - auth and role checks depend on the existing scaffold and are not fully production-complete yet
 - Manager read access is not project-scoped at this stage
-- the default route integration suite still mocks Prisma rather than using a real database
-- DB-backed integration tests are optional and only run when explicitly enabled
 - current delete behaviour does not yet block removal based on future `tree-scans` business rules because that rule has not been finalized in the current codebase
 
 ---
@@ -1827,6 +1804,6 @@ The `project-tree-types` module is now fully wired into the backend with:
 - Admin/Manager read access
 - admin-only mutation access
 - duplicate-assignment protection
-- unit, mocked integration, and optional DB-backed integration test coverage
+- unit and real DB-backed API integration test coverage
 
 This module now provides the project-to-tree-type assignment layer needed before downstream modules such as `tree-scans` can validate whether a scanned tree type is allowed for a given project.
