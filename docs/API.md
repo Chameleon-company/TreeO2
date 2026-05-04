@@ -551,7 +551,7 @@ No separate schema-only test file was added because the repo does not currently 
 
 These tests exercise:
 
-`route -> middleware -> controller -> service -> response`
+`route -> middleware -> controller -> service -> Prisma -> Postgres -> response`
 
 Covered scenarios:
 
@@ -578,6 +578,9 @@ Covered scenarios:
 - returns `400` for missing `name`
 - returns `400` for blank `name`
 - returns `400` for invalid density
+- returns `400` when `name` exceeds DB length limit
+- returns `400` when `key` exceeds DB length limit
+- returns `400` when `scientific_name` exceeds DB length limit
 - returns `409` for duplicate `key`
 
 ##### PUT `/tree-types/:id`
@@ -588,6 +591,9 @@ Covered scenarios:
 - returns `400` for invalid id
 - returns `400` for empty body
 - returns `400` for invalid values
+- returns `400` when updated `name` exceeds DB length limit
+- returns `400` when updated `key` exceeds DB length limit
+- returns `400` when updated `scientific_name` exceeds DB length limit
 - returns `404` when missing
 - returns `409` for duplicate `key`
 
@@ -638,14 +644,15 @@ Current test strategy for this module:
 
 - Jest is used as the test runner
 - integration tests use `supertest`
-- Prisma is mocked in tests
+- the main `tree-types` integration suite uses the real Prisma client and real Postgres-backed data
 - logger is mocked in tests
 - integration auth behaviour uses the current development auth scaffold
 
 This matches the current repo state where:
 - Jest is already configured
 - test files already live under `tests/unit` and `tests/integration`
-- no dedicated test database pattern is established yet
+- CI provisions a Postgres test database and applies the Prisma schema before tests
+- the `tree-types` API integration suite creates and cleans up its own test data
 
 ---
 
@@ -674,8 +681,7 @@ npm test -- --runInBand tests/unit/tree-types.test.ts tests/integration/tree-typ
 ### Current Limitations
 
 - auth and role checks depend on the existing scaffold and are not fully production-complete yet
-- duplicate key protection is handled both in service logic and by a DB uniqueness constraint on `tree_types.key`
-- the default route integration suite still mocks Prisma, but optional DB-backed integration tests also exist for critical persistence behavior
+- duplicate key protection is currently handled in service logic, not by a visible DB uniqueness constraint
 - there is not yet a dedicated `project-tree-types` deletion/assignment workflow connected to this document beyond reference checks
 
 ---
@@ -690,13 +696,685 @@ The `tree-types` module is now fully wired into the backend with:
 - authenticated read access
 - admin-only mutation access
 - reference-safe delete behavior
-- unit, mocked integration, and optional DB-backed integration test coverage
+- unit test coverage
+- real DB-backed API integration coverage
 
 This module now serves as one of the more complete examples of the project’s current module-based API structure and can be used as a reference for implementing similar CRUD-style master-data APIs.
 
+## 10. Project Management API
+
+This module manages project records used across the TreeO2 platform. It provides full CRUD operations with validation, role-based access control, and integration with related entities such as countries, locations, and tree scans.
+
+**Module Path:** `src/modules/project-management/`
+
+### Files
+- `projectManagement.routes.ts`
+- `projectManagement.controller.ts`
+- `projectManagement.service.ts`
+- `index.ts`
+
+### 10.1 Purpose
+
+The Project Management API is responsible for creating, retrieving, updating, and deleting projects in the system.
+
+Projects are core records used to organise:
+- Tree scans
+- Locations
+- Country-level operations
+- Administrative ownership
+
+### 10.2 Architecture Flow
+
+Every request follows the standard backend module structure:
+
+```text
+Route → Controller → Service → Prisma ORM → PostgreSQL → Response
+```
+
+#### Responsibilities
+
+#### Routes
+- Define endpoints
+- Apply authentication middleware
+- Apply role-based authorization
+- Contain Swagger documentation
+
+#### Controller
+- Receive request data
+- Read params/body
+- Call service methods
+- Return HTTP response
+
+#### Service
+- Perform validation
+- Apply business rules
+- Execute database queries
+- Throw structured errors
+
+### 10.3 Security
+
+All endpoints are protected using Bearer Token authentication.
+
+Middleware used:
+- `authMiddleware`
+- `roleMiddleware`
+
+### 10.4 Access Control Matrix
+
+| Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
+|---|---|---|---|---|---|
+| GET /projects | Yes | Yes | No | No | No |
+| GET /projects/{id} | Yes | Yes | No | No | No |
+| POST /projects | Yes | No | No | No | No |
+| PUT /projects/{id} | Yes | No | No | No | No |
+| DELETE /projects/{id} | Yes | No | No | No | No |
+
+### 10.5 Endpoints
+
+#### GET /projects
+
+Retrieve all projects ordered by newest first.
+
+##### Response
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Reforestation Project",
+      "description": "Tree planting initiative",
+      "countryId": 1,
+      "adminLocationId": 10,
+      "isActive": true
+    }
+  ]
+}
+```
+
+##### Status Codes
+- `200` Success
+- `401` Authentication required
+- `403` Insufficient permissions
+
+#### GET /projects/{id}
+
+Retrieve a single project by ID.
+
+##### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| id | integer | Yes |
+
+##### Response
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "Reforestation Project",
+    "description": "Tree planting initiative",
+    "countryId": 1,
+    "adminLocationId": 10,
+    "isActive": true
+  }
+}
+```
+
+##### Status Codes
+- `200` Success
+- `400` Invalid project ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Project not found
+
+#### POST /projects
+
+Create a new project.
+
+##### Request Body
+```json
+{
+  "name": "Reforestation Project",
+  "description": "Tree planting initiative",
+  "countryId": 1,
+  "adminLocationId": 10,
+  "isActive": true
+}
+```
+
+##### Required Fields
+- `name`
+- `countryId`
+- `adminLocationId`
+
+##### Response
+```json
+{
+  "success": true,
+  "data": {
+    "id": 2,
+    "name": "Reforestation Project"
+  }
+}
+```
+
+##### Status Codes
+- `201` Created
+- `400` Invalid payload
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Country or location not found
+- `409` Duplicate record
+
+#### PUT /projects/{id}
+
+Update an existing project.
+
+##### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| id | integer | Yes |
+
+##### Request Body
+Any subset of fields may be provided.
+
+```json
+{
+  "name": "Updated Project",
+  "description": "Expanded planting scope",
+  "countryId": 1,
+  "adminLocationId": 12,
+  "isActive": false
+}
+```
+
+##### Response
+```json
+{
+  "success": true,
+  "data": {
+    "id": 2,
+    "name": "Updated Project"
+  }
+}
+```
+
+##### Status Codes
+- `200` Success
+- `400` Invalid request / empty payload / invalid ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Project, country, or location not found
+- `409` Duplicate record
+
+#### DELETE /projects/{id}
+
+Delete a project.
+
+##### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| id | integer | Yes |
+
+##### Response
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Project deleted successfully"
+  }
+}
+```
+
+##### Status Codes
+- `200` Success
+- `400` Invalid project ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Project not found
+- `409` Cannot delete project with dependent scans
+
+### 10.6 Validation Rules
+
+#### Create Validation
+- Name must be a non-empty string
+- `countryId` must be a positive integer
+- `adminLocationId` must be a positive integer
+- `isActive` must be boolean if provided
+
+#### Update Validation
+- At least one field must be provided
+- Fields must match correct data types
+- IDs must be positive integers
+
+#### Relationship Validation
+- Country must exist
+- Location must exist
+- Admin location must belong to selected country
+
+#### Delete Validation
+- Project must exist
+- Project cannot be deleted if linked scans exist
+
+### 10.7 Error Handling
+
+Uses centralised error middleware.
+
+#### Standard Error Response
+```json
+{
+  "success": false,
+  "message": "Project not found"
+}
+```
+
+#### Common Errors
+- Authentication required
+- Insufficient permissions
+- Invalid project ID
+- Missing required fields
+- Duplicate project
+- Country not found
+- Location not found
+- Empty update payload
+- Project has dependent scans
+- Internal server error
+
+### 10.8 Swagger Documentation
+
+All endpoints are documented in:
+
+`projectManagement.routes.ts`
+
+Available at:
+
+`http://localhost:3000/api-docs`
+
+Swagger supports:
+- Interactive testing
+- Request examples
+- Response definitions
+- Security schemas
+
+### 10.9 Testing
+
+#### Test Files
+- `tests/unit/project-management.test.ts`
+- `tests/integration/project-management.test.ts`
+
+#### Covered Scenarios
+
+##### Authentication
+- No token returns `401`
+
+##### Authorization
+- Allowed roles succeed
+- Blocked roles return `403`
+
+##### Read
+- Get all projects
+- Get project by ID
+- Get missing project returns `404`
+
+##### Create
+- Valid project created
+- Invalid payload rejected
+- Missing country rejected
+
+##### Update
+- Valid update succeeds
+- Empty payload rejected
+- Missing project rejected
+
+##### Delete
+- Valid delete succeeds
+- Missing project rejected
+- Protected delete blocked when dependencies exist
+
+### 10.10 Summary
+
+The Project Management API follows the TreeO2 backend engineering standard:
+
+- Modular architecture
+- Secure authentication
+- Role-based access control
+- Clean separation of concerns
+- Strong validation
+- Full CRUD support
+- Swagger documentation
+- Automated tests
+- Scalable structure for future enhancements
+
 ---
 
-## 10. Project Tree Types API
+## 11. Localization API
+
+This module manages localized string resources used across the TreeO2 platform. It provides read and administrative write operations for multilingual content with context filtering, language fallback support, and role-based access control.
+
+**Module Path:** `src/modules/localization/`
+
+### Files
+- `localization.routes.ts`
+- `localization.controller.ts`
+- `localization.service.ts`
+- `index.ts`
+
+### 11.1 Purpose
+
+The Localization API is responsible for creating, retrieving, updating, and deleting localized strings in the system.
+
+
+### 11.2 Architecture Flow
+
+Every request in this module follows a simple class-based flow:
+
+```text
+localization.routes.ts (Router + middleware)
+→ LocalizationController
+→ LocalizationService
+→ Prisma Client
+→ PostgreSQL
+→ Response
+```
+
+#### Responsibilities
+
+#### Router (`localization.routes.ts`)
+- Defines localization endpoints
+- Applies `authMiddleware` and `roleMiddleware`
+- Calls `LocalizationController` methods
+
+#### `LocalizationController`
+- Receive request data
+- Validate params, query, and body
+- Call `LocalizationService`
+- Return HTTP responses
+
+#### `LocalizationService`
+- Applies localization business rules
+- Reads and writes localized strings via Prisma
+- Returns data or throws handled errors
+
+### 11.3 Security
+
+All endpoints are protected using Bearer Token authentication.
+
+Middleware used:
+- `authMiddleware`
+- `roleMiddleware`
+
+### 11.4 Access Control Matrix
+
+| Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
+|---|---|---|---|---|---|
+| GET /localized-strings | Yes | Yes | Yes | Yes | Yes |
+| POST /localized-strings | Yes | No | No | No | No |
+| PUT /localized-strings/{id} | Yes | No | No | No | No |
+| DELETE /localized-strings/{id} | Yes | No | No | No | No |
+
+### 11.5 Endpoints
+
+#### GET /localized-strings
+
+Retrieve localized strings with optional filters.
+
+Supports both camelCase and snake_case query aliases for language and string key filters.
+
+##### Query Parameters
+
+| Name | Type | Required | Notes |
+|---|---|---|---|
+| context | enum(API, MOBILE, ADMIN, PUBLIC) | No | Context filter |
+| preferredLanguage / preferred_language | string | No | Preferred language code |Fallback language code (defaults to `en-US`) |
+| stringKeys / string_keys | string or string[] | No | Comma-separated or repeated list of keys |
+
+##### Response
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "cultureCode": "en-US",
+      "stringKey": "treeTypes.mango.name",
+      "value": "Mango",
+      "context": "API"
+    }
+  ]
+}
+```
+
+##### Status Codes
+- `200` Success
+- `400` Invalid query filters
+- `401` Authentication required
+- `403` Insufficient permissions
+
+#### POST /localized-strings
+
+Create a localized string.
+
+##### Request Body
+```json
+{
+  "cultureCode": "en-US",
+  "stringKey": "treeTypes.oak.name",
+  "value": "Oak",
+  "context": "API"
+}
+```
+
+##### Required Fields
+- `cultureCode`
+- `stringKey`
+- `value`
+- `context`
+
+##### Response
+```json
+{
+  "success": true,
+  "data": {
+    "id": 2,
+    "cultureCode": "en-US",
+    "stringKey": "treeTypes.oak.name",
+    "value": "Oak",
+    "context": "API"
+  }
+}
+```
+
+##### Status Codes
+- `201` Created
+- `400` Invalid payload / culture not found
+- `401` Authentication required
+- `403` Insufficient permissions
+- `500` Duplicate localized string currently maps to internal server error
+
+#### PUT /localized-strings/{id}
+
+Update an existing localized string.
+
+##### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| id | integer | Yes |
+
+##### Request Body
+Any subset of fields may be provided, but at least one field is required.
+
+```json
+{
+  "value": "Acajou",
+  "cultureCode": "fr-FR"
+}
+```
+
+##### Response
+```json
+{
+  "success": true,
+  "data": {
+    "id": 2,
+    "cultureCode": "fr-FR",
+    "stringKey": "treeTypes.mahogany.name",
+    "value": "Acajou",
+    "context": "API"
+  }
+}
+```
+
+##### Status Codes
+- `200` Success
+- `400` Invalid request / empty payload / invalid ID / culture not found
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Localized string not found
+
+#### DELETE /localized-strings/{id}
+
+Delete a localized string.
+
+##### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| id | integer | Yes |
+
+##### Response
+```json
+{
+  "success": true,
+  "message": "Localized string deleted successfully"
+}
+```
+
+##### Status Codes
+- `200` Success
+- `400` Invalid localized string ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Localized string not found
+
+### 11.6 Validation Rules
+
+#### List Validation
+- `preferredLanguage` / `preferred_language` must be non-empty strings (max 10).
+- `context` must be one of `API`, `MOBILE`, `ADMIN`, `PUBLIC`
+- `stringKeys` / `string_keys` can be a single string, comma-separated string, or array of strings
+
+#### Create Validation
+- `cultureCode` must be a non-empty string (max 10)
+- `stringKey` must be a non-empty string (max 255)
+- `value` must be a non-empty string
+- `context` must be one of `API`, `MOBILE`, `ADMIN`, `PUBLIC`
+- `cultureCode` must exist in the `culture` table
+
+#### Update Validation
+- `id` must be a positive integer
+- At least one field must be provided
+- Provided fields must match expected types and limits
+- If `cultureCode` is provided, it must exist
+
+#### Delete Validation
+- `id` must be a positive integer
+- Target localized string must exist
+
+### 11.7 Error Handling
+
+Uses centralised error middleware.
+
+#### Standard Error Response
+```json
+{
+  "success": false,
+  "message": "DATA_001: Resource not found"
+}
+```
+
+#### Common Errors
+- Authentication required (`AUTH_003`)
+- Insufficient permissions (`AUTH_004`)
+- Validation failed (`VAL_001`)
+- Invalid request body (for missing culture) (`VAL_002`)
+- Resource not found (`DATA_001`)
+- Internal server error (`SYS_001`)
+
+### 11.8 Swagger Documentation
+
+All endpoints are documented in:
+
+`localization.routes.ts`
+
+Available at:
+
+`http://localhost:3000/api-docs`
+
+Swagger supports:
+- Interactive testing
+- Request examples
+- Response definitions
+- Security schemas
+
+### 11.9 Testing
+
+#### Test Files
+- `tests/unit/localization.test.ts`
+- `tests/integration/localization.test.ts`
+
+#### Covered Scenarios
+
+##### Authentication
+- No token returns `401`
+
+##### Authorization
+- Allowed roles succeed on read
+- Blocked roles return `403` on write
+
+##### Read
+- Get localized strings with filters
+- Preferred language resolution with fallback language
+- Unknown endpoint returns `404`
+
+##### Create
+- Valid localized string created
+- Invalid payload rejected
+- Missing culture rejected
+- Duplicate create path returns current mapped `500`
+
+##### Update
+- Valid update succeeds
+- Invalid ID rejected
+- Empty payload rejected
+- Missing target rejected
+- Missing new culture rejected
+
+##### Delete
+- Valid delete succeeds
+- Missing target rejected
+
+### 11.10 Summary
+
+The Localization API follows the TreeO2 backend engineering standard:
+
+- Modular architecture
+- Secure authentication
+- Role-based access control
+- Clean separation of concerns
+- Strong validation with Zod
+- Language fallback support
+- Swagger documentation
+- Automated tests
+- Scalable structure for multilingual expansion
+
+---
+
+## 12. Project Tree Types API
 
 This section documents the `project-tree-types` module that has now been implemented and tested.
 

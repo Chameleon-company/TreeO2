@@ -1,6 +1,19 @@
 import { z } from "zod";
 
-const optionalTrimmedString = z.string().trim().min(1).optional();
+const TREE_TYPE_TEXT_MAX_LENGTH = 200;
+
+const optionalTrimmedString = z
+  .string()
+  .trim()
+  .min(1)
+  .max(TREE_TYPE_TEXT_MAX_LENGTH)
+  .optional();
+
+const requiredNameString = z
+  .string()
+  .trim()
+  .min(1, "Name is required")
+  .max(TREE_TYPE_TEXT_MAX_LENGTH);
 
 const positiveDensity = z.coerce.number().positive();
 
@@ -14,7 +27,7 @@ export const treeTypeIdSchema = z.object({
 
 export const createTreeTypeSchema = z.object({
   body: z.object({
-    name: z.string().trim().min(1, "Name is required"),
+    name: requiredNameString,
     key: optionalTrimmedString,
     scientific_name: optionalTrimmedString,
     dry_weight_density: positiveDensity.optional(),
@@ -25,7 +38,7 @@ export const updateTreeTypeSchema = z.object({
   params: treeTypeIdParams,
   body: z
     .object({
-      name: z.string().trim().min(1).optional(),
+      name: requiredNameString.optional(),
       key: optionalTrimmedString,
       scientific_name: optionalTrimmedString,
       dry_weight_density: positiveDensity.optional(),
