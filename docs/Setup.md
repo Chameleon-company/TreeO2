@@ -78,6 +78,7 @@ docker compose ps
 
 ```bash
 npm run prisma:generate
+# Choose one:
 # If migration files already exist, use:
 npm run prisma:migrate:dev
 # If migration files do not exist yet and you only need to sync the local DB, use:
@@ -93,10 +94,13 @@ This project uses Prisma's multi-file schema layout:
 ### 6. Seed the database (optional)
 
 ```bash
-npm run prisma:seed
+ALLOW_SAMPLE_SEED=true npm run prisma:seed
 ```
 
 > Seeds are for local/dev only — never run against production.
+> The sample seed expects a clean local database and is intentionally blocked unless `ALLOW_SAMPLE_SEED=true` is set.
+> The sample seed will only run when `NODE_ENV` is `development` or `test`.
+> Optional password overrides are available through `SEED_ADMIN_PASSWORD`, `SEED_MANAGER_PASSWORD`, `SEED_INSPECTOR1_PASSWORD`, `SEED_INSPECTOR2_PASSWORD`, `SEED_FARMER1_PASSWORD`, `SEED_FARMER2_PASSWORD`, and `SEED_DEVELOPER_PASSWORD`.
 
 ### 7. Start the dev server
 
@@ -133,6 +137,14 @@ All variables are validated on startup via Zod. The server will exit immediately
 | `JWT_EXPIRES_IN` | No | `24h` | Token expiry — e.g. `1h`, `7d`, `24h` |
 | `RATE_LIMIT_WINDOW_MS` | No | `900000` | Rate limit window in ms (default: 15 min) |
 | `RATE_LIMIT_MAX` | No | `100` | Max requests per window per IP |
+| `ALLOW_SAMPLE_SEED` | No | `false` | Safety flag required to allow local sample seeding |
+| `SEED_ADMIN_PASSWORD` | No | `Admin@123` | Optional override for the sample admin account password |
+| `SEED_MANAGER_PASSWORD` | No | `Manager@123` | Optional override for the sample manager account password |
+| `SEED_INSPECTOR1_PASSWORD` | No | `Inspector1@123` | Optional override for the first sample inspector account password |
+| `SEED_INSPECTOR2_PASSWORD` | No | `Inspector2@123` | Optional override for the second sample inspector account password |
+| `SEED_FARMER1_PASSWORD` | No | `Farmer1@123` | Optional override for the first sample farmer account password |
+| `SEED_FARMER2_PASSWORD` | No | `Farmer2@123` | Optional override for the second sample farmer account password |
+| `SEED_DEVELOPER_PASSWORD` | No | `Developer@123` | Optional override for the sample developer account password |
 
 To generate a strong `JWT_SECRET`:
 ```bash
@@ -151,6 +163,7 @@ docker compose up -d postgres
 
 # Terminal 2 — Prisma client/schema sync
 npm run prisma:generate
+# Choose one:
 # If migration files already exist, use:
 npm run prisma:migrate:dev
 # If migration files do not exist yet and you only need to sync the local DB, use:
@@ -198,6 +211,7 @@ docker compose down
 ```bash
 docker compose down -v       # removes the postgres_data volume
 docker compose up -d postgres
+# Choose one:
 # If migration files already exist, use:
 npm run prisma:migrate:dev
 # If migration files do not exist yet and you only need to sync the local DB, use:
@@ -218,12 +232,13 @@ npm run prisma:push
 | `npm run format` | Auto-format all source files with Prettier |
 | `npm run format:check` | Check formatting without writing |
 | `npm run type-check` | TypeScript type check without emitting |
+| `npm run type-check:seed` | Type-check `prisma/seed.ts` and its dependencies |
 | `npm run validate` | Run type-check + lint + format check (run before PRs) |
 | `npm run prisma:generate` | Generate Prisma client from the `prisma/` directory schema |
 | `npm run prisma:push` | Push schema directly to the database without creating migrations |
 | `npm run prisma:migrate:dev` | Create and apply a development migration |
 | `npm run prisma:migrate:deploy` | Apply migrations |
-| `npm run prisma:seed` | Seed local data |
+| `npm run prisma:seed` | Seed local sample data after setting `ALLOW_SAMPLE_SEED=true` |
 | `npm test` | Run Jest tests |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run test:coverage` | Run tests with coverage report |
