@@ -17,7 +17,6 @@ const createApp = (): express.Express => {
   const { errorHandler } = require("../../src/middleware/errorHandler") as {
     errorHandler: express.ErrorRequestHandler;
   };
-
   const app = express();
   app.use(express.json());
   app.use("/tree-types", treeTypesRoutes);
@@ -143,7 +142,6 @@ describe("Tree Types API", () => {
       AUTH_DEV_ADMIN_TOKEN: "test-admin-token",
       AUTH_DEV_MANAGER_TOKEN: "test-manager-token",
     };
-
     app = createApp();
     await prisma.$connect();
   });
