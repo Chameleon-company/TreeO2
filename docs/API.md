@@ -200,6 +200,88 @@ Notes:
 - Serves as the standard example for all modules
 - Swagger is defined in `health.routes.ts`
 
+
+## 9. USER MANAGEMENT API
+
+This module manages users with role-based and project-based access control.
+
+Module Path: `src/modules/user-management/`
+
+---
+
+### 9.1 Access Control
+
+| Endpoint          | ADMIN | MANAGER (Scoped) | INSPECTOR | FARMER |
+|------------------|-------|------------------|-----------|--------|
+| GET /users       | Yes   | Yes              | No        | No     |
+| GET /users/:id   | Yes   | Yes (project)    | Self      | Self   |
+| POST /users      | Yes   | No               | No        | No     |
+| PUT /users/:id   | Yes   | Yes (restricted) | No        | No     |
+| DELETE /users/:id| Yes   | No               | No        | No     |
+
+---
+
+### 9.2 Manager Restrictions
+
+Managers CAN:
+- Update users within assigned projects
+
+Managers CANNOT:
+- Update roleId
+- Update accountActive
+- Update canSignIn
+
+---
+
+### 9.3 Validation Rules
+
+- email must be valid format
+- email must be unique (409)
+- roleId must exist
+- projectIds must:
+  - be valid IDs
+  - not contain duplicates
+
+---
+
+### 9.4 Endpoints
+
+#### GET /users
+Fetch users (Admin full access, Manager scoped by project)
+
+#### GET /users/:id
+Fetch single user with role-based access control
+
+#### POST /users
+Create user (Admin only)
+
+#### PUT /users/:id
+Update user (Admin full, Manager scoped with restrictions)
+
+#### DELETE /users/:id
+Soft delete user (Admin only)
+
+---
+
+### 9.5 Response Codes
+
+- 200 OK
+- 201 Created
+- 400 Validation error
+- 401 Unauthorized
+- 403 Forbidden
+- 404 Not found
+- 409 Conflict
+
+---
+
+### 9.6 Business Logic
+
+- Prisma-based data access
+- Soft delete (disable user instead of removing)
+- Role-based access control (RBAC)
+- Project-scoped access for MANAGER
+- Prevent deletion if user linked to treeScan records
 ---
 
 ## 9. Tree Types API
