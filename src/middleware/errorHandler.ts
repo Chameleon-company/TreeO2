@@ -78,13 +78,6 @@ export const errorHandler = (
     return;
   }
 
-<<<<<<< HEAD
-  res.status(500).json({
-    success: false,
-    message: ERROR_CODES.SYS_001,
-    requestId: req.requestId ?? null,
-  });
-=======
   // Postgres foreign key violation
   if ((err as NodeJS.ErrnoException).code === "23503") {
     res.status(409).json({
@@ -95,8 +88,11 @@ export const errorHandler = (
     return;
   }
 
-  res.status(500).json({ success: false, message: ERROR_CODES.SYS_001 });
->>>>>>> origin/master
+  res.status(500).json({
+    success: false,
+    message: ERROR_CODES.SYS_001,
+    requestId: req.requestId ?? null,
+  });
 };
 
 export const notFound = (req: Request, res: Response): void => {

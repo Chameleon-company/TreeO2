@@ -25,7 +25,7 @@ export const securityAuditMiddleware = (
     logger.info("Request completed", {
       requestId: req.requestId,
       method: req.method,
-      path: req.path,
+      path: req.originalUrl,
       ip: req.ip,
       statusCode: res.statusCode,
       success: res.statusCode < 400,
