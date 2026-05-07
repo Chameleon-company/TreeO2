@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
 import { logger } from "../config/logger";
@@ -48,6 +49,25 @@ export const errorHandler = (
     return;
   }
 
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === "P2002") {
+      res.status(409).json({
+        success: false,
+        message: ERROR_CODES.DATA_002,
+      });
+      return;
+    }
+
+    if (err.code === "P2003") {
+      res.status(409).json({
+        success: false,
+        message:
+          "Operation failed because the record is referenced by other records",
+      });
+      return;
+    }
+  }
+
   // Postgres unique violation
   if ((err as NodeJS.ErrnoException).code === "23505") {
     res.status(409).json({
@@ -58,11 +78,25 @@ export const errorHandler = (
     return;
   }
 
+<<<<<<< HEAD
   res.status(500).json({
     success: false,
     message: ERROR_CODES.SYS_001,
     requestId: req.requestId ?? null,
   });
+=======
+  // Postgres foreign key violation
+  if ((err as NodeJS.ErrnoException).code === "23503") {
+    res.status(409).json({
+      success: false,
+      message:
+        "Operation failed because the record is referenced by other records",
+    });
+    return;
+  }
+
+  res.status(500).json({ success: false, message: ERROR_CODES.SYS_001 });
+>>>>>>> origin/master
 };
 
 export const notFound = (req: Request, res: Response): void => {
