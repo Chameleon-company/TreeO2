@@ -1,0 +1,15 @@
+model UserProjectRole {
+  userId      Int      @map("user_id")
+  projectId   Int      @map("project_id")
+  roleId      Int      @map("role_id")
+  assignedBy  Int      @map("assigned_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation("UserProjectRoles", fields: [userId], references: [id])
+  project     Project  @relation(fields: [projectId], references: [id])
+  role        Role     @relation(fields: [roleId], references: [id])
+  assignedByUser User  @relation("AssignedByUser", fields: [assignedBy], references: [id])
+
+  @@id([userId, projectId, roleId])
+  @@map("user_project_roles")
+}
