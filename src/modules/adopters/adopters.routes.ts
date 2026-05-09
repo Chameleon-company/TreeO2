@@ -1,7 +1,6 @@
 import { Router } from "express";
 import * as adopterController from "./adopters.controller";
 
-
 const router = Router();
 
 /**

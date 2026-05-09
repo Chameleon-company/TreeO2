@@ -10,10 +10,7 @@ interface UpdateAdopterInput {
   email?: string;
 }
 
-export const listAdopters = async (
-  page = 1,
-  limit = 10,
-) => {
+export const listAdopters = async (page = 1, limit = 10) => {
   const skip = (page - 1) * limit;
 
   const [data, total] = await Promise.all([
@@ -39,9 +36,7 @@ export const listAdopters = async (
   };
 };
 
-export const createAdopter = async (
-  data: CreateAdopterInput,
-) => {
+export const createAdopter = async (data: CreateAdopterInput) => {
   if (!data.name?.trim()) {
     throw new Error("Name is required");
   }
@@ -54,18 +49,13 @@ export const createAdopter = async (
   });
 };
 
-export const getAdopterById = async (
-  id: number,
-) => {
+export const getAdopterById = async (id: number) => {
   return prisma.adopter.findUnique({
     where: { id },
   });
 };
 
-export const updateAdopter = async (
-  id: number,
-  data: UpdateAdopterInput,
-) => {
+export const updateAdopter = async (id: number, data: UpdateAdopterInput) => {
   return prisma.adopter.update({
     where: { id },
     data: {
@@ -75,9 +65,7 @@ export const updateAdopter = async (
   });
 };
 
-export const deleteAdopter = async (
-  id: number,
-) => {
+export const deleteAdopter = async (id: number) => {
   return prisma.adopter.delete({
     where: { id },
   });
