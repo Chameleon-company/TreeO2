@@ -5,6 +5,7 @@ import userRoutes from "../modules/user-management";
 import { treeTypesRoutes } from "../modules/tree-types";
 import { projectManagementRoutes } from "../modules/project-management";
 import { localizationRoutes } from "../modules/localization";
+import { partnersRoutes } from "../modules/partners";
 
 const router = Router();
 
@@ -14,5 +15,6 @@ router.use("/users", userRoutes);
 router.use("/tree-types", treeTypesRoutes);
 router.use("/projects", projectManagementRoutes);
 router.use("/localized-strings", localizationRoutes);
+router.use("/partners", partnersRoutes);
 
 export default router;
