@@ -1,98 +1,83 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../lib/prisma";
 
-const prisma = new PrismaClient();
+interface CreateAdopterInput {
+  name?: string;
+  email?: string;
+}
+
+interface UpdateAdopterInput {
+  name?: string;
+  email?: string;
+}
 
 export const listAdopters = async (
-  page: number,
-  limit: number
+  page = 1,
+  limit = 10,
 ) => {
   const skip = (page - 1) * limit;
 
-  const adopters = await prisma.adopter.findMany({
-    skip,
-    take: limit,
-    orderBy: {
-      createdAt: "desc",
-    },
-    include: {
-      adoptions: true,
-    },
-  });
+  const [data, total] = await Promise.all([
+    prisma.adopter.findMany({
+      skip,
+      take: limit,
+      orderBy: {
+        id: "desc",
+      },
+    }),
 
-  const total = await prisma.adopter.count();
+    prisma.adopter.count(),
+  ]);
 
   return {
-    data: adopters,
+    data,
     pagination: {
       page,
       limit,
       total,
+      totalPages: Math.ceil(total / limit),
     },
   };
 };
 
-export const getAdopterById = async (id: number) => {
-  return prisma.adopter.findUnique({
-    where: { id },
-    include: {
-      adoptions: true,
-    },
-  });
-};
-
-export const createAdopter = async (payload: any) => {
-  if (!payload.name) {
+export const createAdopter = async (
+  data: CreateAdopterInput,
+) => {
+  if (!data.name?.trim()) {
     throw new Error("Name is required");
   }
 
   return prisma.adopter.create({
     data: {
-      name: payload.name,
-      email: payload.email || null,
+      name: data.name,
+      email: data.email ?? null,
     },
+  });
+};
+
+export const getAdopterById = async (
+  id: number,
+) => {
+  return prisma.adopter.findUnique({
+    where: { id },
   });
 };
 
 export const updateAdopter = async (
   id: number,
-  payload: any
+  data: UpdateAdopterInput,
 ) => {
-  const existing = await prisma.adopter.findUnique({
-    where: { id },
-  });
-
-  if (!existing) {
-    throw new Error("Adopter not found");
-  }
-
   return prisma.adopter.update({
     where: { id },
     data: {
-      name: payload.name,
-      email: payload.email,
+      name: data.name,
+      email: data.email,
     },
   });
 };
 
-export const deleteAdopter = async (id: number) => {
-  const existing = await prisma.adopter.findUnique({
-    where: { id },
-    include: {
-      adoptions: true,
-    },
-  });
-
-  if (!existing) {
-    throw new Error("Adopter not found");
-  }
-
-  // Prevent deletion if adoption history exists
-  if (existing.adoptions.length > 0) {
-    throw new Error(
-      "Cannot delete adopter with adoption history"
-    );
-  }
-
+export const deleteAdopter = async (
+  id: number,
+) => {
   return prisma.adopter.delete({
     where: { id },
   });

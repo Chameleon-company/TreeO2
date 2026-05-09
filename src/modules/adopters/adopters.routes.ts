@@ -1,126 +1,42 @@
 import { Router } from "express";
-import * as controller from "./adopters.controller";
+import * as adopterController from "./adopters.controller";
+
 
 const router = Router();
 
 /**
- * @swagger
- * tags:
- *   name: Adopters
- *   description: Adopters management
+ * CREATE ADOPTER
  */
+router.post("/", (req, res) => {
+  void adopterController.createAdopter(req, res);
+});
 
 /**
- * @swagger
- * /adopters:
- *   get:
- *     summary: List adopters
- *     tags: [Adopters]
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: List of adopters
+ * GET ALL ADOPTERS
  */
-router.get("/", controller.listAdopters);
+router.get("/", (req, res) => {
+  void adopterController.listAdopters(req, res);
+});
 
 /**
- * @swagger
- * /adopters/{id}:
- *   get:
- *     summary: Get adopter by ID
- *     tags: [Adopters]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Adopter found
- *       404:
- *         description: Adopter not found
+ * GET ADOPTER BY ID
  */
-router.get("/:id", controller.getAdopter);
+router.get("/:id", (req, res) => {
+  void adopterController.getAdopterById(req, res);
+});
 
 /**
- * @swagger
- * /adopters:
- *   post:
- *     summary: Create adopter
- *     tags: [Adopters]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *             properties:
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *     responses:
- *       201:
- *         description: Adopter created
+ * UPDATE ADOPTER
  */
-router.post("/", controller.createAdopter);
+router.put("/:id", (req, res) => {
+  void adopterController.updateAdopter(req, res);
+});
 
 /**
- * @swagger
- * /adopters/{id}:
- *   put:
- *     summary: Update adopter
- *     tags: [Adopters]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *     responses:
- *       200:
- *         description: Adopter updated
+ * DELETE ADOPTER
  */
-router.put("/:id", controller.updateAdopter);
-
-/**
- * @swagger
- * /adopters/{id}:
- *   delete:
- *     summary: Delete adopter
- *     tags: [Adopters]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Adopter deleted
- */
-router.delete("/:id", controller.deleteAdopter);
+router.delete("/:id", (req, res) => {
+  void adopterController.deleteAdopter(req, res);
+});
 
 export default router;

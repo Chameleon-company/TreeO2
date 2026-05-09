@@ -12,7 +12,7 @@ import adoptersRouter from "./modules/adopters/adopters.routes";
 
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
-import routes from "./routes";
+
 
 const app = express();
 
