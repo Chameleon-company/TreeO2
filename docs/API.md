@@ -2069,7 +2069,7 @@ The Partners API is responsible for creating, retrieving, updating, and deleting
 Every request follows the standard backend module structure:
 
 ```text
-Route → Controller → Service → Prisma ORM → PostgreSQL → Response
+Route -> Controller -> Service -> Prisma ORM -> PostgreSQL -> Response
 ```
 
 #### Responsibilities
@@ -2415,5 +2415,3 @@ The Partners API follows the TreeO2 backend engineering standard:
 - Swagger documentation
 - Automated tests
 - Scalable structure for future enhancements
-
-This module integrates cleanly into the existing backend structure and can serve as a reference for implementing similar simple CRUD modules.
