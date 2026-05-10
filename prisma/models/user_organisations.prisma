@@ -1,0 +1,12 @@
+model UserOrganisation {
+  userId         Int      @map("user_id")
+  organisationId Int      @map("organisation_id")
+  status         String   @default("active") @db.VarChar(30)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+
+  @@id([userId, organisationId])
+  @@map("user_organisations")
+}

@@ -15,6 +15,7 @@ model Location {
   children Location[] @relation("LocationHierarchy")
   users    User[]     @relation("UserAdminLocation")
   projects Project[]  @relation("ProjectAdminLocation")
+  organisations Organisation[]
 
   @@index([countryId])
   @@index([parentId])
