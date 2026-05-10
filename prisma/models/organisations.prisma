@@ -1,0 +1,23 @@
+model Organisation {
+  id              Int       @id @default(autoincrement())
+  name            String    @db.VarChar(100)
+  contactEmail    String?   @unique @map("contact_email") @db.VarChar(300)
+  governmentId    String?   @map("government_id") @db.VarChar(80)
+  countryId       Int?      @map("country_id")
+  adminLocationId Int?      @map("admin_location_id")
+  streetAddress   String?   @map("street_address") @db.VarChar(500)
+  logoId          String?   @map("logo_id") @db.VarChar(100)
+  description     String?   @db.Text
+  notes           String?   @db.Text
+  accountActive   Boolean   @default(true) @map("account_active")
+  dateJoined      DateTime? @map("date_joined")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  country       Country?  @relation(fields: [countryId], references: [id])
+  adminLocation Location? @relation(fields: [adminLocationId], references: [id])
+
+  userOrganisations UserOrganisation[]
+
+  @@map("organisations")
+}

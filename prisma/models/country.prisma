@@ -1,13 +1,14 @@
 model Country {
-  id    Int     @id @default(autoincrement())
-  name  String  @db.VarChar(100)
-  iso2  String  @unique @db.Char(2)
-  iso3  String? @unique @db.Char(3)
+  id   Int     @id @default(autoincrement())
+  name String  @db.VarChar(100)
+  iso2 String  @unique @db.Char(2)
+  iso3 String? @unique @db.Char(3)
 
-  locations Location[]
+  locations            Location[]
   administrativeLevels AdministrativeLevel[]
-  users      User[]    @relation("UserCountry")
-  projects   Project[] @relation("ProjectCountry")
+  users                User[]                @relation("UserCountry")
+  projects             Project[]             @relation("ProjectCountry")
+  organisations        Organisation[]
 
   @@map("countries")
 }
