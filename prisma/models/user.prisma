@@ -36,6 +36,7 @@ model User {
   inspectorTreeScans TreeScan[]       @relation("InspectorTreeScans")
   correctedTreeScans TreeScan[]       @relation("CorrectedTreeScans")
   treeScanAudits     TreeScanAudit[]  @relation("TreeScanAuditChangedBy")
+  userOrganisations UserOrganisation[]
 
   @@index([roleId])
   @@index([countryId])
