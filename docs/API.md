@@ -26,19 +26,21 @@ Each API has its own folder:
 
 src/modules/
 └── <module>/
-    ├── <module>.routes.ts
-    ├── <module>.controller.ts
-    ├── <module>.service.ts
-    └── index.ts
+├── <module>.routes.ts
+├── <module>.controller.ts
+├── <module>.service.ts
+└── index.ts
 
 ---
 
 ## 3. What Each File Contains
 
 ### <module>.routes.ts
+
 Defines the API endpoints for the module and connects them to controller methods.
 
 Responsibilities:
+
 - Define route paths (e.g. GET /health, POST /users)
 - Attach controller methods
 - Include Swagger annotations for API documentation
@@ -46,34 +48,41 @@ Responsibilities:
 ---
 
 ### <module>.controller.ts
+
 Handles incoming requests and outgoing responses.
 
 Responsibilities:
+
 - Receive request data
 - Validate and parse input where required
 - Call the service layer
 - Return HTTP responses
 
 Must NOT contain:
+
 - Business logic
 - Database queries
 
 ---
 
 ### <module>.service.ts
+
 Contains the core business logic for the API.
 
 Responsibilities:
+
 - Process data
 - Implement business rules
 - Interact with repositories or database layer
 
 Must NOT:
+
 - Use Express request/response objects
 
 ---
 
 ### index.ts
+
 Exports the module routes so they can be used in app.ts.
 
 Acts as the public entry point for the module.
@@ -126,6 +135,7 @@ Each module follows the same internal structure:
 └── index.ts
 
 Total:
+
 - 14 API modules
 - 56 files structured consistently across modules
 
@@ -155,19 +165,23 @@ tests/unit/<module>.test.ts
 tests/integration/<module>.test.ts
 
 ### Unit Tests
+
 Used to test service/business logic in isolation.
 
 Examples:
+
 - Returned data is correct
 - Validation logic works
 - Business rules behave as expected
 
 ### Integration Tests
+
 Used to test the full API flow:
 
 route → controller → service → response
 
 Examples:
+
 - Correct HTTP status code
 - Correct response body
 - Endpoint behaves as expected
@@ -197,9 +211,9 @@ Response:
 Flow: routes → controller → service → response
 
 Notes:
+
 - Serves as the standard example for all modules
 - Swagger is defined in `health.routes.ts`
-
 
 ## 9. USER MANAGEMENT API
 
@@ -212,21 +226,23 @@ Module Path: `src/modules/user-management/`
 ### 9.1 Access Control
 
 | Endpoint          | ADMIN | MANAGER (Scoped) | INSPECTOR | FARMER |
-|------------------|-------|------------------|-----------|--------|
-| GET /users       | Yes   | Yes              | No        | No     |
-| GET /users/:id   | Yes   | Yes (project)    | Self      | Self   |
-| POST /users      | Yes   | No               | No        | No     |
-| PUT /users/:id   | Yes   | Yes (restricted) | No        | No     |
-| DELETE /users/:id| Yes   | No               | No        | No     |
+| ----------------- | ----- | ---------------- | --------- | ------ |
+| GET /users        | Yes   | Yes              | No        | No     |
+| GET /users/:id    | Yes   | Yes (project)    | Self      | Self   |
+| POST /users       | Yes   | No               | No        | No     |
+| PUT /users/:id    | Yes   | Yes (restricted) | No        | No     |
+| DELETE /users/:id | Yes   | No               | No        | No     |
 
 ---
 
 ### 9.2 Manager Restrictions
 
 Managers CAN:
+
 - Update users within assigned projects
 
 Managers CANNOT:
+
 - Update roleId
 - Update accountActive
 - Update canSignIn
@@ -247,18 +263,23 @@ Managers CANNOT:
 ### 9.4 Endpoints
 
 #### GET /users
+
 Fetch users (Admin full access, Manager scoped by project)
 
 #### GET /users/:id
+
 Fetch single user with role-based access control
 
 #### POST /users
+
 Create user (Admin only)
 
 #### PUT /users/:id
+
 Update user (Admin full, Manager scoped with restrictions)
 
 #### DELETE /users/:id
+
 Soft delete user (Admin only)
 
 ---
@@ -282,6 +303,7 @@ Soft delete user (Admin only)
 - Role-based access control (RBAC)
 - Project-scoped access for MANAGER
 - Prevent deletion if user linked to treeScan records
+
 ---
 
 ## 9. Tree Types API
@@ -293,6 +315,7 @@ This section documents the `tree-types` module that has now been implemented and
 `tree-types` is a master/reference-data module used to manage tree species/type definitions in the backend.
 
 It currently supports:
+
 - listing all tree types
 - fetching a single tree type by id
 - creating a new tree type
@@ -306,6 +329,7 @@ Current route base:
 `/tree-types`
 
 Examples:
+
 - `GET /tree-types`
 - `GET /tree-types/:id`
 - `POST /tree-types`
@@ -347,6 +371,7 @@ Swagger UI:
 Defines all `tree-types` endpoints and applies middleware in the current project pattern.
 
 Current route protection:
+
 - `GET` routes use `authMiddleware`
 - `POST`, `PUT`, `DELETE` use `authMiddleware`
 - `POST`, `PUT`, `DELETE` also use `roleMiddleware(["ADMIN"])`
@@ -357,6 +382,7 @@ Current route protection:
 Receives validated requests and returns HTTP responses.
 
 Current controller responsibilities:
+
 - call the service layer
 - return status codes
 - return standard JSON success response shape
@@ -366,6 +392,7 @@ Current controller responsibilities:
 Contains the actual business logic and Prisma usage.
 
 Current service responsibilities:
+
 - fetch tree types from Prisma
 - fetch a tree type by id
 - create tree type records
@@ -377,6 +404,7 @@ Current service responsibilities:
 #### `treeTypes.schemas.ts`
 
 Contains Zod validation schemas for:
+
 - path params
 - create body
 - update body
@@ -385,6 +413,7 @@ Contains Zod validation schemas for:
 #### `treeTypes.docs.ts`
 
 Contains Swagger/OpenAPI annotations for:
+
 - GET `/tree-types`
 - GET `/tree-types/{id}`
 - POST `/tree-types`
@@ -414,6 +443,7 @@ Flow:
 `routes -> authMiddleware -> controller -> service -> Prisma -> response`
 
 Detailed flow:
+
 1. request reaches `treeTypes.routes.ts`
 2. `authMiddleware` checks bearer token using current auth scaffold
 3. controller calls `listTreeTypes()`
@@ -428,6 +458,7 @@ Flow:
 `routes -> authMiddleware -> validateMiddleware(treeTypeIdSchema) -> controller -> service -> Prisma -> response`
 
 Detailed flow:
+
 1. request reaches route with `:id`
 2. `authMiddleware` checks authentication
 3. `validateMiddleware` validates `id` as a positive integer
@@ -443,6 +474,7 @@ Flow:
 `routes -> authMiddleware -> roleMiddleware(["ADMIN"]) -> validateMiddleware(createTreeTypeSchema) -> controller -> service -> Prisma -> response`
 
 Detailed flow:
+
 1. request reaches create route
 2. `authMiddleware` checks authentication
 3. `roleMiddleware(["ADMIN"])` checks Admin role using current scaffold
@@ -461,6 +493,7 @@ Flow:
 `routes -> authMiddleware -> roleMiddleware(["ADMIN"]) -> validateMiddleware(updateTreeTypeSchema) -> controller -> service -> Prisma -> response`
 
 Detailed flow:
+
 1. request reaches update route
 2. auth is checked
 3. admin role is checked
@@ -479,6 +512,7 @@ Flow:
 `routes -> authMiddleware -> roleMiddleware(["ADMIN"]) -> validateMiddleware(deleteTreeTypeSchema) -> controller -> service -> Prisma -> response`
 
 Detailed flow:
+
 1. request reaches delete route
 2. auth is checked
 3. admin role is checked
@@ -497,15 +531,16 @@ Detailed flow:
 
 ### Access Matrix
 
-| Endpoint | Method | Auth Required | Role Required | Notes |
-|---|---|---:|---|---|
-| `/tree-types` | GET | Yes | Any authenticated role | Returns list |
-| `/tree-types/:id` | GET | Yes | Any authenticated role | Returns single record |
-| `/tree-types` | POST | Yes | `ADMIN` | Create new tree type |
-| `/tree-types/:id` | PUT | Yes | `ADMIN` | Partial update allowed |
-| `/tree-types/:id` | DELETE | Yes | `ADMIN` | Blocked if referenced |
+| Endpoint          | Method | Auth Required | Role Required          | Notes                  |
+| ----------------- | ------ | ------------: | ---------------------- | ---------------------- |
+| `/tree-types`     | GET    |           Yes | Any authenticated role | Returns list           |
+| `/tree-types/:id` | GET    |           Yes | Any authenticated role | Returns single record  |
+| `/tree-types`     | POST   |           Yes | `ADMIN`                | Create new tree type   |
+| `/tree-types/:id` | PUT    |           Yes | `ADMIN`                | Partial update allowed |
+| `/tree-types/:id` | DELETE |           Yes | `ADMIN`                | Blocked if referenced  |
 
 Important note:
+
 - access currently depends on the existing scaffolded auth/role middleware
 - this module intentionally reuses that scaffold without redesigning it
 
@@ -528,6 +563,7 @@ Current API response shape:
 ```
 
 Current business rules:
+
 - `name` is required
 - `key` is optional
 - `scientific_name` is optional
@@ -542,11 +578,13 @@ Current business rules:
 #### Path Param Validation
 
 `id` must be:
+
 - numeric
 - integer
 - positive
 
 Invalid examples:
+
 - `abc`
 - `0`
 - `-1`
@@ -565,6 +603,7 @@ Accepted body example:
 ```
 
 Rules:
+
 - `name` must be non-empty after trim
 - `key` if provided must be non-empty after trim
 - `scientific_name` if provided must be non-empty after trim
@@ -581,6 +620,7 @@ Accepted body example:
 ```
 
 Rules:
+
 - partial updates are allowed
 - empty body is rejected
 - each provided field is validated
@@ -611,6 +651,7 @@ Current list sorting:
 - tree types are fetched with `orderBy: { name: "asc" }`
 
 This means:
+
 - response order is alphabetical by `name`
 - response is not sorted by `id`
 
@@ -638,12 +679,14 @@ These tests exercise:
 Covered scenarios:
 
 ##### GET `/tree-types`
+
 - returns `401` when token is missing
 - returns `200` for authenticated user
 - returns tree type list
 - returns empty array when no records exist
 
 ##### GET `/tree-types/:id`
+
 - returns `401` when token is missing
 - returns `200` when record exists
 - returns `400` for `abc`
@@ -652,6 +695,7 @@ Covered scenarios:
 - returns `404` when missing
 
 ##### POST `/tree-types`
+
 - returns `401` when token is missing
 - returns `403` for non-admin user
 - returns `201` for admin valid request
@@ -666,6 +710,7 @@ Covered scenarios:
 - returns `409` for duplicate `key`
 
 ##### PUT `/tree-types/:id`
+
 - returns `401` when token is missing
 - returns `403` for non-admin user
 - returns `200` for valid partial update
@@ -680,6 +725,7 @@ Covered scenarios:
 - returns `409` for duplicate `key`
 
 ##### DELETE `/tree-types/:id`
+
 - returns `401` when token is missing
 - returns `403` for non-admin user
 - returns success for valid admin delete
@@ -696,24 +742,29 @@ These tests exercise the service layer directly.
 Covered scenarios:
 
 ##### `listTreeTypes`
+
 - returns mapped records
 - returns empty array
 
 ##### `getTreeTypeById`
+
 - returns mapped record
 - throws not found when missing
 
 ##### `createTreeType`
+
 - succeeds with full payload
 - succeeds with only required `name`
 - applies default density
 - blocks duplicate key
 
 ##### `updateTreeType`
+
 - updates only provided fields
 - throws not found when record missing
 
 ##### `deleteTreeType`
+
 - succeeds when record is not referenced
 - blocks delete when referenced by `projectTreeType`
 - blocks delete when referenced by `treeScan`
@@ -731,6 +782,7 @@ Current test strategy for this module:
 - integration auth behaviour uses the current development auth scaffold
 
 This matches the current repo state where:
+
 - Jest is already configured
 - test files already live under `tests/unit` and `tests/integration`
 - CI provisions a Postgres test database and applies the Prisma schema before tests
@@ -771,6 +823,7 @@ npm test -- --runInBand tests/unit/tree-types.test.ts tests/integration/tree-typ
 ### Summary
 
 The `tree-types` module is now fully wired into the backend with:
+
 - route registration
 - controller/service separation
 - Zod validation
@@ -790,6 +843,7 @@ This module manages project records used across the TreeO2 platform. It provides
 **Module Path:** `src/modules/project-management/`
 
 ### Files
+
 - `projectManagement.routes.ts`
 - `projectManagement.controller.ts`
 - `projectManagement.service.ts`
@@ -800,6 +854,7 @@ This module manages project records used across the TreeO2 platform. It provides
 The Project Management API is responsible for creating, retrieving, updating, and deleting projects in the system.
 
 Projects are core records used to organise:
+
 - Tree scans
 - Locations
 - Country-level operations
@@ -816,18 +871,21 @@ Route → Controller → Service → Prisma ORM → PostgreSQL → Response
 #### Responsibilities
 
 #### Routes
+
 - Define endpoints
 - Apply authentication middleware
 - Apply role-based authorization
 - Contain Swagger documentation
 
 #### Controller
+
 - Receive request data
 - Read params/body
 - Call service methods
 - Return HTTP response
 
 #### Service
+
 - Perform validation
 - Apply business rules
 - Execute database queries
@@ -838,18 +896,19 @@ Route → Controller → Service → Prisma ORM → PostgreSQL → Response
 All endpoints are protected using Bearer Token authentication.
 
 Middleware used:
+
 - `authMiddleware`
 - `roleMiddleware`
 
 ### 10.4 Access Control Matrix
 
-| Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
-|---|---|---|---|---|---|
-| GET /projects | Yes | Yes | No | No | No |
-| GET /projects/{id} | Yes | Yes | No | No | No |
-| POST /projects | Yes | No | No | No | No |
-| PUT /projects/{id} | Yes | No | No | No | No |
-| DELETE /projects/{id} | Yes | No | No | No | No |
+| Endpoint              | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
+| --------------------- | ----- | ------- | --------- | ------ | --------- |
+| GET /projects         | Yes   | Yes     | No        | No     | No        |
+| GET /projects/{id}    | Yes   | Yes     | No        | No     | No        |
+| POST /projects        | Yes   | No      | No        | No     | No        |
+| PUT /projects/{id}    | Yes   | No      | No        | No     | No        |
+| DELETE /projects/{id} | Yes   | No      | No        | No     | No        |
 
 ### 10.5 Endpoints
 
@@ -858,6 +917,7 @@ Middleware used:
 Retrieve all projects ordered by newest first.
 
 ##### Response
+
 ```json
 {
   "success": true,
@@ -875,6 +935,7 @@ Retrieve all projects ordered by newest first.
 ```
 
 ##### Status Codes
+
 - `200` Success
 - `401` Authentication required
 - `403` Insufficient permissions
@@ -885,11 +946,12 @@ Retrieve a single project by ID.
 
 ##### Path Parameters
 
-| Name | Type | Required |
-|---|---|---|
-| id | integer | Yes |
+| Name | Type    | Required |
+| ---- | ------- | -------- |
+| id   | integer | Yes      |
 
 ##### Response
+
 ```json
 {
   "success": true,
@@ -905,6 +967,7 @@ Retrieve a single project by ID.
 ```
 
 ##### Status Codes
+
 - `200` Success
 - `400` Invalid project ID
 - `401` Authentication required
@@ -916,6 +979,7 @@ Retrieve a single project by ID.
 Create a new project.
 
 ##### Request Body
+
 ```json
 {
   "name": "Reforestation Project",
@@ -927,11 +991,13 @@ Create a new project.
 ```
 
 ##### Required Fields
+
 - `name`
 - `countryId`
 - `adminLocationId`
 
 ##### Response
+
 ```json
 {
   "success": true,
@@ -943,6 +1009,7 @@ Create a new project.
 ```
 
 ##### Status Codes
+
 - `201` Created
 - `400` Invalid payload
 - `401` Authentication required
@@ -956,11 +1023,12 @@ Update an existing project.
 
 ##### Path Parameters
 
-| Name | Type | Required |
-|---|---|---|
-| id | integer | Yes |
+| Name | Type    | Required |
+| ---- | ------- | -------- |
+| id   | integer | Yes      |
 
 ##### Request Body
+
 Any subset of fields may be provided.
 
 ```json
@@ -974,6 +1042,7 @@ Any subset of fields may be provided.
 ```
 
 ##### Response
+
 ```json
 {
   "success": true,
@@ -985,6 +1054,7 @@ Any subset of fields may be provided.
 ```
 
 ##### Status Codes
+
 - `200` Success
 - `400` Invalid request / empty payload / invalid ID
 - `401` Authentication required
@@ -998,11 +1068,12 @@ Delete a project.
 
 ##### Path Parameters
 
-| Name | Type | Required |
-|---|---|---|
-| id | integer | Yes |
+| Name | Type    | Required |
+| ---- | ------- | -------- |
+| id   | integer | Yes      |
 
 ##### Response
+
 ```json
 {
   "success": true,
@@ -1013,6 +1084,7 @@ Delete a project.
 ```
 
 ##### Status Codes
+
 - `200` Success
 - `400` Invalid project ID
 - `401` Authentication required
@@ -1023,22 +1095,26 @@ Delete a project.
 ### 10.6 Validation Rules
 
 #### Create Validation
+
 - Name must be a non-empty string
 - `countryId` must be a positive integer
 - `adminLocationId` must be a positive integer
 - `isActive` must be boolean if provided
 
 #### Update Validation
+
 - At least one field must be provided
 - Fields must match correct data types
 - IDs must be positive integers
 
 #### Relationship Validation
+
 - Country must exist
 - Location must exist
 - Admin location must belong to selected country
 
 #### Delete Validation
+
 - Project must exist
 - Project cannot be deleted if linked scans exist
 
@@ -1047,6 +1123,7 @@ Delete a project.
 Uses centralised error middleware.
 
 #### Standard Error Response
+
 ```json
 {
   "success": false,
@@ -1055,6 +1132,7 @@ Uses centralised error middleware.
 ```
 
 #### Common Errors
+
 - Authentication required
 - Insufficient permissions
 - Invalid project ID
@@ -1077,6 +1155,7 @@ Available at:
 `http://localhost:3000/api-docs`
 
 Swagger supports:
+
 - Interactive testing
 - Request examples
 - Response definitions
@@ -1085,34 +1164,41 @@ Swagger supports:
 ### 10.9 Testing
 
 #### Test Files
+
 - `tests/unit/project-management.test.ts`
 - `tests/integration/project-management.test.ts`
 
 #### Covered Scenarios
 
 ##### Authentication
+
 - No token returns `401`
 
 ##### Authorization
+
 - Allowed roles succeed
 - Blocked roles return `403`
 
 ##### Read
+
 - Get all projects
 - Get project by ID
 - Get missing project returns `404`
 
 ##### Create
+
 - Valid project created
 - Invalid payload rejected
 - Missing country rejected
 
 ##### Update
+
 - Valid update succeeds
 - Empty payload rejected
 - Missing project rejected
 
 ##### Delete
+
 - Valid delete succeeds
 - Missing project rejected
 - Protected delete blocked when dependencies exist
@@ -1140,6 +1226,7 @@ This module manages localized string resources used across the TreeO2 platform. 
 **Module Path:** `src/modules/localization/`
 
 ### Files
+
 - `localization.routes.ts`
 - `localization.controller.ts`
 - `localization.service.ts`
@@ -1148,7 +1235,6 @@ This module manages localized string resources used across the TreeO2 platform. 
 ### 11.1 Purpose
 
 The Localization API is responsible for creating, retrieving, updating, and deleting localized strings in the system.
-
 
 ### 11.2 Architecture Flow
 
@@ -1166,17 +1252,20 @@ localization.routes.ts (Router + middleware)
 #### Responsibilities
 
 #### Router (`localization.routes.ts`)
+
 - Defines localization endpoints
 - Applies `authMiddleware` and `roleMiddleware`
 - Calls `LocalizationController` methods
 
 #### `LocalizationController`
+
 - Receive request data
 - Validate params, query, and body
 - Call `LocalizationService`
 - Return HTTP responses
 
 #### `LocalizationService`
+
 - Applies localization business rules
 - Reads and writes localized strings via Prisma
 - Returns data or throws handled errors
@@ -1186,17 +1275,18 @@ localization.routes.ts (Router + middleware)
 All endpoints are protected using Bearer Token authentication.
 
 Middleware used:
+
 - `authMiddleware`
 - `roleMiddleware`
 
 ### 11.4 Access Control Matrix
 
-| Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
-|---|---|---|---|---|---|
-| GET /localized-strings | Yes | Yes | Yes | Yes | Yes |
-| POST /localized-strings | Yes | No | No | No | No |
-| PUT /localized-strings/{id} | Yes | No | No | No | No |
-| DELETE /localized-strings/{id} | Yes | No | No | No | No |
+| Endpoint                       | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
+| ------------------------------ | ----- | ------- | --------- | ------ | --------- |
+| GET /localized-strings         | Yes   | Yes     | Yes       | Yes    | Yes       |
+| POST /localized-strings        | Yes   | No      | No        | No     | No        |
+| PUT /localized-strings/{id}    | Yes   | No      | No        | No     | No        |
+| DELETE /localized-strings/{id} | Yes   | No      | No        | No     | No        |
 
 ### 11.5 Endpoints
 
@@ -1208,13 +1298,14 @@ Supports both camelCase and snake_case query aliases for language and string key
 
 ##### Query Parameters
 
-| Name | Type | Required | Notes |
-|---|---|---|---|
-| context | enum(API, MOBILE, ADMIN, PUBLIC) | No | Context filter |
-| preferredLanguage / preferred_language | string | No | Preferred language code |Fallback language code (defaults to `en-US`) |
-| stringKeys / string_keys | string or string[] | No | Comma-separated or repeated list of keys |
+| Name                                   | Type                             | Required | Notes                                    |
+| -------------------------------------- | -------------------------------- | -------- | ---------------------------------------- | -------------------------------------------- |
+| context                                | enum(API, MOBILE, ADMIN, PUBLIC) | No       | Context filter                           |
+| preferredLanguage / preferred_language | string                           | No       | Preferred language code                  | Fallback language code (defaults to `en-US`) |
+| stringKeys / string_keys               | string or string[]               | No       | Comma-separated or repeated list of keys |
 
 ##### Response
+
 ```json
 {
   "success": true,
@@ -1231,6 +1322,7 @@ Supports both camelCase and snake_case query aliases for language and string key
 ```
 
 ##### Status Codes
+
 - `200` Success
 - `400` Invalid query filters
 - `401` Authentication required
@@ -1241,6 +1333,7 @@ Supports both camelCase and snake_case query aliases for language and string key
 Create a localized string.
 
 ##### Request Body
+
 ```json
 {
   "cultureCode": "en-US",
@@ -1251,12 +1344,14 @@ Create a localized string.
 ```
 
 ##### Required Fields
+
 - `cultureCode`
 - `stringKey`
 - `value`
 - `context`
 
 ##### Response
+
 ```json
 {
   "success": true,
@@ -1271,6 +1366,7 @@ Create a localized string.
 ```
 
 ##### Status Codes
+
 - `201` Created
 - `400` Invalid payload / culture not found
 - `401` Authentication required
@@ -1283,11 +1379,12 @@ Update an existing localized string.
 
 ##### Path Parameters
 
-| Name | Type | Required |
-|---|---|---|
-| id | integer | Yes |
+| Name | Type    | Required |
+| ---- | ------- | -------- |
+| id   | integer | Yes      |
 
 ##### Request Body
+
 Any subset of fields may be provided, but at least one field is required.
 
 ```json
@@ -1298,6 +1395,7 @@ Any subset of fields may be provided, but at least one field is required.
 ```
 
 ##### Response
+
 ```json
 {
   "success": true,
@@ -1312,6 +1410,7 @@ Any subset of fields may be provided, but at least one field is required.
 ```
 
 ##### Status Codes
+
 - `200` Success
 - `400` Invalid request / empty payload / invalid ID / culture not found
 - `401` Authentication required
@@ -1324,11 +1423,12 @@ Delete a localized string.
 
 ##### Path Parameters
 
-| Name | Type | Required |
-|---|---|---|
-| id | integer | Yes |
+| Name | Type    | Required |
+| ---- | ------- | -------- |
+| id   | integer | Yes      |
 
 ##### Response
+
 ```json
 {
   "success": true,
@@ -1337,6 +1437,7 @@ Delete a localized string.
 ```
 
 ##### Status Codes
+
 - `200` Success
 - `400` Invalid localized string ID
 - `401` Authentication required
@@ -1346,11 +1447,13 @@ Delete a localized string.
 ### 11.6 Validation Rules
 
 #### List Validation
+
 - `preferredLanguage` / `preferred_language` must be non-empty strings (max 10).
 - `context` must be one of `API`, `MOBILE`, `ADMIN`, `PUBLIC`
 - `stringKeys` / `string_keys` can be a single string, comma-separated string, or array of strings
 
 #### Create Validation
+
 - `cultureCode` must be a non-empty string (max 10)
 - `stringKey` must be a non-empty string (max 255)
 - `value` must be a non-empty string
@@ -1358,12 +1461,14 @@ Delete a localized string.
 - `cultureCode` must exist in the `culture` table
 
 #### Update Validation
+
 - `id` must be a positive integer
 - At least one field must be provided
 - Provided fields must match expected types and limits
 - If `cultureCode` is provided, it must exist
 
 #### Delete Validation
+
 - `id` must be a positive integer
 - Target localized string must exist
 
@@ -1372,6 +1477,7 @@ Delete a localized string.
 Uses centralised error middleware.
 
 #### Standard Error Response
+
 ```json
 {
   "success": false,
@@ -1380,6 +1486,7 @@ Uses centralised error middleware.
 ```
 
 #### Common Errors
+
 - Authentication required (`AUTH_003`)
 - Insufficient permissions (`AUTH_004`)
 - Validation failed (`VAL_001`)
@@ -1398,6 +1505,7 @@ Available at:
 `http://localhost:3000/api-docs`
 
 Swagger supports:
+
 - Interactive testing
 - Request examples
 - Response definitions
@@ -1406,30 +1514,36 @@ Swagger supports:
 ### 11.9 Testing
 
 #### Test Files
+
 - `tests/unit/localization.test.ts`
 - `tests/integration/localization.test.ts`
 
 #### Covered Scenarios
 
 ##### Authentication
+
 - No token returns `401`
 
 ##### Authorization
+
 - Allowed roles succeed on read
 - Blocked roles return `403` on write
 
 ##### Read
+
 - Get localized strings with filters
 - Preferred language resolution with fallback language
 - Unknown endpoint returns `404`
 
 ##### Create
+
 - Valid localized string created
 - Invalid payload rejected
 - Missing culture rejected
 - Duplicate create path returns current mapped `500`
 
 ##### Update
+
 - Valid update succeeds
 - Invalid ID rejected
 - Empty payload rejected
@@ -1437,6 +1551,7 @@ Swagger supports:
 - Missing new culture rejected
 
 ##### Delete
+
 - Valid delete succeeds
 - Missing target rejected
 
@@ -1467,6 +1582,7 @@ This section documents the `project-tree-types` module that has now been impleme
 It is used to define which tree types are assigned to a specific project and is intended to support later validation in downstream modules such as `tree-scans`.
 
 It currently supports:
+
 - listing project/tree-type assignments
 - filtering assignments by `project_id`
 - assigning a tree type to a project
@@ -1479,6 +1595,7 @@ Current route base:
 `/project-tree-types`
 
 Examples:
+
 - `GET /project-tree-types`
 - `GET /project-tree-types?project_id=1`
 - `POST /project-tree-types`
@@ -1519,6 +1636,7 @@ Swagger UI:
 Defines all `project-tree-types` endpoints and applies middleware in the current project pattern.
 
 Current route protection:
+
 - `GET` uses `authMiddleware`
 - `GET` also uses `roleMiddleware(["ADMIN", "MANAGER"])`
 - `POST` uses `authMiddleware`
@@ -1532,6 +1650,7 @@ Current route protection:
 Receives validated requests and returns HTTP responses.
 
 Current controller responsibilities:
+
 - call the service layer
 - return status codes
 - return standard JSON success response shape
@@ -1541,6 +1660,7 @@ Current controller responsibilities:
 Contains the actual business logic and Prisma usage.
 
 Current service responsibilities:
+
 - fetch project/tree-type mappings from Prisma
 - optionally filter mappings by `project_id`
 - verify referenced project exists before create
@@ -1554,6 +1674,7 @@ Current service responsibilities:
 #### `projectTreeTypes.schemas.ts`
 
 Contains Zod validation schemas for:
+
 - list query params
 - create body
 - delete path params
@@ -1561,6 +1682,7 @@ Contains Zod validation schemas for:
 #### `projectTreeTypes.docs.ts`
 
 Contains Swagger/OpenAPI annotations for:
+
 - GET `/project-tree-types`
 - POST `/project-tree-types`
 - DELETE `/project-tree-types/{project_id}/{tree_type_id}`
@@ -1588,6 +1710,7 @@ Flow:
 `routes -> authMiddleware -> roleMiddleware(["ADMIN", "MANAGER"]) -> validateMiddleware(listProjectTreeTypesSchema) -> controller -> service -> Prisma -> response`
 
 Detailed flow:
+
 1. request reaches `projectTreeTypes.routes.ts`
 2. `authMiddleware` checks bearer token using current auth scaffold
 3. `roleMiddleware(["ADMIN", "MANAGER"])` checks role using current scaffold
@@ -1605,6 +1728,7 @@ Flow:
 `routes -> authMiddleware -> roleMiddleware(["ADMIN"]) -> validateMiddleware(createProjectTreeTypeSchema) -> controller -> service -> Prisma -> response`
 
 Detailed flow:
+
 1. request reaches create route
 2. `authMiddleware` checks authentication
 3. `roleMiddleware(["ADMIN"])` checks Admin role using current scaffold
@@ -1624,6 +1748,7 @@ Flow:
 `routes -> authMiddleware -> roleMiddleware(["ADMIN"]) -> validateMiddleware(deleteProjectTreeTypeSchema) -> controller -> service -> Prisma -> response`
 
 Detailed flow:
+
 1. request reaches delete route
 2. auth is checked
 3. admin role is checked
@@ -1638,13 +1763,14 @@ Detailed flow:
 
 ### Access Matrix
 
-| Endpoint | Method | Auth Required | Role Required | Notes |
-|---|---|---:|---|---|
-| `/project-tree-types` | GET | Yes | `ADMIN`, `MANAGER` | Optional `project_id` filter |
-| `/project-tree-types` | POST | Yes | `ADMIN` | Assign tree type to project |
-| `/project-tree-types/:project_id/:tree_type_id` | DELETE | Yes | `ADMIN` | Remove assignment |
+| Endpoint                                        | Method | Auth Required | Role Required      | Notes                        |
+| ----------------------------------------------- | ------ | ------------: | ------------------ | ---------------------------- |
+| `/project-tree-types`                           | GET    |           Yes | `ADMIN`, `MANAGER` | Optional `project_id` filter |
+| `/project-tree-types`                           | POST   |           Yes | `ADMIN`            | Assign tree type to project  |
+| `/project-tree-types/:project_id/:tree_type_id` | DELETE |           Yes | `ADMIN`            | Remove assignment            |
 
 Important note:
+
 - access currently depends on the existing scaffolded auth/role middleware
 - this module intentionally reuses that scaffold without redesigning it
 - Manager access is role-based only at this stage and is not yet project-scoped
@@ -1674,6 +1800,7 @@ Current API response shape:
 ```
 
 Current business rules:
+
 - `project_id` is required for create
 - `tree_type_id` is required for create
 - project must exist before assignment is created
@@ -1690,11 +1817,13 @@ Current business rules:
 `project_id` is optional for list requests.
 
 If provided, it must be:
+
 - numeric
 - integer
 - positive
 
 Invalid examples:
+
 - `abc`
 - `0`
 - `-1`
@@ -1711,6 +1840,7 @@ Accepted body example:
 ```
 
 Rules:
+
 - `project_id` is required
 - `tree_type_id` is required
 - both values must be positive integers
@@ -1718,10 +1848,12 @@ Rules:
 #### Delete Param Validation
 
 Both path params are required:
+
 - `project_id`
 - `tree_type_id`
 
 Rules:
+
 - both must be numeric
 - both must be integers
 - both must be positive
@@ -1753,6 +1885,7 @@ Current list sorting:
 - mappings are fetched with `orderBy: [{ projectId: "asc" }, { treeTypeId: "asc" }]`
 
 This means:
+
 - mappings are grouped in ascending `project_id` order
 - within a project, mappings are ordered by ascending `tree_type_id`
 
@@ -1780,6 +1913,7 @@ This suite now exercises the full runtime path:
 Covered scenarios:
 
 ##### GET `/project-tree-types`
+
 - returns `401` when token is missing
 - returns `403` for authenticated role outside Admin/Manager
 - returns `200` for Admin
@@ -1790,6 +1924,7 @@ Covered scenarios:
 - returns `400` for invalid `project_id` query
 
 ##### POST `/project-tree-types`
+
 - returns `401` when token is missing
 - returns `403` for non-admin user
 - returns `201` for valid admin request
@@ -1800,6 +1935,7 @@ Covered scenarios:
 - returns `409` when mapping already exists
 
 ##### DELETE `/project-tree-types/:project_id/:tree_type_id`
+
 - returns `401` when token is missing
 - returns `403` for non-admin user
 - returns `200` for valid admin delete
@@ -1813,11 +1949,13 @@ These tests exercise the service layer directly.
 Covered scenarios:
 
 ##### `listProjectTreeTypes`
+
 - returns mapped assignments
 - applies `project_id` filter
 - returns empty array
 
 ##### `addProjectTreeType`
+
 - creates mapping successfully
 - throws when project does not exist
 - throws when tree type does not exist
@@ -1825,6 +1963,7 @@ Covered scenarios:
 - maps DB uniqueness violation to conflict
 
 ##### `removeProjectTreeType`
+
 - deletes an existing mapping successfully
 - throws not found when mapping is missing
 - logs delete action
@@ -1841,6 +1980,7 @@ Current test strategy for this module:
 - the integration suite assumes a reachable `DATABASE_URL` and an already-synced Prisma schema
 
 This matches the current repo state where:
+
 - Jest is already configured
 - test files already live under `tests/unit` and `tests/integration`
 - the integration suite creates and cleans up its own fixture data
@@ -1893,6 +2033,7 @@ npm test -- --runInBand tests/unit/project-tree-types.test.ts tests/integration/
 ### Summary
 
 The `project-tree-types` module is now fully wired into the backend with:
+
 - route registration
 - controller/service separation
 - Zod validation
@@ -1903,3 +2044,376 @@ The `project-tree-types` module is now fully wired into the backend with:
 - unit and real DB-backed API integration test coverage
 
 This module now provides the project-to-tree-type assignment layer needed before downstream modules such as `tree-scans` can validate whether a scanned tree type is allowed for a given project.
+
+---
+
+## 13. Partners API
+
+This module manages partner organisations in the TreeO2 platform. It provides full CRUD operations with validation and role-based access control.
+
+**Module Path:** `src/modules/partners/`
+
+### Files
+
+- `partners.routes.ts`
+- `partners.controller.ts`
+- `partners.service.ts`
+- `index.ts`
+
+### 13.1 Purpose
+
+The Partners API is responsible for creating, retrieving, updating, and deleting partner organisations in the system.
+
+### 13.2 Architecture Flow
+
+Every request follows the standard backend module structure:
+
+```text
+Route → Controller → Service → Prisma ORM → PostgreSQL → Response
+```
+
+#### Responsibilities
+
+#### Routes
+
+- Define endpoints
+- Apply authentication middleware
+- Apply role-based authorization
+- Contain Swagger documentation
+
+#### Controller
+
+- Receive request data
+- Read params and body
+- Call service methods
+- Return HTTP response
+
+#### Service
+
+- Perform validation
+- Apply business rules
+- Execute database queries
+- Throw structured errors
+
+### 13.3 Security
+
+All endpoints are protected using Bearer Token authentication.
+
+Middleware used:
+
+- `authMiddleware`
+- `roleMiddleware`
+
+### 13.4 Access Control Matrix
+
+| Endpoint              | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
+| --------------------- | ----- | ------- | --------- | ------ | --------- |
+| GET /partners         | Yes   | Yes     | No        | No     | No        |
+| GET /partners/{id}    | Yes   | Yes     | No        | No     | No        |
+| POST /partners        | Yes   | No      | No        | No     | No        |
+| PUT /partners/{id}    | Yes   | No      | No        | No     | No        |
+| DELETE /partners/{id} | Yes   | No      | No        | No     | No        |
+
+### 13.5 Endpoints
+
+#### GET /partners
+
+Retrieve all partners ordered by newest first.
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "TreeO2-Xpand Foundation",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+##### Status Codes
+
+- `200` Success
+- `401` Authentication required
+- `403` Insufficient permissions
+
+#### GET /partners/{id}
+
+Retrieve a single partner by ID.
+
+##### Path Parameters
+
+| Name | Type    | Required |
+| ---- | ------- | -------- |
+| id   | integer | Yes      |
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "TreeO2-Xpand Foundation",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+##### Status Codes
+
+- `200` Success
+- `400` Invalid partner ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Partner not found
+
+#### POST /partners
+
+Create a new partner.
+
+##### Request Body
+
+```json
+{
+  "name": "TreeO2-Xpand Foundation"
+}
+```
+
+##### Required Fields
+
+- `name`
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "TreeO2-Xpand Foundation",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+##### Status Codes
+
+- `201` Created
+- `400` Invalid payload
+- `401` Authentication required
+- `403` Insufficient permissions
+
+#### PUT /partners/{id}
+
+Update an existing partner.
+
+##### Path Parameters
+
+| Name | Type    | Required |
+| ---- | ------- | -------- |
+| id   | integer | Yes      |
+
+##### Request Body
+
+```json
+{
+  "name": "Updated Partner Name"
+}
+```
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "Updated Partner Name",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+##### Status Codes
+
+- `200` Success
+- `400` Invalid request or empty payload or invalid ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Partner not found
+
+#### DELETE /partners/{id}
+
+Delete a partner.
+
+##### Path Parameters
+
+| Name | Type    | Required |
+| ---- | ------- | -------- |
+| id   | integer | Yes      |
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Partner deleted successfully"
+  }
+}
+```
+
+##### Status Codes
+
+- `200` Success
+- `400` Invalid partner ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Partner not found
+
+### 13.6 Validation Rules
+
+#### Create Validation
+
+- `name` must be a non-empty string
+- `name` must not be blank or whitespace only
+
+#### Update Validation
+
+- At least one field must be provided
+- `name` if provided must be a non-empty string
+
+#### Delete Validation
+
+- Partner organisation must exist before deletion
+
+### 13.7 Error Handling
+
+Uses centralised error middleware.
+
+#### Standard Error Response
+
+```json
+{
+  "success": false,
+  "message": "Partner not found"
+}
+```
+
+#### Common Errors
+
+- Authentication required
+- Insufficient permissions
+- Invalid partner ID
+- Missing or empty name
+- Empty update payload
+- Partner not found
+- Internal server error
+
+### 13.8 Swagger Documentation
+
+All endpoints are documented in:
+
+`partners.routes.ts`
+
+Available at:
+
+`http://localhost:3000/api-docs`
+
+Swagger supports:
+
+- Interactive testing
+- Request examples
+- Response definitions
+- Security schemas
+
+### 13.9 Testing
+
+#### Test Files
+
+- `tests/unit/partners.test.ts`
+- `tests/integration/partners.test.ts`
+
+#### Covered Scenarios
+
+##### Authentication
+
+- No token returns `401`
+
+##### Authorization
+
+- Admin and Manager can access GET endpoints
+- Only Admin can create, update and delete
+- Other roles return `403`
+
+##### Read
+
+- Get all partners returns list
+- Get partner by ID returns correct record
+- Missing partner returns `404`
+- Invalid ID returns `400`
+
+##### Create
+
+- Valid partner created with `201`
+- Empty name rejected with `400`
+- Missing name rejected with `400`
+
+##### Update
+
+- Valid update succeeds with `200`
+- Empty payload rejected with `400`
+- Invalid ID rejected with `400`
+- Missing partner returns `404`
+
+##### Delete
+
+- Valid delete succeeds with `200`
+- Missing partner returns `404`
+- Invalid ID returns `400`
+
+### 13.10 How to Run Partners Tests
+
+Run unit tests only:
+
+```bash
+npm test -- --runInBand tests/unit/partners.test.ts
+```
+
+Run integration tests only:
+
+```bash
+npm test -- --runInBand tests/integration/partners.test.ts
+```
+
+Run both:
+
+```bash
+npm test -- --runInBand tests/unit/partners.test.ts tests/integration/partners.test.ts
+```
+
+### 13.11 Current Limitations
+
+- auth and role checks depend on the existing scaffold and are not fully production-complete yet
+- there is no soft delete — partner organisations are permanently removed on delete
+
+### 13.12 Summary
+
+The Partners API follows the TreeO2 backend engineering standard:
+
+- Modular architecture
+- Secure authentication
+- Role-based access control
+- Clean separation of concerns
+- Strong validation
+- Full CRUD support
+- Swagger documentation
+- Automated tests
+- Scalable structure for future enhancements
+
+This module integrates cleanly into the existing backend structure and can serve as a reference for implementing similar simple CRUD modules.
