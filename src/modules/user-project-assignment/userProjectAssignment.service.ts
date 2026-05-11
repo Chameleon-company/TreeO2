@@ -30,7 +30,7 @@ const isPositiveInt = (value: unknown): value is number =>
 
 const assertAssignmentIds = (userId: number, projectId: number) => {
   if (!isPositiveInt(userId) || !isPositiveInt(projectId)) {
-    throw new AppError(400,"Invalid userId or projectId", ERROR_CODES.VAL_002);
+    throw new AppError(400, "Invalid userId or projectId", ERROR_CODES.VAL_002);
   }
 };
 
