@@ -4,12 +4,19 @@ import {
   type AssignUserProjectInput,
 } from "./userProjectAssignment.service";
 
+type AuthenticatedUser = {
+  id: number;
+  role: string;
+};
+
 export class UserProjectAssignmentController {
   async getAssignments(req: Request, res: Response, next: NextFunction) {
     try {
+      const user = req.user as unknown as AuthenticatedUser;
+
       const assignments = await userProjectAssignmentService.getAssignments(
-        (req.user as any).id,
-        (req.user as any).role,
+        user.id,
+        user.role,
       );
 
       return res.status(200).json({
