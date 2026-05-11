@@ -7,12 +7,10 @@ import { env } from "./config/env";
 import { errorHandler, notFound } from "./middleware/errorHandler";
 import { securityAuditMiddleware } from "./middleware/securityAudit.middleware";
 
-
 import * as swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
 import routes from "./routes";
 import adoptersRouter from "./modules/adopters/adopters.routes";
-
 
 const app = express();
 

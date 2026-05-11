@@ -3,28 +3,28 @@ import * as adopterController from "./adopters.controller";
 
 const router = Router();
 
- /**
-  * @openapi
-  * /adopters:
-  *   post:
-  *     tags:
-  *       - Adopters
-  *     summary: Create adopter
-  *     requestBody:
-  *       required: true
-  *       content:
-  *         application/json:
-  *           schema:
-  *             type: object
-  *             properties:
-  *               name:
-  *                 type: string
-  *               email:
-  *                 type: string
-  *     responses:
-  *       201:
-  *         description: Created
-  */
+/**
+ * @openapi
+ * /adopters:
+ *   post:
+ *     tags:
+ *       - Adopters
+ *     summary: Create adopter
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Created
+ */
 
 /**
  * CREATE ADOPTER
@@ -33,18 +33,17 @@ router.post("/", (req, res) => {
   void adopterController.createAdopter(req, res);
 });
 
-
- /**
-  * @openapi
-  * /adopters:
-  *   get:
-  *     tags:
-  *       - Adopters
-  *     summary: Get all adopters
-  *     responses:
-  *       200:
-  *         description: Success
-  */
+/**
+ * @openapi
+ * /adopters:
+ *   get:
+ *     tags:
+ *       - Adopters
+ *     summary: Get all adopters
+ *     responses:
+ *       200:
+ *         description: Success
+ */
 
 /**
  * GET ALL ADOPTERS
@@ -53,25 +52,25 @@ router.get("/", (req, res) => {
   void adopterController.listAdopters(req, res);
 });
 
- /**
-  * @openapi
-  * /adopters/{id}:
-  *   get:
-  *     tags:
-  *       - Adopters
-  *     summary: Get adopter by ID
-  *     parameters:
-  *       - in: path
-  *         name: id
-  *         required: true
-  *         schema:
-  *           type: integer
-  *     responses:
-  *       200:
-  *         description: Success
-  *       404:
-  *         description: Not found
-  */
+/**
+ * @openapi
+ * /adopters/{id}:
+ *   get:
+ *     tags:
+ *       - Adopters
+ *     summary: Get adopter by ID
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Success
+ *       404:
+ *         description: Not found
+ */
 
 /**
  * GET ADOPTER BY ID
