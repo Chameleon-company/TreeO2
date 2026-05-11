@@ -5,9 +5,12 @@ import {
 } from "./userProjectAssignment.service";
 
 export class UserProjectAssignmentController {
-  async getAssignments(_req: Request, res: Response, next: NextFunction) {
+  async getAssignments(req: Request, res: Response, next: NextFunction) {
     try {
-      const assignments = await userProjectAssignmentService.getAssignments();
+      const assignments = await userProjectAssignmentService.getAssignments(
+        (req.user as any).id,
+        (req.user as any).role,
+      );
 
       return res.status(200).json({
         success: true,
@@ -21,6 +24,7 @@ export class UserProjectAssignmentController {
   async assignUserToProject(req: Request, res: Response, next: NextFunction) {
     try {
       const payload = req.body as AssignUserProjectInput;
+
       const assignment =
         await userProjectAssignmentService.assignUserToProject(payload);
 
@@ -37,6 +41,7 @@ export class UserProjectAssignmentController {
     try {
       const userId = Number(req.params.user_id);
       const projectId = Number(req.params.project_id);
+
       const result = await userProjectAssignmentService.removeUserFromProject(
         userId,
         projectId,

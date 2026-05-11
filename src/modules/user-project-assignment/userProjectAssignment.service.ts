@@ -57,9 +57,30 @@ const ensureProjectExists = async (projectId: number) => {
 };
 
 export class UserProjectAssignmentService {
-  async getAssignments() {
+  async getAssignments(userId: number, role: string) {
     try {
+      if (role === "ADMIN") {
+        return await prisma.userProject.findMany({
+          include: assignmentInclude,
+          orderBy: [{ projectId: "asc" }, { userId: "asc" }],
+        });
+      }
+
+      const managerProjects = await prisma.userProject.findMany({
+        where: { userId },
+        select: { projectId: true },
+      });
+
+      const managerProjectIds = managerProjects.map(
+        (assignment) => assignment.projectId,
+      );
+
       return await prisma.userProject.findMany({
+        where: {
+          projectId: {
+            in: managerProjectIds,
+          },
+        },
         include: assignmentInclude,
         orderBy: [{ projectId: "asc" }, { userId: "asc" }],
       });
