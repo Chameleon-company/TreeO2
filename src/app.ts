@@ -13,7 +13,6 @@ import adoptersRouter from "./modules/adopters/adopters.routes";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
 
-
 const app = express();
 
 /**
@@ -70,11 +69,7 @@ app.use(
  * SWAGGER DOCS
  * =========================================
  */
-app.use(
-  "/api-docs",
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerSpec),
-);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 /**
  * =========================================
@@ -84,8 +79,6 @@ app.use(
  * Avoid duplicate mounting if routes.ts already includes adopters.
  */
 // Use ONLY ONE approach:
-
-
 
 // Option B (if routes.ts already contains everything)
 // app.use("/", routes);
@@ -99,4 +92,3 @@ app.use(notFound);
 app.use(errorHandler);
 
 export default app;
-
