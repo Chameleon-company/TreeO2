@@ -47,12 +47,12 @@ describe("UserProjectAssignmentService", () => {
   });
 
   describe("getAssignments", () => {
-    it("returns assignments ordered by project and user", async () => {
+    it("returns assignments ordered by project and user for ADMIN", async () => {
       const assignments = [{ userId: 1, projectId: 2 }];
 
       mockPrisma.userProject.findMany.mockResolvedValue(assignments);
 
-      const result = await service.getAssignments();
+      const result = await service.getAssignments(1, "ADMIN");
 
       expect(mockPrisma.userProject.findMany).toHaveBeenCalledWith({
         include: expect.any(Object),
@@ -61,10 +61,38 @@ describe("UserProjectAssignmentService", () => {
       expect(result).toEqual(assignments);
     });
 
+    it("returns scoped assignments for MANAGER", async () => {
+      const managerProjects = [{ projectId: 2 }];
+      const assignments = [{ userId: 3, projectId: 2 }];
+
+      mockPrisma.userProject.findMany
+        .mockResolvedValueOnce(managerProjects)
+        .mockResolvedValueOnce(assignments);
+
+      const result = await service.getAssignments(1, "MANAGER");
+
+      expect(mockPrisma.userProject.findMany).toHaveBeenNthCalledWith(1, {
+        where: { userId: 1 },
+        select: { projectId: true },
+      });
+
+      expect(mockPrisma.userProject.findMany).toHaveBeenNthCalledWith(2, {
+        where: {
+          projectId: {
+            in: [2],
+          },
+        },
+        include: expect.any(Object),
+        orderBy: [{ projectId: "asc" }, { userId: "asc" }],
+      });
+
+      expect(result).toEqual(assignments);
+    });
+
     it("throws SYS_002 when fetching assignments fails", async () => {
       mockPrisma.userProject.findMany.mockRejectedValue(new Error("DB down"));
 
-      await expect(service.getAssignments()).rejects.toMatchObject({
+      await expect(service.getAssignments(1, "ADMIN")).rejects.toMatchObject({
         statusCode: 500,
         code: ERROR_CODES.SYS_002,
       });
