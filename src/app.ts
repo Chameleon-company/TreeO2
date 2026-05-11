@@ -3,56 +3,25 @@ import helmet from "helmet";
 import cors from "cors";
 import compression from "compression";
 import rateLimit from "express-rate-limit";
-
 import { env } from "./config/env";
 import { errorHandler, notFound } from "./middleware/errorHandler";
 import { securityAuditMiddleware } from "./middleware/securityAudit.middleware";
 
+
+import * as swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger";
+import routes from "./routes";
 import adoptersRouter from "./modules/adopters/adopters.routes";
 
-import swaggerUi from "swagger-ui-express";
-import { swaggerSpec } from "./config/swagger";
 
 const app = express();
 
-/**
- * =========================================
- * SECURITY MIDDLEWARE
- * =========================================
- */
+// Security
 app.use(helmet());
-app.use(
-  cors({
-    origin: env.NODE_ENV === "production" ? false : "*",
-  }),
-);
-
-/**
- * =========================================
- * BODY PARSING (MUST COME BEFORE CUSTOM MIDDLEWARE)
- * =========================================
- */
-
-app.use(express.json({ type: "application/json" }));
-app.use(express.urlencoded({ extended: false }));
-
-app.use("/adopters", adoptersRouter);
-
-/**
- * =========================================
- * CUSTOM SECURITY AUDIT
- * (AFTER BODY PARSER to avoid UTF-8 error)
- * =========================================
- */
+app.use(cors({ origin: env.NODE_ENV === "production" ? false : "*" }));
 app.use(securityAuditMiddleware);
 
-/**
- * =========================================
- * PERFORMANCE MIDDLEWARE
- * =========================================
- */
-app.use(compression());
-
+// Rate limiting
 app.use(
   rateLimit({
     windowMs: env.RATE_LIMIT_WINDOW_MS,
@@ -64,30 +33,18 @@ app.use(
   }),
 );
 
-/**
- * =========================================
- * SWAGGER DOCS
- * =========================================
- */
+// Parsing
+app.use(compression());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
+app.use("/adopters", adoptersRouter);
+// Swagger docs
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-/**
- * =========================================
- * ROUTES
- * =========================================
- * IMPORTANT:
- * Avoid duplicate mounting if routes.ts already includes adopters.
- */
-// Use ONLY ONE approach:
+// Module Routes
+app.use("/", routes);
 
-// Option B (if routes.ts already contains everything)
-// app.use("/", routes);
-
-/**
- * =========================================
- * ERROR HANDLING
- * =========================================
- */
+// 404 & error handler
 app.use(notFound);
 app.use(errorHandler);
 
