@@ -2555,4 +2555,459 @@ The Partners API follows the TreeO2 backend engineering standard:
 - Automated tests
 - Scalable structure for future enhancements
 
+---
+## 15. Tree Scans API
 
+This module manages tree scan records collected across the TreeO2 platform. It provides full CRUD operations, recycling support, validation, role-based access control, and relationship checks against projects, users, tree species, and scan batches.
+
+**Module Path:** `src/modules/tree-scans/`
+
+### Files
+- `treeScans.routes.ts`
+- `treeScans.controller.ts`
+- `treeScans.service.ts`
+- `treeScans.schemas.ts`
+- `treeScans.constants.ts`
+- `index.ts`
+
+### 15.1 Purpose
+
+The Tree Scans API is responsible for managing tree scan lifecycle operations in the system.
+
+Tree scans are core operational records used for:
+- Capturing planted tree information
+- Tracking field inspections
+- Recording geolocation data
+- Managing species assignments
+- Monitoring scan validation and corrections
+- Recycling archived FOB-linked scans
+
+### 15.2 Architecture Flow
+
+Every request follows the standard backend module structure:
+
+```text
+Route → Validation Middleware → Controller → Service → Prisma ORM → PostgreSQL → Response
+```
+
+#### Responsibilities
+
+#### Routes
+- Define endpoints
+- Apply authentication middleware
+- Apply role-based authorization
+- Attach validation schemas
+- Contain Swagger documentation
+
+#### Controller
+- Receive request data
+- Read params/query/body
+- Call service methods
+- Return HTTP response
+
+#### Service
+- Perform business validation
+- Validate relationships
+- Execute database queries
+- Handle archive/recycle logic
+- Throw structured errors
+
+#### Schemas
+- Validate request body
+- Validate params/query
+- Enforce numeric/date constraints
+- Enforce conditional validation rules
+
+### 15.3 Security
+
+All endpoints are protected using Bearer Token authentication.
+
+Middleware used:
+- `authMiddleware`
+- `roleMiddleware`
+- `validate`
+
+### 15.4 Access Control Matrix
+
+| Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
+|---|---|---|---|---|---|
+| GET /tree-scans | Yes | Yes | Yes | No | No |
+| GET /tree-scans/{id} | Yes | Yes | Yes | No | No |
+| POST /tree-scans | Yes | No | Yes | No | No |
+| PUT /tree-scans/{id} | Yes | No | Yes | No | No |
+| DELETE /tree-scans/{id} | Yes | No | No | No | No |
+| POST /tree-scans/recycle/{fobId} | Yes | No | No | No | No |
+
+### 15.5 Endpoints
+
+#### GET /tree-scans
+
+Retrieve paginated tree scans with optional filtering.
+
+##### Query Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| page | integer | No |
+| limit | integer | No |
+| projectId | integer | No |
+| farmerId | integer | No |
+| inspectorId | integer | No |
+| speciesId | integer | No |
+| batchId | integer | No |
+| isArchived | boolean | No |
+| isValid | boolean | No |
+
+##### Response
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "fobId": "FOB-001",
+        "projectId": 1,
+        "farmerId": 2,
+        "inspectorId": 4,
+        "speciesId": 3,
+        "estimatedPlantedYear": 2020,
+        "estimatedPlantedMonth": 6
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 1,
+      "totalPages": 1
+    }
+  }
+}
+```
+
+##### Status Codes
+- `200` Success
+- `400` Invalid query parameters
+- `401` Authentication required
+- `403` Insufficient permissions
+
+---
+
+#### GET /tree-scans/{id}
+
+Retrieve a single tree scan by ID.
+
+##### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| id | integer | Yes |
+
+##### Response
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "fobId": "FOB-001",
+    "projectId": 1,
+    "farmerId": 2,
+    "inspectorId": 4,
+    "speciesId": 3
+  }
+}
+```
+
+##### Status Codes
+- `200` Success
+- `400` Invalid tree scan ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Tree scan not found
+
+---
+
+#### POST /tree-scans
+
+Create a new tree scan.
+
+##### Request Body
+```json
+{
+  "fobId": "FOB-001",
+  "projectId": 1,
+  "farmerId": 2,
+  "inspectorId": 4,
+  "speciesId": 3,
+  "estimatedPlantedYear": 2020,
+  "estimatedPlantedMonth": 6,
+  "plantedDate": "2026-05-12",
+  "heightM": 4.5,
+  "circumferenceCm": 22.1,
+  "diameterCm": 7.0,
+  "latitude": -6.2,
+  "longitude": 106.8,
+  "deviceId": "ANDROID-01",
+  "validationNotes": "Healthy tree"
+}
+```
+
+##### Required Fields
+- `fobId`
+- `projectId`
+- `farmerId`
+- `inspectorId`
+- `speciesId`
+- `estimatedPlantedYear`
+- `estimatedPlantedMonth`
+
+##### Response
+```json
+{
+  "success": true,
+  "data": {
+    "id": 10,
+    "fobId": "FOB-001"
+  }
+}
+```
+
+##### Status Codes
+- `201` Created
+- `400` Invalid payload
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Related entity not found
+
+---
+
+#### PUT /tree-scans/{id}
+
+Update an existing tree scan.
+
+##### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| id | integer | Yes |
+
+##### Request Body
+Any subset of fields may be provided.
+
+```json
+{
+  "heightM": 5.2,
+  "isCorrected": true,
+  "correctionReason": "Incorrect field measurement"
+}
+```
+
+##### Response
+```json
+{
+  "success": true,
+  "data": {
+    "id": 10,
+    "heightM": 5.2
+  }
+}
+```
+
+##### Status Codes
+- `200` Success
+- `400` Invalid request / empty payload
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Tree scan not found
+
+---
+
+#### DELETE /tree-scans/{id}
+
+Archive a tree scan.
+
+##### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| id | integer | Yes |
+
+##### Response
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Tree scan archived successfully"
+  }
+}
+```
+
+##### Status Codes
+- `200` Success
+- `400` Invalid tree scan ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Tree scan not found
+
+---
+
+#### POST /tree-scans/recycle/{fobId}
+
+Recycle archived tree scans linked to a FOB identifier.
+
+##### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| fobId | string | Yes |
+
+##### Response
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Tree scans recycled successfully"
+  }
+}
+```
+
+##### Status Codes
+- `200` Success
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` No matching archived scans found
+
+### 15.6 Validation Rules
+
+#### Create Validation
+- FOB ID must be non-empty
+- IDs must be positive integers
+- Year must be within allowed range
+- Month must be between 1 and 12
+- Coordinates must be within valid latitude/longitude ranges
+- Decimal measurements must be positive
+- UUID fields must be valid UUIDs
+
+#### Update Validation
+- At least one field must be provided
+- Fields must match expected types
+- Correction reason required when `isCorrected=true`
+
+#### Relationship Validation
+- Project must exist
+- Project must be active
+- Farmer must exist
+- Inspector must exist
+- Farmer must belong to project
+- Inspector must belong to project
+- Species must exist
+- Species must belong to project
+
+#### Archive Validation
+- Tree scan must exist
+
+#### Recycle Validation
+- FOB-linked archived scans must exist
+
+### 15.7 Error Handling
+
+Uses centralised error middleware.
+
+#### Standard Error Response
+```json
+{
+  "success": false,
+  "message": "Tree scan not found"
+}
+```
+
+#### Common Errors
+- Authentication required
+- Insufficient permissions
+- Invalid tree scan ID
+- Invalid coordinates
+- Missing required fields
+- Empty update payload
+- Project inactive
+- Farmer not assigned to project
+- Inspector not assigned to project
+- Tree type not assigned to project
+- Missing correction reason
+- Tree scan not found
+- Internal server error
+
+### 15.8 Swagger Documentation
+
+All endpoints are documented in:
+
+`treeScans.routes.ts`
+
+Available at:
+
+`http://localhost:3000/api-docs`
+
+Swagger supports:
+- Interactive testing
+- Request examples
+- Response definitions
+- Security schemas
+
+### 15.9 Testing
+
+#### Test Files
+- `tests/unit/tree-scans.test.ts`
+- `tests/integration/tree-scans.test.ts`
+
+#### Covered Scenarios
+
+##### Authentication
+- No token returns `401`
+
+##### Authorization
+- Allowed roles succeed
+- Blocked roles return `403`
+
+##### Read
+- Get all tree scans
+- Get tree scan by ID
+- Filtering and pagination
+- Missing scan returns `404`
+
+##### Create
+- Valid tree scan created
+- Invalid payload rejected
+- Inactive project rejected
+- Invalid coordinates rejected
+- Unassigned farmer rejected
+- Unassigned inspector rejected
+- Unassigned species rejected
+
+##### Update
+- Valid update succeeds
+- Empty payload rejected
+- Missing correction reason rejected
+- Missing tree scan rejected
+
+##### Delete
+- Valid archive succeeds
+- Missing tree scan rejected
+
+##### Recycle
+- Valid recycle succeeds
+- Missing archived scans rejected
+
+### 15.10 Summary
+
+The Tree Scans API follows the TreeO2 backend engineering standard:
+
+- Modular architecture
+- Secure authentication
+- Role-based access control
+- Strong validation
+- Relationship integrity checks
+- Archive and recycle support
+- Swagger documentation
+- Automated testing
+- Scalable backend structure
+
+---
