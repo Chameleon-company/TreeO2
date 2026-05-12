@@ -2197,6 +2197,17 @@ This module manages adopter records used within the TreeO2 platform. It provides
 - `adopters.routes.ts`
 - `adopters.controller.ts`
 - `adopters.service.ts`
+## 14. Partners API
+
+This module manages partner organisations in the TreeO2 platform. It provides full CRUD operations with validation and role-based access control.
+
+**Module Path:** `src/modules/partners/`
+
+### Files
+
+- `partners.routes.ts`
+- `partners.controller.ts`
+- `partners.service.ts`
 - `index.ts`
 
 ### 14.1 Purpose
@@ -2211,6 +2222,7 @@ The module currently supports:
 - creating adopters
 - updating adopters
 - deleting adopters
+The Partners API is responsible for creating, retrieving, updating, and deleting partner organisations in the system.
 
 ### 14.2 Architecture Flow
 
@@ -2218,11 +2230,13 @@ Every request follows the standard backend module structure:
 
 ```text
 Route → Controller → Service → Prisma ORM → PostgreSQL → Response
+Route -> Controller -> Service -> Prisma ORM -> PostgreSQL -> Response
 ```
 
 #### Responsibilities
 
 #### Routes
+
 - Define endpoints
 - Apply authentication middleware
 - Apply role-based authorization
@@ -2240,11 +2254,24 @@ Route → Controller → Service → Prisma ORM → PostgreSQL → Response
 - Throw structured AppError responses
 - Prevent invalid operations
 
+- Receive request data
+- Read params and body
+- Call service methods
+- Return HTTP response
+
+#### Service
+
+- Perform validation
+- Apply business rules
+- Execute database queries
+- Throw structured errors
+
 ### 14.3 Security
 
 All endpoints are protected using Bearer Token authentication.
 
 Middleware used:
+
 - `authMiddleware`
 - `roleMiddleware`
 
@@ -2273,6 +2300,17 @@ Retrieve a paginated list of adopters.
 Example Request
 
 GET /adopters?page=1&limit=10
+| GET /partners         | Yes   | Yes     | No        | No     | No        |
+| GET /partners/{id}    | Yes   | Yes     | No        | No     | No        |
+| POST /partners        | Yes   | No      | No        | No     | No        |
+| PUT /partners/{id}    | Yes   | No      | No        | No     | No        |
+| DELETE /partners/{id} | Yes   | No      | No        | No     | No        |
+
+### 14.5 Endpoints
+
+#### GET /partners
+
+Retrieve all partners ordered by newest first.
 
 ##### Response
 
@@ -2292,6 +2330,10 @@ GET /adopters?page=1&limit=10
     "limit": 10,
     "total": 1
   }
+      "name": "TreeO2-Xpand Foundation",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    }
+  ]
 }
 ```
 
@@ -2303,6 +2345,14 @@ GET /adopters?page=1&limit=10
 
 #### GET /adopters/{id}
 Retrieve a single adopter by ID.
+
+- `200` Success
+- `401` Authentication required
+- `403` Insufficient permissions
+
+#### GET /partners/{id}
+
+Retrieve a single partner by ID.
 
 ##### Path Parameters
 
@@ -2335,6 +2385,23 @@ Status Codes
 
 Create a new adopter.
 
+    "name": "TreeO2-Xpand Foundation",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+##### Status Codes
+
+- `200` Success
+- `400` Invalid partner ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Partner not found
+
+#### POST /partners
+
+Create a new partner.
 
 ##### Request Body
 
@@ -2346,6 +2413,13 @@ Create a new adopter.
 ```
 Required Fields
 - name
+  "name": "TreeO2-Xpand Foundation"
+}
+```
+
+##### Required Fields
+
+- `name`
 
 ##### Response
 
@@ -2360,6 +2434,14 @@ Required Fields
 }
 ```
 ##### Status Codes
+    "name": "TreeO2-Xpand Foundation",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+##### Status Codes
+
 - `201` Created
 - `400` Invalid payload
 - `401` Authentication required
@@ -2369,6 +2451,10 @@ Required Fields
 #### PUT /adopters/{id}
 
 Update an existing adopter.
+
+#### PUT /partners/{id}
+
+Update an existing partner.
 
 ##### Path Parameters
 
@@ -2385,6 +2471,14 @@ Any subset of fields may be provided.
   "email": "updated@gmail.com"
 }
 ```
+##### Request Body
+
+```json
+{
+  "name": "Updated Partner Name"
+}
+```
+
 ##### Response
 
 ```json
@@ -2406,6 +2500,23 @@ Any subset of fields may be provided.
 
 #### DELETE /adopters/{id}
 Delete an adopter.
+    "name": "Updated Partner Name",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+##### Status Codes
+
+- `200` Success
+- `400` Invalid request or empty payload or invalid ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Partner not found
+
+#### DELETE /partners/{id}
+
+Delete a partner.
 
 ##### Path Parameters
 
@@ -2477,6 +2588,38 @@ id must be:
 ### 14.7 Error Handling
 
 Uses centralised error middleware with AppError and ERROR_CODES.
+    "message": "Partner deleted successfully"
+  }
+}
+```
+
+##### Status Codes
+
+- `200` Success
+- `400` Invalid partner ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Partner not found
+
+### 14.6 Validation Rules
+
+#### Create Validation
+
+- `name` must be a non-empty string
+- `name` must not be blank or whitespace only
+
+#### Update Validation
+
+- At least one field must be provided
+- `name` if provided must be a non-empty string
+
+#### Delete Validation
+
+- Partner organisation must exist before deletion
+
+### 14.7 Error Handling
+
+Uses centralised error middleware.
 
 #### Standard Error Response
 
@@ -2485,6 +2628,7 @@ Uses centralised error middleware with AppError and ERROR_CODES.
   "success": false,
   "message": "Adopter not found",
   "code": "DATA_001"
+  "message": "Partner not found"
 }
 ```
 
@@ -2499,17 +2643,27 @@ Uses centralised error middleware with AppError and ERROR_CODES.
 - Adopter not found (404)
 - Internal server error (500)
 
+- Authentication required
+- Insufficient permissions
+- Invalid partner ID
+- Missing or empty name
+- Empty update payload
+- Partner not found
+- Internal server error
+
 ### 14.8 Swagger Documentation
 
 All endpoints are documented in:
 
 `adopters.routes.ts`
+`partners.routes.ts`
 
 Available at:
 
 `http://localhost:3000/api-docs`
 
 Swagger supports:
+
 - Interactive testing
 - Request examples
 - Response definitions
@@ -2613,6 +2767,76 @@ npm test -- tests/integration/adopters.test.ts
 ### 14.12 Summary
 The Adopters API follows the TreeO2 backend engineering standard:
 
+- `tests/unit/partners.test.ts`
+- `tests/integration/partners.test.ts`
+
+#### Covered Scenarios
+
+##### Authentication
+
+- No token returns `401`
+
+##### Authorization
+
+- Admin and Manager can access GET endpoints
+- Only Admin can create, update and delete
+- Other roles return `403`
+
+##### Read
+
+- Get all partners returns list
+- Get partner by ID returns correct record
+- Missing partner returns `404`
+- Invalid ID returns `400`
+
+##### Create
+
+- Valid partner created with `201`
+- Empty name rejected with `400`
+- Missing name rejected with `400`
+
+##### Update
+
+- Valid update succeeds with `200`
+- Empty payload rejected with `400`
+- Invalid ID rejected with `400`
+- Missing partner returns `404`
+
+##### Delete
+
+- Valid delete succeeds with `200`
+- Missing partner returns `404`
+- Invalid ID returns `400`
+
+### 14.10 How to Run Partners Tests
+
+Run unit tests only:
+
+```bash
+npm test -- --runInBand tests/unit/partners.test.ts
+```
+
+Run integration tests only:
+
+```bash
+npm test -- --runInBand tests/integration/partners.test.ts
+```
+
+Run both:
+
+```bash
+npm test -- --runInBand tests/unit/partners.test.ts tests/integration/partners.test.ts
+```
+
+### 14.11 Current Limitations
+
+- auth and role checks depend on the existing scaffold and are not fully production-complete yet
+- there is no soft delete — partner organisations are permanently removed on delete
+
+### 14.12 Summary
+
+The Partners API follows the TreeO2 backend engineering standard:
+
 - Modular architecture
 - Secure authentication
 - Role-based access control
@@ -2624,4 +2848,9 @@ The Adopters API follows the TreeO2 backend engineering standard:
 - Integration testing for full API flow
 - Scalable structure for future project-user access rules
 ---
+- Full CRUD support
+- Swagger documentation
+- Automated tests
+- Scalable structure for future enhancements
+
 
