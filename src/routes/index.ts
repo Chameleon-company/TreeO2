@@ -10,6 +10,8 @@ import { adoptersRouter } from "../modules/adopters";
 import { userProjectAssignmentRoutes } from "../modules/user-project-assignment";
 import { partnersRoutes } from "../modules/partners";
 
+import treeScansRoutes from "../modules/tree-scans";
+
 const router = Router();
 
 router.use("/health", healthRoutes);
@@ -22,5 +24,7 @@ router.use("/localized-strings", localizationRoutes);
 router.use("/user-projects", userProjectAssignmentRoutes);
 router.use("/project-tree-types", projectTreeTypesRoutes);
 router.use("/partners", partnersRoutes);
+
+router.use("/tree-scans", treeScansRoutes);
 
 export default router;
