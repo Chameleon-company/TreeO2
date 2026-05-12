@@ -6,7 +6,4 @@ module.exports = {
   testMatch: ['**/*.test.ts'],
   collectCoverageFrom: ['src/**/*.ts', '!src/index.ts'],
   coverageDirectory: 'coverage',
-  detectOpenHandles: true,
-  forceExit: true,
 };
-
