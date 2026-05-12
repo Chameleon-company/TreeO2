@@ -67,15 +67,15 @@ describe("AdoptersService - Unit Tests", () => {
       ).rejects.toThrow(AppError);
     });
 
-    it("should give 200 when email is empty", async () => {
-      const result = await adoptersService.createAdopter({
+    it("should give 400 when email is empty", async () => {
+      await expect(
+        adoptersService.createAdopter({
           name: "Test",
           email: "",
-        }); 
-        
-      expect(result.id).toBe(1);
-      expect(result.name).toBe("Hashini");
-      expect(mockedPrismaAdopter.create).toHaveBeenCalledTimes(1);
+        }),
+      ).rejects.toThrow(AppError);
+
+      
     });
     
   });
