@@ -36,7 +36,7 @@ describe("Adopters API Integration Tests", () => {
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty("data.id");
 
-    createdId = res.body.id;
+    createdId = res.body.data.id;
   });
 
   it("POST /adopters - should return 400 when name missing", async () => {
@@ -64,6 +64,7 @@ describe("Adopters API Integration Tests", () => {
     expect(res.status).toBe(404);
   });
 
+
   it("PUT /adopters/:id - should update adopter", async () => {
     const created = await request(app)
       .post("/adopters")
@@ -86,7 +87,7 @@ describe("Adopters API Integration Tests", () => {
     expect(res.body.success).toBe(true);
   });
 
-    it("DELETE /adopters/:id - should delete adopter", async () => {
+  it("DELETE /adopters/:id - should delete adopter", async () => {
     const created = await request(app)
       .post("/adopters")
       .send({
@@ -104,4 +105,54 @@ describe("Adopters API Integration Tests", () => {
     expect(res.status).toBe(200);
   });
  
+  it("POST /adopters - should return 401 when no token", async () => {
+    const res = await request(app)
+      .post("/adopters")
+      .send({
+        name: "Test",
+        email: "test@gmail.com",
+      })
+
+    expect(res.status).toBe(401);
+  });
+
+  it("POST /adopters - should return 403 for FARMER", async () => {
+    const res = await request(app)
+      .post("/adopters")
+      .set("Authorization", `Bearer ${TOKENS.FARMER}`)
+      .send({
+        name: "Test",
+        email: "test@gmail.com",
+      });
+
+    expect(res.status).toBe(403);
+  });
+
+  it("GET /adopters - MANAGER should access list", async () => {
+    const res = await request(app)
+      .get("/adopters")
+      .set("Authorization", `Bearer ${TOKENS.MANAGER}`);
+
+    expect(res.status).toBe(200);
+  });
+
+  it("PUT /adopters/:id - should return 404 when not found", async () => {
+    const res = await request(app)
+      .put("/adopters/999999")
+      .set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+      .send({
+        name: "Updated",
+        email: "updated@gmail.com",
+      });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("DELETE cleanup created adopter", async () => {
+    const res = await request(app)
+      .delete(`/adopters/${createdId}`)
+      .set("Authorization", `Bearer ${TOKENS.ADMIN}`);
+
+    expect(res.status).toBe(200);
+  });
 });
