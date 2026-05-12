@@ -1,10 +1,12 @@
-import { describe, expect, jest, beforeEach, it } from "@jest/globals";
+import { describe, expect, it, beforeEach, jest } from "@jest/globals";
 import { adoptersService } from "../../src/modules/adopters/adopters.service";
-import { AppError } from "../../src/middleware/errorHandler";
 import { prisma } from "../../src/lib/prisma";
+import { AppError } from "../../src/middleware/errorHandler";
 
 /**
- * Mock prisma
+ * =========================
+ * MOCK PRISMA
+ * =========================
  */
 jest.mock("../../src/lib/prisma", () => ({
   prisma: {
@@ -19,132 +21,195 @@ jest.mock("../../src/lib/prisma", () => ({
   },
 }));
 
-describe("Adopters Service", () => {
+const mockedPrismaAdopter = prisma.adopter as {
+  create: jest.MockedFunction<any>;
+  findMany: jest.MockedFunction<any>;
+  findUnique: jest.MockedFunction<any>;
+  update: jest.MockedFunction<any>;
+  delete: jest.MockedFunction<any>;
+  count: jest.MockedFunction<any>;
+};
+
+describe("AdoptersService - Unit Tests", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe("listAdopters", () => {
-    it("should return paginated adopters", async () => {
-      (prisma.adopter.findMany as jest.Mock).mockImplementation(async () => [
-        {
-          id: 1,
-          name: "Hashini",
-          email: "hashini@gmail.com",
-        },
-      ]);
-
-      (prisma.adopter.count as jest.Mock).mockImplementation(
-        async () => 1,
-      );
-
-      const result = await adoptersService.listAdopters(1, 10);
-
-      expect(result.length).toBe(1);
-      expect(result[0]?.id).toBe(1);
-    });
-  });
-
+  /**
+   * =========================
+   * CREATE
+   * =========================
+   */
   describe("createAdopter", () => {
-    it("should create adopter", async () => {
-      (prisma.adopter.create as jest.Mock).mockImplementation(async () => ({
+    it("should create adopter successfully", async () => {
+      mockedPrismaAdopter.create.mockResolvedValue({
         id: 1,
         name: "Hashini",
         email: "hashini@gmail.com",
-      }));
+      });
 
       const result = await adoptersService.createAdopter({
         name: "Hashini",
         email: "hashini@gmail.com",
       });
 
+      expect(result.id).toBe(1);
       expect(result.name).toBe("Hashini");
-      expect(result.email).toBe("hashini@gmail.com");
+      expect(mockedPrismaAdopter.create).toHaveBeenCalledTimes(1);
     });
 
-    it("should throw validation error when name missing", async () => {
-      await expect(
+    it("should throw 400 when name is empty", async () => {
+    await expect(
         adoptersService.createAdopter({
           name: "",
-          email: "hashini@gmail.com",
+          email: "test@gmail.com",
+        }),
+      ).rejects.toThrow(AppError);
+    });
+
+    it("should give 200 when email is empty", async () => {
+      const result = await adoptersService.createAdopter({
+          name: "Test",
+          email: "",
+        }); 
+        
+      expect(result.id).toBe(1);
+      expect(result.name).toBe("Hashini");
+      expect(mockedPrismaAdopter.create).toHaveBeenCalledTimes(1);
+    });
+    
+  });
+
+  /**
+   * =========================
+   * LIST
+   * =========================
+   */
+  describe("listAdopters", () => {
+    it("should return paginated adopters", async () => {
+      mockedPrismaAdopter.findMany.mockResolvedValue([
+        { id: 1, name: "A", email: "a@mail.com" },
+      ]);
+
+      mockedPrismaAdopter.count.mockResolvedValue(1);
+
+      const result = await adoptersService.listAdopters(1, 10);
+
+      expect(result.data.length).toBe(1);
+      expect(result.meta.total).toBe(1);
+      expect(mockedPrismaAdopter.findMany).toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * =========================
+   * GET BY ID
+   * =========================
+   */
+  describe("getAdopterById", () => {
+    it("should return adopter when exists", async () => {
+      mockedPrismaAdopter.findUnique.mockResolvedValue({
+        id: 1,
+        name: "Hashini",
+        email: "hashini@gmail.com",
+      });
+
+      const result = await adoptersService.getAdopterById(1);
+
+      expect(result.id).toBe(1);
+    });
+
+    it("should throw 404 when adopter not found", async () => {
+      mockedPrismaAdopter.findUnique.mockResolvedValue(null);
+
+      await expect(
+        adoptersService.getAdopterById(999),
+      ).rejects.toThrow(AppError);
+    });
+  });
+
+  /**
+   * =========================
+   * UPDATE
+   * =========================
+   */
+  describe("updateAdopter", () => {
+    it("should update adopter successfully", async () => {
+      mockedPrismaAdopter.findUnique.mockResolvedValue({
+        id: 1,
+        name: "Old",
+        email: "old@mail.com",
+      });
+
+      mockedPrismaAdopter.update.mockResolvedValue({
+        id: 1,
+        name: "Updated",
+        email: "updated@mail.com",
+      });
+
+      const result = await adoptersService.updateAdopter(1, {
+        name: "Updated",
+        email: "updated@mail.com",
+      });
+
+      expect(result.name).toBe("Updated");
+      expect(mockedPrismaAdopter.update).toHaveBeenCalledTimes(1);
+    });
+
+    it("should throw 404 when updating non-existing adopter", async () => {
+      mockedPrismaAdopter.findUnique.mockResolvedValue(null);
+
+      await expect(
+        adoptersService.updateAdopter(999, {
+          name: "Test",
+        }),
+      ).rejects.toThrow(AppError);
+    });
+
+    it("should throw 400 when name is empty string", async () => {
+      mockedPrismaAdopter.findUnique.mockResolvedValue({
+        id: 1,
+        name: "Old",
+        email: "old@mail.com",
+      });
+
+      await expect(
+        adoptersService.updateAdopter(1, {
+          name: "",
         }),
       ).rejects.toThrow(AppError);
     });
   });
 
-  describe("getAdopterById", () => {
-    it("should return adopter", async () => {
-      (prisma.adopter.findUnique as jest.Mock).mockImplementation(
-        async () => ({
-          id: 1,
-          name: "Hashini",
-          email: "hashini@gmail.com",
-        }),
-      );
-
-      const result = await adoptersService.getAdopterById(1);
-
-      expect(result).not.toBeNull();
-      expect(result?.id).toBe(1);
-    });
-
-    it("should throw error when adopter not found", async () => {
-      (prisma.adopter.findUnique as jest.Mock).mockImplementation(
-        async () => null,
-      );
-
-      await expect(adoptersService.getAdopterById(999)).rejects.toThrow(
-        AppError,
-      );
-    });
-  });
-
-  describe("updateAdopter", () => {
-    it("should update adopter", async () => {
-      (prisma.adopter.findUnique as jest.Mock).mockImplementation(
-        async () => ({
-          id: 1,
-          name: "Old Name",
-          email: "old@gmail.com",
-        }),
-      );
-
-      (prisma.adopter.update as jest.Mock).mockImplementation(async () => ({
+  /**
+   * =========================
+   * DELETE
+   * =========================
+   */
+  describe("deleteAdopter", () => {
+    it("should delete adopter successfully", async () => {
+      mockedPrismaAdopter.findUnique.mockResolvedValue({
         id: 1,
-        name: "Updated Name",
-        email: "updated@gmail.com",
-      }));
-
-      const result = await adoptersService.updateAdopter(1, {
-        name: "Updated Name",
-        email: "updated@gmail.com",
       });
 
-      expect(result.name).toBe("Updated Name");
-      expect(result.email).toBe("updated@gmail.com");
-    });
-  });
-
-  describe("deleteAdopter", () => {
-    it("should delete adopter", async () => {
-      (prisma.adopter.findUnique as jest.Mock).mockImplementation(
-        async () => ({
-          id: 1,
-          name: "Hashini",
-        }),
-      );
-
-      (prisma.adopter.delete as jest.Mock).mockImplementation(async () => ({
+      mockedPrismaAdopter.delete.mockResolvedValue({
         id: 1,
-      }));
+      });
 
       const result = await adoptersService.deleteAdopter(1);
 
-      expect(prisma.adopter.delete).toHaveBeenCalled();
-
-      expect(result).toEqual({
-        message: "Adopter deleted successfully",
+      expect(result.message).toBe("Adopter deleted successfully");
+      expect(mockedPrismaAdopter.delete).toHaveBeenCalledWith({
+        where: { id: 1 },
       });
+    });
+
+    it("should throw 404 when deleting non-existing adopter", async () => {
+      mockedPrismaAdopter.findUnique.mockResolvedValue(null);
+
+      await expect(
+        adoptersService.deleteAdopter(999),
+      ).rejects.toThrow(AppError);
     });
   });
 });

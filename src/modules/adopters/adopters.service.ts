@@ -49,11 +49,23 @@ export class AdoptersService {
   async listAdopters(page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 
-    return prisma.adopter.findMany({
-      skip,
-      take: limit,
-      orderBy: { id: "desc" },
-    });
+    const [data, total] = await Promise.all([
+      prisma.adopter.findMany({
+        skip,
+        take: limit,
+        orderBy: { id: "desc" },
+      }),
+      prisma.adopter.count(),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+      },
+    };
   }
 
   async createAdopter(data: CreateAdopterInput) {
