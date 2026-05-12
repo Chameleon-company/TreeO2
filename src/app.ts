@@ -10,7 +10,6 @@ import { securityAuditMiddleware } from "./middleware/securityAudit.middleware";
 import * as swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
 import routes from "./routes";
-import adoptersRouter from "./modules/adopters/adopters.routes";
 
 const app = express();
 
@@ -35,7 +34,7 @@ app.use(
 app.use(compression());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
-app.use("/adopters", adoptersRouter);
+
 // Swagger docs
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
