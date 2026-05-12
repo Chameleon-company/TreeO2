@@ -6,6 +6,8 @@ model Country {
 
   locations Location[]
   administrativeLevels AdministrativeLevel[]
+  users      User[]    @relation("UserCountry")
+  projects   Project[] @relation("ProjectCountry")
 
   @@map("countries")
 }
