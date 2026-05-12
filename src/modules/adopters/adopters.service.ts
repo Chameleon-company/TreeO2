@@ -12,21 +12,53 @@ interface UpdateAdopterInput {
   email?: string;
 }
 
-// Validate ID
+// -----------------------------
+// Validation Helpers
+// -----------------------------
+
 const assertValidId = (id: number) => {
   if (!Number.isInteger(id) || id <= 0) {
     throw new AppError(400, ERROR_CODES.VAL_002, ERROR_CODES.VAL_002);
   }
 };
 
-// Validate create payload
+const assertValidPagination = (page: number, limit: number) => {
+  if (
+    !Number.isInteger(page) ||
+    !Number.isInteger(limit) ||
+    page <= 0 ||
+    limit <= 0
+  ) {
+    throw new AppError(
+      400,
+      "Invalid pagination parameters",
+      ERROR_CODES.VAL_002,
+    );
+  }
+};
+
+const assertValidEmail = (email?: string) => {
+  if (email !== undefined) {
+    if (typeof email !== "string") {
+      throw new AppError(400, "Invalid email", ERROR_CODES.VAL_002);
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
+      throw new AppError(400, "Invalid email format", ERROR_CODES.VAL_002);
+    }
+  }
+};
+
 const assertCreatePayload = (data: CreateAdopterInput) => {
   if (!data.name?.trim()) {
     throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
   }
+
+  assertValidEmail(data.email);
 };
 
-// Validate update payload
 const assertUpdatePayload = (data: UpdateAdopterInput) => {
   if (Object.keys(data).length === 0) {
     throw new AppError(
@@ -40,13 +72,17 @@ const assertUpdatePayload = (data: UpdateAdopterInput) => {
     throw new AppError(400, "Invalid name", ERROR_CODES.VAL_002);
   }
 
-  if (data.email !== undefined && typeof data.email !== "string") {
-    throw new AppError(400, "Invalid email", ERROR_CODES.VAL_002);
-  }
+  assertValidEmail(data.email);
 };
+
+// -----------------------------
+// Service
+// -----------------------------
 
 export class AdoptersService {
   async listAdopters(page = 1, limit = 10) {
+    assertValidPagination(page, limit);
+
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
@@ -117,9 +153,12 @@ export class AdoptersService {
       where: { id },
     });
 
-    return { message: "Adopter deleted successfully" };
+    return {
+      message: "Adopter deleted successfully",
+    };
   }
 }
 
 export const adoptersService = new AdoptersService();
+
 export type { CreateAdopterInput, UpdateAdopterInput };
