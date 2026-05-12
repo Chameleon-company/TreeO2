@@ -1454,8 +1454,6 @@ The Localization API follows the TreeO2 backend engineering standard:
 - Automated tests
 - Scalable structure for multilingual expansion
 
----
-
 ## 12. Project Tree Types API
 
 This section documents the `project-tree-types` module that has now been implemented and tested.
@@ -1903,3 +1901,288 @@ The `project-tree-types` module is now fully wired into the backend with:
 - unit and real DB-backed API integration test coverage
 
 This module now provides the project-to-tree-type assignment layer needed before downstream modules such as `tree-scans` can validate whether a scanned tree type is allowed for a given project.
+
+## 13. User-Project Assignment API
+
+This module manages the assignment relationship between users and projects in the TreeO2 platform. It allows authorised users to view user-project assignments, assign users to projects, and remove users from projects.
+
+**Module Path:** `src/modules/user-project-assignment/`
+
+### Files
+- `userProjectAssignment.routes.ts`
+- `userProjectAssignment.controller.ts`
+- `userProjectAssignment.service.ts`
+- `index.ts`
+
+### 13.1 Purpose
+
+The User-Project Assignment API is responsible for managing which users are connected to which projects.
+
+This is important because projects need assigned users such as:
+- Managers
+- Inspectors
+- Farmers
+- Other project-related users
+
+The module does not create users or projects. It only manages the relationship between existing users and existing projects.
+
+### 13.2 Architecture Flow
+
+Every request follows the standard backend module structure:
+
+```text
+Route → Controller → Service → Prisma ORM → PostgreSQL → Response
+```
+
+#### Responsibilities
+
+#### Routes
+- Define endpoints
+- Apply authentication middleware
+- Apply role-based authorization
+- Contain Swagger documentation
+
+#### Controller
+- Receive request data
+- Read params/body
+- Call service methods
+- Return HTTP response
+
+#### Service
+- Validate user and project IDs
+- Check whether user exists
+- Check whether project exists
+- Check duplicate assignments
+- Execute create/delete database operations
+- Throw structured errors
+
+### 13.3 Security
+
+All endpoints are protected using Bearer Token authentication.
+
+Middleware used:
+- `authMiddleware`
+- `roleMiddleware`
+
+### 13.4 Access Control Matrix
+
+| Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
+|---|---|---|---|---|---|
+| GET /user-projects | Yes | Yes | No | No | No |
+| POST /user-projects | Yes | No | No | No | No |
+| DELETE /user-projects/{user_id}/{project_id} | Yes | No | No | No | No |
+
+### 13.5 Endpoints
+
+#### GET /user-projects
+
+Retrieve all user-project assignments.
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "userId": 1,
+      "projectId": 10,
+      "user": {
+        "id": 1,
+        "name": "Assigned User",
+        "email": "assigned-user@test.com"
+      },
+      "project": {
+        "id": 10,
+        "name": "Assignment Test Project",
+        "isActive": true
+      }
+    }
+  ]
+}
+```
+
+##### Status Codes
+- `200` Success
+- `401` Authentication required
+- `403` Insufficient permissions
+
+#### POST /user-projects
+
+Assign a user to a project.
+
+##### Request Body
+
+```json
+{
+  "userId": 1,
+  "projectId": 10
+}
+```
+
+##### Required Fields
+- `userId`
+- `projectId`
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "userId": 1,
+    "projectId": 10,
+    "user": {
+      "id": 1,
+      "name": "Assigned User",
+      "email": "assigned-user@test.com"
+    },
+    "project": {
+      "id": 10,
+      "name": "Assignment Test Project",
+      "isActive": true
+    }
+  }
+}
+```
+
+##### Status Codes
+- `201` Created
+- `400` Invalid payload
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` User or project not found
+- `409` Assignment already exists
+
+#### DELETE /user-projects/{user_id}/{project_id}
+
+Remove a user from a project.
+
+##### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| user_id | integer | Yes |
+| project_id | integer | Yes |
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "User project assignment removed successfully"
+  }
+}
+```
+
+##### Status Codes
+- `200` Success
+- `400` Invalid user or project ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Assignment not found
+
+### 13.6 Validation Rules
+
+#### Assignment Validation
+- `userId` must be a positive integer
+- `projectId` must be a positive integer
+- User must exist before assignment
+- Project must exist before assignment
+- Duplicate user-project assignments are not allowed
+
+#### Delete Validation
+- `user_id` must be a positive integer
+- `project_id` must be a positive integer
+- Assignment must exist before it can be removed
+
+### 13.7 Error Handling
+
+Uses centralised error middleware.
+
+#### Standard Error Response
+
+```json
+{
+  "success": false,
+  "message": "User not found"
+}
+```
+
+#### Common Errors
+- Authentication required
+- Insufficient permissions
+- Invalid userId or projectId
+- User not found
+- Project not found
+- Assignment already exists
+- Assignment not found
+- Internal server error
+
+### 13.8 Swagger Documentation
+
+All endpoints are documented in:
+
+`userProjectAssignment.routes.ts`
+
+Available at:
+
+`http://localhost:3000/api-docs`
+
+Swagger supports:
+- Interactive testing
+- Request examples
+- Response definitions
+- Security schemas
+
+### 13.9 Testing
+
+#### Test Files
+- `tests/unit/user-project-assignment.test.ts`
+- `tests/integration/user-project-assignment.test.ts`
+
+#### Covered Scenarios
+
+##### Authentication
+- No token returns `401`
+
+##### Authorization
+- Admin and Manager can list assignments
+- Inspector, Farmer, and Developer are blocked from listing assignments
+- Only Admin can assign users to projects
+- Only Admin can remove user-project assignments
+
+##### Read
+- Get all user-project assignments
+- Response returns assignment records with related user and project data
+
+##### Create
+- Valid assignment is created
+- Invalid payload is rejected
+- Missing user returns `404`
+- Missing project returns `404`
+- Duplicate assignment returns `409`
+
+##### Delete
+- Valid assignment is removed
+- Invalid path parameters are rejected
+- Missing assignment returns `404`
+- Database confirms assignment is deleted
+
+### 13.10 Summary
+
+The User-Project Assignment API follows the TreeO2 backend engineering standard:
+
+- Modular architecture
+- Secure authentication
+- Role-based access control
+- Clean separation of concerns
+- Strong validation
+- Relationship management between users and projects
+- Swagger documentation
+- Unit testing for service/business logic
+- Integration testing for full API flow
+- Scalable structure for future project-user access rules
+---
+
