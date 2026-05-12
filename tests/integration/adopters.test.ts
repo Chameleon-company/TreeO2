@@ -13,12 +13,6 @@ const TOKENS = {
     DEVELOPER: process.env.AUTH_DEV_DEVELOPER_TOKEN!,
 };
 
-const api = () =>
-  request(app)
-    .set("accept", "*/*")
-    .set("Content-Type", "application/json")
-    .set("Authorization", `Bearer ${TOKENS.ADMIN}`);
-
 describe("Adopters API Integration Tests", () => {
   let createdId: number;
   
