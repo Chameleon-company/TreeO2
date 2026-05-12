@@ -6,26 +6,7 @@ import { roleMiddleware } from "../../middleware/role.middleware";
 const router = Router();
 
 /**
- * @openapi
- * tags:
- *   - name: Adopters
- *     description: Adopter management APIs
- */
-
-/**
- * @openapi
- * /adopters:
- *   post:
- *     tags:
- *       - Adopters
- *     summary: Create adopter
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *     responses:
- *       201:
- *         description: Created
+ * CREATE ADOPTER (ADMIN ONLY)
  */
 router.post(
   "/",
@@ -35,70 +16,51 @@ router.post(
 );
 
 /**
- * @openapi
- * /adopters:
- *   get:
- *     tags:
- *       - Adopters
- *     summary: Get all adopters
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Success
+ * LIST ADOPTERS (ADMIN + MANAGER)
  */
 router.get(
   "/",
   authMiddleware,
-  (req, res, next) => void adoptersController.listAdopters(req, res, next),
+  roleMiddleware(["ADMIN", "MANAGER"]),
+  (req, res, next) => {
+    void adoptersController.listAdopters(req, res, next);
+  },
 );
 
 /**
- * @openapi
- * /adopters/{id}:
- *   get:
- *     tags:
- *       - Adopters
- *     summary: Get adopter by ID
+ * GET BY ID (ADMIN + MANAGER)
  */
 router.get(
   "/:id",
   authMiddleware,
-  (req, res, next) => void adoptersController.getAdopterById(req, res, next),
+  roleMiddleware(["ADMIN", "MANAGER"]),
+  (req, res, next) => {
+    void adoptersController.getAdopterById(req, res, next);
+  },
 );
 
 /**
- * @openapi
- * /adopters/{id}:
- *   put:
- *     tags:
- *       - Adopters
- *     summary: Update adopter
- *     security:
- *       - bearerAuth: []
+ * UPDATE (ADMIN ONLY)
  */
 router.put(
   "/:id",
   authMiddleware,
   roleMiddleware(["ADMIN"]),
-  (req, res, next) => void adoptersController.updateAdopter(req, res, next),
+  (req, res, next) => {
+    void adoptersController.updateAdopter(req, res, next);
+  },
 );
 
 /**
- * @openapi
- * /adopters/{id}:
- *   delete:
- *     tags:
- *       - Adopters
- *     summary: Delete adopter
- *     security:
- *       - bearerAuth: []
+ * DELETE (ADMIN ONLY)
  */
 router.delete(
   "/:id",
   authMiddleware,
   roleMiddleware(["ADMIN"]),
-  (req, res, next) => void adoptersController.deleteAdopter(req, res, next),
+  (req, res, next) => {
+    void adoptersController.deleteAdopter(req, res, next);
+  },
 );
 
 export default router;
