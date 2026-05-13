@@ -62,6 +62,24 @@ describe("Tree Scans Integration Tests", () => {
 
         await prisma.user.deleteMany({
             where: {
+                email: {
+                    in: [
+                        "tree-scan-dev-admin@test.com",
+                        "tree-scan-dev-farmer@test.com",
+                        "tree-scan-dev-manager@test.com",
+                        "tree-scan-dev-inspector@test.com",
+                        "tree-scan-dev-developer@test.com",
+                        "tree-scan-farmer@test.com",
+                        "tree-scan-inspector@test.com",
+                        "tree-scan-unassigned-farmer@test.com",
+                        "tree-scan-unassigned-inspector@test.com",
+                    ],
+                },
+            },
+        });
+        
+        await prisma.user.deleteMany({
+            where: {
                 id: {
                     in: [
                         DEV_USER_IDS.ADMIN,
@@ -81,20 +99,7 @@ describe("Tree Scans Integration Tests", () => {
                 },
             },
         });
-
-        await prisma.user.deleteMany({
-            where: {
-                email: {
-                    in: [
-                        "tree-scan-farmer@test.com",
-                        "tree-scan-inspector@test.com",
-                        "tree-scan-unassigned-farmer@test.com",
-                        "tree-scan-unassigned-inspector@test.com",
-                    ],
-                },
-            },
-        });
-
+        
         await prisma.treeType.deleteMany({
             where: {
                 key: {
@@ -236,7 +241,7 @@ describe("Tree Scans Integration Tests", () => {
             where: { id: DEV_USER_IDS.INSPECTOR },
             update: {
                 name: "Tree Scan Inspector",
-                email: "tree-scan-inspector@test.com",
+                email: "tree-scan-dev-inspector@test.com",
                 roleId: inspectorRole.id,
                 accountActive: true,
                 canSignIn: true,
@@ -244,7 +249,7 @@ describe("Tree Scans Integration Tests", () => {
             create: {
                 id: DEV_USER_IDS.INSPECTOR,
                 name: "Tree Scan Inspector",
-                email: "tree-scan-inspector@test.com",
+                email: "tree-scan-dev-inspector@test.com",
                 roleId: inspectorRole.id,
                 accountActive: true,
                 canSignIn: true,
