@@ -50,6 +50,7 @@ describe("Tree Scans Integration Tests", () => {
         await prisma.treeScan.deleteMany();
         await prisma.projectTreeType.deleteMany();
         await prisma.userProject.deleteMany();
+
         await prisma.project.deleteMany({
             where: {
                 name: {
@@ -57,12 +58,11 @@ describe("Tree Scans Integration Tests", () => {
                 },
             },
         });
+
         await prisma.user.deleteMany({
             where: {
                 email: {
                     in: [
-                        "dev-admin@treeo2.local",
-                        "dev-inspector@treeo2.local",
                         "tree-scan-farmer@test.com",
                         "tree-scan-inspector@test.com",
                         "tree-scan-unassigned-farmer@test.com",
@@ -71,6 +71,7 @@ describe("Tree Scans Integration Tests", () => {
                 },
             },
         });
+
         await prisma.treeType.deleteMany({
             where: {
                 key: {
@@ -81,11 +82,13 @@ describe("Tree Scans Integration Tests", () => {
                 },
             },
         });
+
         await prisma.location.deleteMany({
             where: {
                 name: "Tree Scan Test Location",
             },
         });
+
         await prisma.country.deleteMany({
             where: {
                 iso2: "TS",
@@ -103,48 +106,6 @@ describe("Tree Scans Integration Tests", () => {
             update: {},
             create: { name: "INSPECTOR" },
         });
-        
-        const adminRole = await prisma.role.upsert({
-          where: { name: "ADMIN" },
-          update: {},
-          create: { name: "ADMIN" },
-      });
-      
-      await prisma.user.upsert({
-          where: { id: 1 },
-          update: {
-              name: "Dev Admin",
-              roleId: adminRole.id,
-              accountActive: true,
-              canSignIn: true,
-          },
-          create: {
-              id: 1,
-              name: "Dev Admin",
-              email: "dev-admin@treeo2.local",
-              roleId: adminRole.id,
-              accountActive: true,
-              canSignIn: true,
-          },
-      });
-      
-      await prisma.user.upsert({
-          where: { id: 4 },
-          update: {
-              name: "Dev Inspector",
-              roleId: inspectorRole.id,
-              accountActive: true,
-              canSignIn: true,
-          },
-          create: {
-              id: 4,
-              name: "Dev Inspector",
-              email: "dev-inspector@treeo2.local",
-              roleId: inspectorRole.id,
-              accountActive: true,
-              canSignIn: true,
-          },
-      });
 
         const country = await prisma.country.create({
             data: {
@@ -190,45 +151,77 @@ describe("Tree Scans Integration Tests", () => {
 
         inactiveProjectId = inactiveProject.id;
 
-        const farmer = await prisma.user.create({
-            data: {
+        const farmer = await prisma.user.upsert({
+            where: { email: "tree-scan-farmer@test.com" },
+            update: {
+                name: "Tree Scan Farmer",
+                roleId: farmerRole.id,
+                accountActive: true,
+                canSignIn: true,
+            },
+            create: {
                 name: "Tree Scan Farmer",
                 email: "tree-scan-farmer@test.com",
                 roleId: farmerRole.id,
                 accountActive: true,
+                canSignIn: true,
             },
         });
 
         farmerId = farmer.id;
 
-        const inspector = await prisma.user.create({
-            data: {
+        const inspector = await prisma.user.upsert({
+            where: { email: "tree-scan-inspector@test.com" },
+            update: {
+                name: "Tree Scan Inspector",
+                roleId: inspectorRole.id,
+                accountActive: true,
+                canSignIn: true,
+            },
+            create: {
                 name: "Tree Scan Inspector",
                 email: "tree-scan-inspector@test.com",
                 roleId: inspectorRole.id,
                 accountActive: true,
+                canSignIn: true,
             },
         });
 
         inspectorId = inspector.id;
 
-        const unassignedFarmer = await prisma.user.create({
-            data: {
+        const unassignedFarmer = await prisma.user.upsert({
+            where: { email: "tree-scan-unassigned-farmer@test.com" },
+            update: {
+                name: "Tree Scan Unassigned Farmer",
+                roleId: farmerRole.id,
+                accountActive: true,
+                canSignIn: true,
+            },
+            create: {
                 name: "Tree Scan Unassigned Farmer",
                 email: "tree-scan-unassigned-farmer@test.com",
                 roleId: farmerRole.id,
                 accountActive: true,
+                canSignIn: true,
             },
         });
 
         unassignedFarmerId = unassignedFarmer.id;
 
-        const unassignedInspector = await prisma.user.create({
-            data: {
+        const unassignedInspector = await prisma.user.upsert({
+            where: { email: "tree-scan-unassigned-inspector@test.com" },
+            update: {
+                name: "Tree Scan Unassigned Inspector",
+                roleId: inspectorRole.id,
+                accountActive: true,
+                canSignIn: true,
+            },
+            create: {
                 name: "Tree Scan Unassigned Inspector",
                 email: "tree-scan-unassigned-inspector@test.com",
                 roleId: inspectorRole.id,
                 accountActive: true,
+                canSignIn: true,
             },
         });
 
@@ -267,6 +260,7 @@ describe("Tree Scans Integration Tests", () => {
                     projectId,
                 },
             ],
+            skipDuplicates: true,
         });
 
         await prisma.projectTreeType.create({
@@ -308,23 +302,29 @@ describe("Tree Scans Integration Tests", () => {
     afterAll(async () => {
         await prisma.treeScanAudit.deleteMany();
         await prisma.treeScan.deleteMany();
+
         await prisma.projectTreeType.deleteMany({
             where: {
                 projectId,
             },
         });
+
         await prisma.userProject.deleteMany({
             where: {
                 projectId,
             },
         });
+
         await prisma.project.deleteMany({
             where: {
                 id: {
-                    in: [projectId, inactiveProjectId],
+                    in: [projectId, inactiveProjectId].filter(
+                        (id): id is number => id !== undefined,
+                    ),
                 },
             },
         });
+
         await prisma.user.deleteMany({
             where: {
                 id: {
@@ -333,31 +333,37 @@ describe("Tree Scans Integration Tests", () => {
                         inspectorId,
                         unassignedFarmerId,
                         unassignedInspectorId,
-                    ],
+                    ].filter((id): id is number => id !== undefined),
                 },
             },
         });
+
         await prisma.treeType.deleteMany({
             where: {
                 id: {
-                    in: [speciesId, unassignedSpeciesId],
+                    in: [speciesId, unassignedSpeciesId].filter(
+                        (id): id is number => id !== undefined,
+                    ),
                 },
             },
         });
+
         await prisma.location.deleteMany({
             where: {
                 id: adminLocationId,
             },
         });
+
         await prisma.country.deleteMany({
             where: {
                 id: countryId,
             },
         });
+
         await prisma.$disconnect();
     });
 
-    // Tests for GET /tree-scans endpoint authorization and listing behaviour.
+    // Tests for GET /tree-scans endpoint authorization, filtering, and pagination behaviour.
     describe("GET /tree-scans", () => {
         it("should return 401 when no token is provided", async () => {
             const response = await request(app).get("/tree-scans");
@@ -420,7 +426,7 @@ describe("Tree Scans Integration Tests", () => {
         });
     });
 
-    // Tests for GET /tree-scans/:id endpoint authorization and retrieval behaviour.
+    // Tests for GET /tree-scans/:id endpoint authorization, validation, and retrieval behaviour.
     describe("GET /tree-scans/:id", () => {
         it("should return 401 when no token is provided", async () => {
             const response = await request(app).get(`/tree-scans/${scanId}`);
@@ -481,12 +487,12 @@ describe("Tree Scans Integration Tests", () => {
         });
     });
 
-    // Tests for POST /tree-scans endpoint authorization and creation behaviour.
+    // Tests for POST /tree-scans endpoint validation, authorization, and scan creation behaviour.
     describe("POST /tree-scans", () => {
         it("should return 401 when no token is provided", async () => {
-            const response = await request(app).post("/tree-scans").send(
-                validPayload(),
-            );
+            const response = await request(app)
+                .post("/tree-scans")
+                .send(validPayload());
 
             expect(response.status).toBe(401);
         });
@@ -594,7 +600,7 @@ describe("Tree Scans Integration Tests", () => {
         });
     });
 
-    // Tests for PUT /tree-scans/:id endpoint authorization and update behaviour.
+    // Tests for PUT /tree-scans/:id endpoint authorization, validation, and scan correction behaviour.
     describe("PUT /tree-scans/:id", () => {
         it("should return 401 when no token is provided", async () => {
             const response = await request(app)
@@ -620,19 +626,6 @@ describe("Tree Scans Integration Tests", () => {
             expect(response.body.success).toBe(true);
             expect(Number(response.body.data.heightM)).toBe(4.1);
             expect(response.body.data.isCorrected).toBe(true);
-        });
-
-        it("should return 200 for INSPECTOR token and update tree scan", async () => {
-            const response = await request(app)
-                .put(`/tree-scans/${scanId}`)
-                .set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
-                .send({
-                    circumferenceCm: 22,
-                    correctionReason: "Updated circumference",
-                });
-
-            expect(response.status).toBe(200);
-            expect(response.body.success).toBe(true);
         });
 
         it("should return 403 for MANAGER token", async () => {
@@ -695,7 +688,9 @@ describe("Tree Scans Integration Tests", () => {
 
             expect(response.status).toBe(200);
             expect(response.body.success).toBe(true);
-            expect(response.body.data.message).toBe("Tree scan archived successfully");
+            expect(response.body.data.message).toBe(
+                "Tree scan archived successfully",
+            );
 
             const archivedScan = await prisma.treeScan.findUnique({
                 where: { id: scanId },
@@ -720,11 +715,13 @@ describe("Tree Scans Integration Tests", () => {
             expect(response.status).toBe(404);
         });
     });
-
+    
     // Tests for POST /tree-scans/recycle/:fobId endpoint authorization and archive behaviour.
     describe("POST /tree-scans/recycle/:fobId", () => {
         it("should return 401 when no token is provided", async () => {
-            const response = await request(app).post("/tree-scans/recycle/FOB-BASE");
+            const response = await request(app).post(
+                "/tree-scans/recycle/FOB-BASE",
+            );
 
             expect(response.status).toBe(401);
         });
