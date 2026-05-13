@@ -2,7 +2,8 @@ import { ERROR_CODES } from "../../src/utils/errorCodes";
 import { TreeScansService } from "../../src/modules/tree-scans/treeScans.service";
 
 jest.mock("@prisma/client", () => {
-    const mockPrisma = {
+    const mockPrisma: any = {
+
         project: {
             findUnique: jest.fn(),
         },
@@ -30,7 +31,8 @@ jest.mock("@prisma/client", () => {
             create: jest.fn(),
         },
     };
-
+    
+    mockPrisma.$transaction = jest.fn((callback: any) => callback(mockPrisma));
     class PrismaClientKnownRequestError extends Error {
         code: string;
 
@@ -55,6 +57,21 @@ const { __mockPrisma: mockPrisma } = jest.requireMock("@prisma/client");
 // Unit tests for TreeScansService business logic.
 describe("TreeScansService", () => {
     let service: TreeScansService;
+
+    const adminUser = {
+        id: 1,
+        role: "ADMIN",
+    };
+
+    const managerUser = {
+        id: 10,
+        role: "MANAGER",
+    };
+
+    const inspectorUser = {
+        id: 4,
+        role: "INSPECTOR",
+    };
 
     const validCreateInput = {
         fobId: "FOB-001",
@@ -99,17 +116,20 @@ describe("TreeScansService", () => {
             mockPrisma.treeScan.findMany.mockResolvedValue([treeScanRecord]);
             mockPrisma.treeScan.count.mockResolvedValue(1);
 
-            const result = await service.listTreeScans({
-                page: 1,
-                limit: 10,
-                projectId: 1,
-                farmerId: 2,
-                inspectorId: 4,
-                speciesId: 3,
-                batchId: 1,
-                isArchived: false,
-                isValid: true,
-            });
+            const result = await service.listTreeScans(
+                {
+                    page: 1,
+                    limit: 10,
+                    projectId: 1,
+                    farmerId: 2,
+                    inspectorId: 4,
+                    speciesId: 3,
+                    batchId: 1,
+                    isArchived: false,
+                    isValid: true,
+                },
+                adminUser,
+            );
 
             expect(mockPrisma.treeScan.findMany).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -139,11 +159,53 @@ describe("TreeScansService", () => {
             });
         });
 
+        it("should scope manager list results to assigned projects", async () => {
+            mockPrisma.treeScan.findMany.mockResolvedValue([treeScanRecord]);
+            mockPrisma.treeScan.count.mockResolvedValue(1);
+
+            await service.listTreeScans({ page: 1, limit: 10 }, managerUser);
+
+            expect(mockPrisma.treeScan.findMany).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: {
+                        project: {
+                            userProjects: {
+                                some: {
+                                    userId: managerUser.id,
+                                },
+                            },
+                        },
+                    },
+                    skip: 0,
+                    take: 10,
+                    orderBy: { createdAt: "desc" },
+                }),
+            );
+        });
+
+        it("should scope inspector list results to own scans", async () => {
+            mockPrisma.treeScan.findMany.mockResolvedValue([treeScanRecord]);
+            mockPrisma.treeScan.count.mockResolvedValue(1);
+
+            await service.listTreeScans({ page: 1, limit: 10 }, inspectorUser);
+
+            expect(mockPrisma.treeScan.findMany).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: {
+                        inspectorId: inspectorUser.id,
+                    },
+                    skip: 0,
+                    take: 10,
+                    orderBy: { createdAt: "desc" },
+                }),
+            );
+        });
+
         it("should throw SYS_002 when listing tree scans fails", async () => {
             mockPrisma.treeScan.findMany.mockRejectedValue(new Error("DB failure"));
 
             await expect(
-                service.listTreeScans({ page: 1, limit: 10 }),
+                service.listTreeScans({ page: 1, limit: 10 }, adminUser),
             ).rejects.toMatchObject({
                 statusCode: 500,
                 code: ERROR_CODES.SYS_002,
@@ -156,7 +218,7 @@ describe("TreeScansService", () => {
         it("should return a tree scan when it exists", async () => {
             mockPrisma.treeScan.findUnique.mockResolvedValue(treeScanRecord);
 
-            const result = await service.getTreeScanById(1);
+            const result = await service.getTreeScanById(1, adminUser);
 
             expect(mockPrisma.treeScan.findUnique).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -167,10 +229,65 @@ describe("TreeScansService", () => {
             expect(result).toEqual(treeScanRecord);
         });
 
+        it("should allow inspector to access own scan", async () => {
+            mockPrisma.treeScan.findUnique.mockResolvedValue(treeScanRecord);
+
+            const result = await service.getTreeScanById(1, inspectorUser);
+
+            expect(result).toEqual(treeScanRecord);
+        });
+
+        it("should throw AUTH_004 when inspector accesses another inspector scan", async () => {
+            mockPrisma.treeScan.findUnique.mockResolvedValue({
+                ...treeScanRecord,
+                inspectorId: 999,
+            });
+
+            await expect(
+                service.getTreeScanById(1, inspectorUser),
+            ).rejects.toMatchObject({
+                statusCode: 403,
+                code: ERROR_CODES.AUTH_004,
+            });
+        });
+
+        it("should allow manager to access scan from assigned project", async () => {
+            mockPrisma.treeScan.findUnique.mockResolvedValue(treeScanRecord);
+            mockPrisma.userProject.findUnique.mockResolvedValue({
+                userId: managerUser.id,
+                projectId: treeScanRecord.projectId,
+            });
+
+            const result = await service.getTreeScanById(1, managerUser);
+
+            expect(mockPrisma.userProject.findUnique).toHaveBeenCalledWith({
+                where: {
+                    userId_projectId: {
+                        userId: managerUser.id,
+                        projectId: treeScanRecord.projectId,
+                    },
+                },
+            });
+
+            expect(result).toEqual(treeScanRecord);
+        });
+
+        it("should throw AUTH_007 when manager accesses scan from unassigned project", async () => {
+            mockPrisma.treeScan.findUnique.mockResolvedValue(treeScanRecord);
+            mockPrisma.userProject.findUnique.mockResolvedValue(null);
+
+            await expect(
+                service.getTreeScanById(1, managerUser),
+            ).rejects.toMatchObject({
+                statusCode: 403,
+                code: ERROR_CODES.AUTH_007,
+            });
+        });
+
         it("should throw DATA_001 when tree scan does not exist", async () => {
             mockPrisma.treeScan.findUnique.mockResolvedValue(null);
 
-            await expect(service.getTreeScanById(999)).rejects.toMatchObject({
+            await expect(service.getTreeScanById(999, adminUser)).rejects.toMatchObject({
                 statusCode: 404,
                 code: ERROR_CODES.DATA_001,
                 message: "Tree scan not found",
@@ -400,6 +517,8 @@ describe("TreeScansService", () => {
         it("should update a tree scan and create audit log", async () => {
             const result = await service.updateTreeScan(1, updateInput, 1);
 
+            expect(mockPrisma.$transaction).toHaveBeenCalled();
+
             expect(mockPrisma.treeScan.update).toHaveBeenCalledWith(
                 expect.objectContaining({
                     where: { id: 1 },
@@ -578,7 +697,7 @@ describe("TreeScansService", () => {
                 message: "FOB ID is required",
             });
         });
-
+        
         it("should throw SYS_002 when recycle fails unexpectedly", async () => {
             mockPrisma.treeScan.updateMany.mockRejectedValue(new Error("DB failure"));
 
