@@ -295,6 +295,14 @@ describe("Tree Scans Integration Tests", () => {
                 canSignIn: true,
             },
         });
+        
+        await prisma.$executeRaw`
+            SELECT setval(
+                pg_get_serial_sequence('users', 'id'),
+                COALESCE((SELECT MAX(id) FROM "users"), 1),
+                true
+            );
+        `;
 
         const farmer = await prisma.user.upsert({
             where: { email: "tree-scan-farmer@test.com" },
