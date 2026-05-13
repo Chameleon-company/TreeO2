@@ -2186,17 +2186,6 @@ The User-Project Assignment API follows the TreeO2 backend engineering standard:
 - Scalable structure for future project-user access rules
 ---
 
-###########################Hashini
-## 14. Adopters API
-
-This module manages adopter records used within the TreeO2 platform. It provides CRUD operations with validation, authentication, role-based access control, pagination support, and automated test coverage.
-
-**Module Path:** `src/modules/adopters/`
-
-### Files
-- `adopters.routes.ts`
-- `adopters.controller.ts`
-- `adopters.service.ts`
 ## 14. Partners API
 
 This module manages partner organisations in the TreeO2 platform. It provides full CRUD operations with validation and role-based access control.
@@ -2852,5 +2841,444 @@ The Partners API follows the TreeO2 backend engineering standard:
 - Swagger documentation
 - Automated tests
 - Scalable structure for future enhancements
+
+## 15. Adopters API
+
+This module manages adopter records used within the TreeO2 platform. It provides CRUD operations with validation, authentication, role-based access control, pagination support, and automated test coverage.
+
+**Module Path:** `src/modules/adopters/`
+
+### Files
+- `adopters.routes.ts`
+- `adopters.controller.ts`
+- `adopters.service.ts`
+- `index.ts`
+
+### 15.1 Purpose
+
+The Adopters API is responsible for managing adopter records in the system.
+
+Adopters represent individuals or organisations associated with tree adoption activities.
+
+The module currently supports:
+- listing adopters with pagination
+- retrieving a single adopter
+- creating adopters
+- updating adopters
+- deleting adopters
+
+### 15.2 Architecture Flow
+
+Every request follows the standard backend module structure:
+
+```text
+Route → Controller → Service → Prisma ORM → PostgreSQL → Response
+```
+
+#### Responsibilities
+
+#### Routes
+- Define endpoints
+- Apply authentication middleware
+- Apply role-based authorization
+- Contain Swagger documentation
+
+#### Controller
+- Receive request data
+- Read params/query/body
+- Call service methods
+- Return HTTP responses
+
+#### Service
+- Apply validation and business rules
+- Execute Prisma queries
+- Throw structured AppError responses
+- Prevent invalid operations
+
+### 15.3 Security
+
+All endpoints are protected using Bearer Token authentication.
+
+Middleware used:
+- `authMiddleware`
+- `roleMiddleware`
+
+### 15.4 Access Control Matrix
+
+| Endpoint              | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
+| --------------------- | ----- | ------- | --------- | ------ | --------- |
+| GET /adopters         | Yes   | Yes     | No        | No     | No        |
+| GET /adopters/{id}    | Yes   | Yes     | No        | No     | No        |
+| POST /adopters        | Yes   | No      | No        | No     | No        |
+| PUT /adopters/{id}    | Yes   | No      | No        | No     | No        |
+| DELETE /adopters/{id} | Yes   | No      | No        | No     | No        |
+
+
+### 15.5 Endpoints
+
+#### GET /adopters
+
+Retrieve a paginated list of adopters.
+
+| Name  | Type    | Required | Default |
+| ----- | ------- | -------- | ------- |
+| page  | integer | No       | 1       |
+| limit | integer | No       | 10      |
+
+Example Request
+
+GET /adopters?page=1&limit=10
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Hashini",
+      "email": "hashini@gmail.com",
+      "createdAt": "2026-05-12T10:00:00.000Z"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 1
+  }
+}
+```
+
+##### Status Codes
+- `200` Success
+- `400` Invalid pagination values
+- `401` Authentication required
+- `403` Insufficient permissions
+
+#### GET /adopters/{id}
+Retrieve a single adopter by ID.
+
+##### Path Parameters
+
+| Name | Type    | Required |
+| ---- | ------- | -------- |
+| id   | integer | Yes      |
+
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "Hashini",
+    "email": "hashini@gmail.com",
+    "createdAt": "2026-05-12T10:00:00.000Z"
+  }
+}
+```
+Status Codes
+- 200 Success
+- 400 Invalid adopter ID
+- 401 Authentication required
+- 403 Insufficient permissions
+- 404 Adopter not found
+
+#### POST /adopters
+
+Create a new adopter.
+
+
+##### Request Body
+
+```json
+{
+  "name": "Hashini",
+  "email": "hashini@gmail.com"
+}
+```
+Required Fields
+- name
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "Hashini",
+    "email": "hashini@gmail.com"
+  }
+}
+```
+##### Status Codes
+- `201` Created
+- `400` Invalid payload
+- `401` Authentication required
+- `403` Insufficient permissions
+- `409` Duplicate adopter
+
+#### PUT /adopters/{id}
+
+Update an existing adopter.
+
+##### Path Parameters
+
+| Name | Type    | Required |
+| ---- | ------- | -------- |
+| id   | integer | Yes      |
+
+
+##### Request Body
+Any subset of fields may be provided.
+```json
+{
+  "name": "Updated Name",
+  "email": "updated@gmail.com"
+}
+```
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "Updated Name",
+    "email": "updated@gmail.com"
+  }
+}
+```
+##### Status Codes
+- `200` Success
+- `400` Invalid request / empty payload / invalid ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Adopter not found
+
+#### DELETE /adopters/{id}
+Delete an adopter.
+
+##### Path Parameters
+
+| Name | Type    | Required |
+| ---- | ------- | -------- |
+| id   | integer | Yes      |
+
+
+```
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Adopter deleted successfully"
+  }
+}
+```
+##### Status Codes
+- `200` Success
+- `400` Invalid request / empty payload / invalid ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Adopter not found
+
+### 15.6 Validation Rules
+
+#### Pagination Validation
+- `page` must be: numeric , integer , greater than 0
+- `limit` must be: numeric , integer , greater than 0
+
+#### Create Validation
+
+Rules:
+- name is required
+- name must be non-empty after trim
+- email must be a string if provided
+
+Accepted example:
+```json
+{
+  "name": "Hashini",
+  "email": "hashini@gmail.com"
+}
+```
+
+#### Update Validation
+
+Rules:
+- at least one field must be provided
+- partial updates are allowed
+- name must not be empty if provided
+- email must be a string if provided
+
+Accepted example:
+```json
+{
+  "email": "updated@gmail.com"
+}
+```
+#### ID Validation
+
+id must be:
+- numeric
+- integer
+- positive
+
+### 15.7 Error Handling
+
+Uses centralised error middleware with AppError and ERROR_CODES.
+
+#### Standard Error Response
+
+```json
+{
+  "success": false,
+  "message": "Adopter not found",
+  "code": "DATA_001"
+}
+```
+
+#### Common Errors
+- Authentication required (401)
+- Insufficient permissions (403)
+- Invalid pagination (400)
+- Invalid adopter ID (400)
+- Missing required fields (400)
+- Empty update payload (400)
+- Invalid email (400)
+- Adopter not found (404)
+- Internal server error (500)
+
+### 15.8 Swagger Documentation
+
+All endpoints are documented in:
+
+`adopters.routes.ts`
+
+Available at:
+
+`http://localhost:3000/api-docs`
+
+Swagger supports:
+- Interactive testing
+- Request examples
+- Response definitions
+- Security schemas
+
+### 15.9 Testing
+
+#### Test Files
+- `tests/unit/adopters.test.ts`
+- `tests/integration/adopters.test.ts`
+
+#### Unit Tests Covered
+These tests exercise the service layer directly.
+
+#### Covered Scenarios
+
+##### listAdopters
+- returns paginated adopters
+- validates invalid page values
+- validates invalid limit values
+
+##### getAdopterById
+- returns adopter
+- throws for invalid id
+- throws when adopter missing
+
+##### createAdopter
+- creates adopter successfully
+- rejects missing name
+- rejects empty name
+- rejects invalid email type
+
+##### updateAdopter
+- updates adopter successfully
+- supports partial updates
+- rejects empty payload
+- rejects invalid name
+- rejects invalid email
+- throws when adopter missing
+
+#####  deleteAdopter
+- deletes adopter successfully
+- throws when adopter missing
+- rejects invalid id
+
+#### Integration Tests Covered
+These tests exercise the full API flow:
+route → middleware → controller → service → Prisma → response
+
+#### Covered scenarios:
+
+#### Authentication
+- returns 401 when token missing
+#### Authorization
+- Manager can access GET routes
+- non-admin roles blocked from mutations
+- returns 403 for unauthorized roles
+
+#### GET /adopters
+- returns paginated results
+- validates pagination query params
+
+#### GET /adopters/{id}
+- returns adopter
+- returns 400 for invalid ID
+- returns 404 when missing
+
+#### POST /adopters
+- creates adopter successfully
+- validates request body
+- rejects invalid email
+
+#### PUT /adopters/{id}
+- updates adopter
+- supports partial update
+- returns 404 when adopter missing
+
+#### DELETE /adopters/{id}
+- deletes adopter
+- returns 404 when adopter missing
+
+### 15.10 Test Strategy Used
+Current test strategy for this module:
+
+- Jest is used as the test runner
+- integration tests use supertest
+- Prisma is mocked in unit tests
+- integration tests use the real database flow
+- auth behaviour uses the current development auth scaffold
+- integration tests create and clean up their own data
+
+###  15.11 How To Run Adopter Tests
+Run unit tests only:
+
+npm test -- tests/unit/adopters.test.ts
+
+Run integration tests only:
+
+npm test -- tests/integration/adopters.test.ts
+
+### 15.12 Summary
+The Adopters API follows the TreeO2 backend engineering standard:
+
+- Modular architecture
+- Secure authentication
+- Role-based access control
+- Clean separation of concerns
+- Strong validation
+- Relationship management between users and projects
+- Swagger documentation
+- Unit testing for service/business logic
+- Integration testing for full API flow
+- Scalable structure for future project-user access rules
+---
+
 
 
