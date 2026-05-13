@@ -2558,7 +2558,7 @@ The Partners API follows the TreeO2 backend engineering standard:
 ---
 ## 15. Tree Scans API
 
-This module manages tree scan records collected across the TreeO2 platform. It provides full CRUD operations, recycling support, validation, role-based access control, and relationship checks against projects, users, tree species, and scan batches.
+This module manages tree scan records collected across the TreeO2 platform. It provides full CRUD operations, recycling support, validation, role-based access control, project-scoped access control, and relationship checks against projects, users, tree species, and scan batches.
 
 **Module Path:** `src/modules/tree-scans/`
 
@@ -2602,14 +2602,17 @@ Route → Validation Middleware → Controller → Service → Prisma ORM → Po
 #### Controller
 - Receive request data
 - Read params/query/body
+- Pass authenticated user context
 - Call service methods
 - Return HTTP response
 
 #### Service
 - Perform business validation
 - Validate relationships
+- Apply project-scoped access control
 - Execute database queries
 - Handle archive/recycle logic
+- Handle transactional audit logging
 - Throw structured errors
 
 #### Schemas
@@ -2627,12 +2630,18 @@ Middleware used:
 - `roleMiddleware`
 - `validate`
 
+In addition to route-level authorization, service-level access control is enforced:
+
+- `ADMIN` can access all tree scans
+- `MANAGER` can only access scans belonging to assigned projects
+- `INSPECTOR` can only access scans assigned to themselves
+
 ### 15.4 Access Control Matrix
 
 | Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
 |---|---|---|---|---|---|
-| GET /tree-scans | Yes | Yes | Yes | No | No |
-| GET /tree-scans/{id} | Yes | Yes | Yes | No | No |
+| GET /tree-scans | Yes | Yes (assigned projects only) | Yes (own scans only) | No | No |
+| GET /tree-scans/{id} | Yes | Yes (assigned projects only) | Yes (own scans only) | No | No |
 | POST /tree-scans | Yes | No | Yes | No | No |
 | PUT /tree-scans/{id} | Yes | No | Yes | No | No |
 | DELETE /tree-scans/{id} | Yes | No | No | No | No |
@@ -2663,7 +2672,7 @@ Retrieve paginated tree scans with optional filtering.
 {
   "success": true,
   "data": {
-    "items": [
+    "data": [
       {
         "id": 1,
         "fobId": "FOB-001",
@@ -2675,7 +2684,7 @@ Retrieve paginated tree scans with optional filtering.
         "estimatedPlantedMonth": 6
       }
     ],
-    "pagination": {
+    "meta": {
       "page": 1,
       "limit": 10,
       "total": 1,
@@ -2853,7 +2862,7 @@ Archive a tree scan.
 
 #### POST /tree-scans/recycle/{fobId}
 
-Recycle archived tree scans linked to a FOB identifier.
+Recycle active tree scans linked to a FOB identifier.
 
 ##### Path Parameters
 
@@ -2866,7 +2875,8 @@ Recycle archived tree scans linked to a FOB identifier.
 {
   "success": true,
   "data": {
-    "message": "Tree scans recycled successfully"
+    "message": "FOB recycled successfully",
+    "archivedCount": 1
   }
 }
 ```
@@ -2875,7 +2885,6 @@ Recycle archived tree scans linked to a FOB identifier.
 - `200` Success
 - `401` Authentication required
 - `403` Insufficient permissions
-- `404` No matching archived scans found
 
 ### 15.6 Validation Rules
 
@@ -2903,11 +2912,17 @@ Recycle archived tree scans linked to a FOB identifier.
 - Species must exist
 - Species must belong to project
 
+#### Access Control Validation
+- Managers can only access scans from assigned projects
+- Inspectors can only access scans assigned to themselves
+
 #### Archive Validation
 - Tree scan must exist
 
 #### Recycle Validation
-- FOB-linked archived scans must exist
+- FOB ID must be non-empty
+- Matching active scans are archived
+- If no matching active scans exist, archived count returns `0`
 
 ### 15.7 Error Handling
 
@@ -2936,7 +2951,17 @@ Uses centralised error middleware.
 - Tree scan not found
 - Internal server error
 
-### 15.8 Swagger Documentation
+### 15.8 Audit Logging
+
+Tree scan corrections create audit records using transactional writes.
+
+The following operations are executed within a Prisma transaction:
+- Tree scan update
+- Audit log creation
+
+This ensures both operations either succeed together or fail together.
+
+### 15.9 Swagger Documentation
 
 All endpoints are documented in:
 
@@ -2952,7 +2977,7 @@ Swagger supports:
 - Response definitions
 - Security schemas
 
-### 15.9 Testing
+### 15.10 Testing
 
 #### Test Files
 - `tests/unit/tree-scans.test.ts`
@@ -2966,6 +2991,8 @@ Swagger supports:
 ##### Authorization
 - Allowed roles succeed
 - Blocked roles return `403`
+- Managers restricted to assigned project scans
+- Inspectors restricted to own scans
 
 ##### Read
 - Get all tree scans
@@ -2984,6 +3011,7 @@ Swagger supports:
 
 ##### Update
 - Valid update succeeds
+- Transactional audit log creation
 - Empty payload rejected
 - Missing correction reason rejected
 - Missing tree scan rejected
@@ -2994,17 +3022,19 @@ Swagger supports:
 
 ##### Recycle
 - Valid recycle succeeds
-- Missing archived scans rejected
+- Archived count returned correctly
 
-### 15.10 Summary
+### 15.11 Summary
 
 The Tree Scans API follows the TreeO2 backend engineering standard:
 
 - Modular architecture
 - Secure authentication
 - Role-based access control
+- Service-level access scoping
 - Strong validation
 - Relationship integrity checks
+- Transactional audit logging
 - Archive and recycle support
 - Swagger documentation
 - Automated testing
