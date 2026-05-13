@@ -53,12 +53,26 @@ describe("Tree Scans Integration Tests", () => {
         deviceId: "DEVICE-001",
         validationNotes: "Healthy tree",
     });
-
+    
     beforeAll(async () => {
         await prisma.treeScanAudit.deleteMany();
         await prisma.treeScan.deleteMany();
         await prisma.projectTreeType.deleteMany();
         await prisma.userProject.deleteMany();
+
+        await prisma.user.deleteMany({
+            where: {
+                id: {
+                    in: [
+                        DEV_USER_IDS.ADMIN,
+                        DEV_USER_IDS.FARMER,
+                        DEV_USER_IDS.MANAGER,
+                        DEV_USER_IDS.INSPECTOR,
+                        DEV_USER_IDS.DEVELOPER,
+                    ],
+                },
+            },
+        });
 
         await prisma.project.deleteMany({
             where: {
@@ -440,6 +454,11 @@ describe("Tree Scans Integration Tests", () => {
             where: {
                 id: {
                     in: [
+                        DEV_USER_IDS.ADMIN,
+                        DEV_USER_IDS.FARMER,
+                        DEV_USER_IDS.MANAGER,
+                        DEV_USER_IDS.INSPECTOR,
+                        DEV_USER_IDS.DEVELOPER,
                         farmerId,
                         unassignedFarmerId,
                         unassignedInspectorId,
