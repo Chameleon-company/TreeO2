@@ -13,12 +13,21 @@ const TOKENS = {
     DEVELOPER: process.env.AUTH_DEV_DEVELOPER_TOKEN!,
 };
 
+const DEV_USER_IDS = {
+    ADMIN: 1,
+    FARMER: 2,
+    MANAGER: 3,
+    INSPECTOR: 4,
+    DEVELOPER: 5,
+};
+
 describe("Tree Scans Integration Tests", () => {
     let countryId: number;
     let adminLocationId: number;
     let projectId: number;
     let inactiveProjectId: number;
     let farmerId: number;
+    let managerId: number;
     let inspectorId: number;
     let unassignedFarmerId: number;
     let unassignedInspectorId: number;
@@ -27,7 +36,7 @@ describe("Tree Scans Integration Tests", () => {
     let scanId: number;
 
     const validPayload = () => ({
-        fobId: `FOB-${Date.now()}`,
+        fobId: `FOB-${Date.now()}-${Math.random()}`,
         projectId,
         farmerId,
         inspectorId,
@@ -95,6 +104,18 @@ describe("Tree Scans Integration Tests", () => {
             },
         });
 
+        const adminRole = await prisma.role.upsert({
+            where: { name: "ADMIN" },
+            update: {},
+            create: { name: "ADMIN" },
+        });
+
+        const managerRole = await prisma.role.upsert({
+            where: { name: "MANAGER" },
+            update: {},
+            create: { name: "MANAGER" },
+        });
+
         const farmerRole = await prisma.role.upsert({
             where: { name: "FARMER" },
             update: {},
@@ -105,6 +126,12 @@ describe("Tree Scans Integration Tests", () => {
             where: { name: "INSPECTOR" },
             update: {},
             create: { name: "INSPECTOR" },
+        });
+
+        const developerRole = await prisma.role.upsert({
+            where: { name: "DEVELOPER" },
+            update: {},
+            create: { name: "DEVELOPER" },
         });
 
         const country = await prisma.country.create({
@@ -151,6 +178,105 @@ describe("Tree Scans Integration Tests", () => {
 
         inactiveProjectId = inactiveProject.id;
 
+        await prisma.user.upsert({
+            where: { id: DEV_USER_IDS.ADMIN },
+            update: {
+                name: "Tree Scan Dev Admin",
+                email: "tree-scan-dev-admin@test.com",
+                roleId: adminRole.id,
+                accountActive: true,
+                canSignIn: true,
+            },
+            create: {
+                id: DEV_USER_IDS.ADMIN,
+                name: "Tree Scan Dev Admin",
+                email: "tree-scan-dev-admin@test.com",
+                roleId: adminRole.id,
+                accountActive: true,
+                canSignIn: true,
+            },
+        });
+
+        const manager = await prisma.user.upsert({
+            where: { id: DEV_USER_IDS.MANAGER },
+            update: {
+                name: "Tree Scan Dev Manager",
+                email: "tree-scan-dev-manager@test.com",
+                roleId: managerRole.id,
+                accountActive: true,
+                canSignIn: true,
+            },
+            create: {
+                id: DEV_USER_IDS.MANAGER,
+                name: "Tree Scan Dev Manager",
+                email: "tree-scan-dev-manager@test.com",
+                roleId: managerRole.id,
+                accountActive: true,
+                canSignIn: true,
+            },
+        });
+
+        managerId = manager.id;
+
+        const inspector = await prisma.user.upsert({
+            where: { id: DEV_USER_IDS.INSPECTOR },
+            update: {
+                name: "Tree Scan Inspector",
+                email: "tree-scan-inspector@test.com",
+                roleId: inspectorRole.id,
+                accountActive: true,
+                canSignIn: true,
+            },
+            create: {
+                id: DEV_USER_IDS.INSPECTOR,
+                name: "Tree Scan Inspector",
+                email: "tree-scan-inspector@test.com",
+                roleId: inspectorRole.id,
+                accountActive: true,
+                canSignIn: true,
+            },
+        });
+
+        inspectorId = inspector.id;
+
+        await prisma.user.upsert({
+            where: { id: DEV_USER_IDS.FARMER },
+            update: {
+                name: "Tree Scan Dev Farmer",
+                email: "tree-scan-dev-farmer@test.com",
+                roleId: farmerRole.id,
+                accountActive: true,
+                canSignIn: true,
+            },
+            create: {
+                id: DEV_USER_IDS.FARMER,
+                name: "Tree Scan Dev Farmer",
+                email: "tree-scan-dev-farmer@test.com",
+                roleId: farmerRole.id,
+                accountActive: true,
+                canSignIn: true,
+            },
+        });
+
+        await prisma.user.upsert({
+            where: { id: DEV_USER_IDS.DEVELOPER },
+            update: {
+                name: "Tree Scan Dev Developer",
+                email: "tree-scan-dev-developer@test.com",
+                roleId: developerRole.id,
+                accountActive: true,
+                canSignIn: true,
+            },
+            create: {
+                id: DEV_USER_IDS.DEVELOPER,
+                name: "Tree Scan Dev Developer",
+                email: "tree-scan-dev-developer@test.com",
+                roleId: developerRole.id,
+                accountActive: true,
+                canSignIn: true,
+            },
+        });
+
         const farmer = await prisma.user.upsert({
             where: { email: "tree-scan-farmer@test.com" },
             update: {
@@ -169,25 +295,6 @@ describe("Tree Scans Integration Tests", () => {
         });
 
         farmerId = farmer.id;
-
-        const inspector = await prisma.user.upsert({
-            where: { email: "tree-scan-inspector@test.com" },
-            update: {
-                name: "Tree Scan Inspector",
-                roleId: inspectorRole.id,
-                accountActive: true,
-                canSignIn: true,
-            },
-            create: {
-                name: "Tree Scan Inspector",
-                email: "tree-scan-inspector@test.com",
-                roleId: inspectorRole.id,
-                accountActive: true,
-                canSignIn: true,
-            },
-        });
-
-        inspectorId = inspector.id;
 
         const unassignedFarmer = await prisma.user.upsert({
             where: { email: "tree-scan-unassigned-farmer@test.com" },
@@ -257,6 +364,10 @@ describe("Tree Scans Integration Tests", () => {
                 },
                 {
                     userId: inspectorId,
+                    projectId,
+                },
+                {
+                    userId: managerId,
                     projectId,
                 },
             ],
@@ -330,7 +441,6 @@ describe("Tree Scans Integration Tests", () => {
                 id: {
                     in: [
                         farmerId,
-                        inspectorId,
                         unassignedFarmerId,
                         unassignedInspectorId,
                     ].filter((id): id is number => id !== undefined),
@@ -381,22 +491,35 @@ describe("Tree Scans Integration Tests", () => {
             expect(Array.isArray(response.body.data.data)).toBe(true);
         });
 
-        it("should return 200 for MANAGER token", async () => {
+        it("should return 200 for MANAGER token and only return assigned project scans", async () => {
             const response = await request(app)
                 .get("/tree-scans")
                 .set("Authorization", `Bearer ${TOKENS.MANAGER}`);
 
             expect(response.status).toBe(200);
             expect(response.body.success).toBe(true);
+            expect(Array.isArray(response.body.data.data)).toBe(true);
+            expect(
+                response.body.data.data.every(
+                    (scan: { projectId: number }) => scan.projectId === projectId,
+                ),
+            ).toBe(true);
         });
 
-        it("should return 200 for INSPECTOR token", async () => {
+        it("should return 200 for INSPECTOR token and only return own scans", async () => {
             const response = await request(app)
                 .get("/tree-scans")
                 .set("Authorization", `Bearer ${TOKENS.INSPECTOR}`);
 
             expect(response.status).toBe(200);
             expect(response.body.success).toBe(true);
+            expect(Array.isArray(response.body.data.data)).toBe(true);
+            expect(
+                response.body.data.data.every(
+                    (scan: { inspectorId: number }) =>
+                        scan.inspectorId === inspectorId,
+                ),
+            ).toBe(true);
         });
 
         it("should return 403 for FARMER token", async () => {
@@ -414,7 +537,11 @@ describe("Tree Scans Integration Tests", () => {
 
             expect(response.status).toBe(200);
             expect(response.body.data.data.length).toBeGreaterThanOrEqual(1);
-            expect(response.body.data.data[0].projectId).toBe(projectId);
+            expect(
+                response.body.data.data.every(
+                    (scan: { projectId: number }) => scan.projectId === projectId,
+                ),
+            ).toBe(true);
         });
 
         it("should return 400 for invalid pagination", async () => {
@@ -444,22 +571,24 @@ describe("Tree Scans Integration Tests", () => {
             expect(response.body.data.id).toBe(scanId);
         });
 
-        it("should return 200 for MANAGER token when scan exists", async () => {
+        it("should return 200 for MANAGER token when scan belongs to assigned project", async () => {
             const response = await request(app)
                 .get(`/tree-scans/${scanId}`)
                 .set("Authorization", `Bearer ${TOKENS.MANAGER}`);
 
             expect(response.status).toBe(200);
             expect(response.body.success).toBe(true);
+            expect(response.body.data.projectId).toBe(projectId);
         });
 
-        it("should return 200 for INSPECTOR token when scan exists", async () => {
+        it("should return 200 for INSPECTOR token when scan belongs to inspector", async () => {
             const response = await request(app)
                 .get(`/tree-scans/${scanId}`)
                 .set("Authorization", `Bearer ${TOKENS.INSPECTOR}`);
 
             expect(response.status).toBe(200);
             expect(response.body.success).toBe(true);
+            expect(response.body.data.inspectorId).toBe(inspectorId);
         });
 
         it("should return 403 for FARMER token", async () => {
@@ -715,7 +844,7 @@ describe("Tree Scans Integration Tests", () => {
             expect(response.status).toBe(404);
         });
     });
-    
+
     // Tests for POST /tree-scans/recycle/:fobId endpoint authorization and archive behaviour.
     describe("POST /tree-scans/recycle/:fobId", () => {
         it("should return 401 when no token is provided", async () => {
