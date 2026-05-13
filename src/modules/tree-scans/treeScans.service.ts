@@ -295,24 +295,28 @@ export class TreeScansService {
         await ensureSpeciesAssignedToProject(nextProjectId, nextSpeciesId);
       }
 
-      const updatedScan = await prisma.treeScan.update({
-        where: { id },
-        data: {
-          ...data,
-          isCorrected: true,
-          correctedBy: changedBy,
-        },
-        include: TREE_SCAN_INCLUDE,
-      });
+      const updatedScan = await prisma.$transaction(async (tx) => {
+        const updated = await tx.treeScan.update({
+          where: { id },
+          data: {
+            ...data,
+            isCorrected: true,
+            correctedBy: changedBy,
+          },
+          include: TREE_SCAN_INCLUDE,
+        });
 
-      await prisma.treeScanAudit.create({
-        data: {
-          treeScanId: id,
-          changedBy,
-          changeReason: data.correctionReason ?? "Tree scan corrected",
-          oldData: existingScan as unknown as Prisma.InputJsonValue,
-          newData: updatedScan as unknown as Prisma.InputJsonValue,
-        },
+        await tx.treeScanAudit.create({
+          data: {
+            treeScanId: id,
+            changedBy,
+            changeReason: data.correctionReason ?? "Tree scan corrected",
+            oldData: existingScan as unknown as Prisma.InputJsonValue,
+            newData: updated as unknown as Prisma.InputJsonValue,
+          },
+        });
+
+        return updated;
       });
 
       return updatedScan;
