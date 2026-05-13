@@ -61,6 +61,8 @@ describe("Tree Scans Integration Tests", () => {
             where: {
                 email: {
                     in: [
+                        "dev-admin@treeo2.local",
+                        "dev-inspector@treeo2.local",
                         "tree-scan-farmer@test.com",
                         "tree-scan-inspector@test.com",
                         "tree-scan-unassigned-farmer@test.com",
@@ -101,6 +103,48 @@ describe("Tree Scans Integration Tests", () => {
             update: {},
             create: { name: "INSPECTOR" },
         });
+        
+        const adminRole = await prisma.role.upsert({
+          where: { name: "ADMIN" },
+          update: {},
+          create: { name: "ADMIN" },
+      });
+      
+      await prisma.user.upsert({
+          where: { id: 1 },
+          update: {
+              name: "Dev Admin",
+              roleId: adminRole.id,
+              accountActive: true,
+              canSignIn: true,
+          },
+          create: {
+              id: 1,
+              name: "Dev Admin",
+              email: "dev-admin@treeo2.local",
+              roleId: adminRole.id,
+              accountActive: true,
+              canSignIn: true,
+          },
+      });
+      
+      await prisma.user.upsert({
+          where: { id: 4 },
+          update: {
+              name: "Dev Inspector",
+              roleId: inspectorRole.id,
+              accountActive: true,
+              canSignIn: true,
+          },
+          create: {
+              id: 4,
+              name: "Dev Inspector",
+              email: "dev-inspector@treeo2.local",
+              roleId: inspectorRole.id,
+              accountActive: true,
+              canSignIn: true,
+          },
+      });
 
         const country = await prisma.country.create({
             data: {
