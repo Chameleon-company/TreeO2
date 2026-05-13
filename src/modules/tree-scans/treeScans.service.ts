@@ -9,6 +9,11 @@ import type {
   UpdateTreeScanInput,
 } from "./treeScans.schemas";
 
+type AuthUser = {
+  id: number;
+  role: string;
+};
+
 // Ensure project exists and is active
 const ensureProjectExists = async (projectId: number) => {
   const project = await prisma.project.findUnique({
@@ -127,15 +132,73 @@ const ensureScanExists = async (id: number) => {
   return scan;
 };
 
+const applyTreeScanAccessScope = (
+  where: Prisma.TreeScanWhereInput,
+  user: AuthUser,
+): Prisma.TreeScanWhereInput => {
+  if (user.role === "ADMIN") {
+    return where;
+  }
+
+  if (user.role === "MANAGER") {
+    return {
+      ...where,
+      project: {
+        userProjects: {
+          some: {
+            userId: user.id,
+          },
+        },
+      },
+    };
+  }
+
+  if (user.role === "INSPECTOR") {
+    return {
+      ...where,
+      inspectorId: user.id,
+    };
+  }
+
+  return {
+    ...where,
+    id: -1,
+  };
+};
+
+const assertCanAccessScan = async (
+  scan: Awaited<ReturnType<typeof ensureScanExists>>,
+  user: AuthUser,
+) => {
+  if (user.role === "ADMIN") {
+    return;
+  }
+
+  if (user.role === "INSPECTOR" && scan.inspectorId === user.id) {
+    return;
+  }
+
+  if (user.role === "MANAGER") {
+    await ensureUserAssignedToProject(
+      user.id,
+      scan.projectId,
+      "Insufficient permissions",
+    );
+    return;
+  }
+
+  throw new AppError(403, "Insufficient permissions", ERROR_CODES.AUTH_004);
+};
+
 // Service layer for managing tree scan operations
 export class TreeScansService {
   // List tree scans with pagination and filtering
-  async listTreeScans(query: ListTreeScansQuery) {
+  async listTreeScans(query: ListTreeScansQuery, user: AuthUser) {
     const page = query.page;
     const limit = query.limit;
     const skip = (page - 1) * limit;
 
-    const where: Prisma.TreeScanWhereInput = {
+    const baseWhere: Prisma.TreeScanWhereInput = {
       ...(query.projectId !== undefined ? { projectId: query.projectId } : {}),
       ...(query.farmerId !== undefined ? { farmerId: query.farmerId } : {}),
       ...(query.inspectorId !== undefined
@@ -148,6 +211,8 @@ export class TreeScansService {
         : {}),
       ...(query.isValid !== undefined ? { isValid: query.isValid } : {}),
     };
+
+    const where = applyTreeScanAccessScope(baseWhere, user);
 
     try {
       const [data, total] = await Promise.all([
@@ -176,9 +241,13 @@ export class TreeScansService {
   }
 
   // Get a single tree scan by ID
-  async getTreeScanById(id: number) {
+  async getTreeScanById(id: number, user: AuthUser) {
     try {
-      return await ensureScanExists(id);
+      const scan = await ensureScanExists(id);
+
+      await assertCanAccessScan(scan, user);
+
+      return scan;
     } catch (error) {
       if (error instanceof AppError) {
         throw error;

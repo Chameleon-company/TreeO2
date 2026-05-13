@@ -28,7 +28,12 @@ export class TreeScansController {
     try {
       const query = req.query as unknown as ListTreeScansQuery;
 
-      const result = await treeScansService.listTreeScans(query);
+      const user = {
+        id: Number(req.user?.sub),
+        role: String(req.user?.role),
+      };
+
+      const result = await treeScansService.listTreeScans(query, user);
 
       return res.status(200).json({
         success: true,
@@ -44,7 +49,12 @@ export class TreeScansController {
     try {
       const id = Number(req.params.id);
 
-      const result = await treeScansService.getTreeScanById(id);
+      const user = {
+        id: Number(req.user?.sub),
+        role: String(req.user?.role),
+      };
+
+      const result = await treeScansService.getTreeScanById(id, user);
 
       return res.status(200).json({
         success: true,
