@@ -17,6 +17,10 @@ const longitudeSchema = z
   .min(TREE_SCAN_LIMITS.MIN_LONGITUDE)
   .max(TREE_SCAN_LIMITS.MAX_LONGITUDE);
 
+const booleanQuerySchema = z
+  .enum(["true", "false"])
+  .transform((value) => value === "true");
+
 // Create tree scan schema
 export const createTreeScanSchema = z.object({
   body: z.object({
@@ -177,9 +181,9 @@ export const listTreeScansSchema = z.object({
 
     batchId: idSchema.optional(),
 
-    isArchived: z.coerce.boolean().optional(),
+    isArchived: booleanQuerySchema.optional(),
 
-    isValid: z.coerce.boolean().optional(),
+    isValid: booleanQuerySchema.optional(),
   }),
 });
 
