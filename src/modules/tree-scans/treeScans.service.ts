@@ -388,8 +388,12 @@ export class TreeScansService {
             treeScanId: id,
             changedBy,
             changeReason: data.correctionReason ?? "Tree scan corrected",
-            oldData: JSON.parse(JSON.stringify(existingScan)),
-            newData: JSON.parse(JSON.stringify(updated)),
+            oldData: JSON.parse(
+              JSON.stringify(existingScan),
+            ) as Prisma.InputJsonValue,
+            newData: JSON.parse(
+              JSON.stringify(updated),
+            ) as Prisma.InputJsonValue,
           },
         });
 

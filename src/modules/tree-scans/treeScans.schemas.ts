@@ -120,11 +120,7 @@ export const updateTreeScanSchema = z.object({
 
       isArchived: z.boolean().optional(),
 
-      isCorrected: z.boolean().optional(),
-
-      correctedBy: idSchema.optional(),
-
-      correctionReason: z.string().trim().max(5000).optional(),
+      correctionReason: z.string().trim().min(1).max(5000),
 
       isValid: z.boolean().optional(),
 
@@ -132,20 +128,14 @@ export const updateTreeScanSchema = z.object({
     })
     .refine((data) => Object.keys(data).length > 0, {
       message: "At least one field is required for update",
-    })
-    .refine(
-      (data) => {
-        if (data.isCorrected) {
-          return !!data.correctionReason?.trim();
-        }
+    }),
+});
 
-        return true;
-      },
-      {
-        message: "Correction reason is required when correcting scan data",
-        path: ["correctionReason"],
-      },
-    ),
+// Recycle FOB params schema
+export const recycleFobSchema = z.object({
+  params: z.object({
+    fobId: z.string().trim().min(1).max(80),
+  }),
 });
 
 // Get by ID params schema
