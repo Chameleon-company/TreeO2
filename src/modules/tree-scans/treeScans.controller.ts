@@ -72,13 +72,12 @@ export class TreeScansController {
 
       const payload = req.body as UpdateTreeScanInput;
 
-      const changedBy = Number(req.user?.sub);
+      const user = {
+        id: Number(req.user?.sub),
+        role: String(req.user?.role),
+      };
 
-      const result = await treeScansService.updateTreeScan(
-        id,
-        payload,
-        changedBy,
-      );
+      const result = await treeScansService.updateTreeScan(id, payload, user);
 
       return res.status(200).json({
         success: true,

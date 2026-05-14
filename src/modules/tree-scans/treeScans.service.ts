@@ -323,13 +323,13 @@ export class TreeScansService {
   }
 
   // Update an existing tree scan and create audit log
-  async updateTreeScan(
-    id: number,
-    data: UpdateTreeScanInput,
-    changedBy: number,
-  ) {
+  async updateTreeScan(id: number, data: UpdateTreeScanInput, user: AuthUser) {
     try {
       const existingScan = await ensureScanExists(id);
+
+      await assertCanAccessScan(existingScan, user);
+
+      const changedBy = user.id;
 
       if (
         data.projectId !== undefined ||
