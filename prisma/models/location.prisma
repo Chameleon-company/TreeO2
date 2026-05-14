@@ -13,6 +13,8 @@ model Location {
   country  Country   @relation(fields: [countryId], references: [id], onDelete: Restrict)
   parent   Location? @relation("LocationHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children Location[] @relation("LocationHierarchy")
+  users    User[]     @relation("UserAdminLocation")
+  projects Project[]  @relation("ProjectAdminLocation")
 
   @@index([countryId])
   @@index([parentId])

@@ -1453,3 +1453,1106 @@ The Localization API follows the TreeO2 backend engineering standard:
 - Swagger documentation
 - Automated tests
 - Scalable structure for multilingual expansion
+
+## 12. Project Tree Types API
+
+This section documents the `project-tree-types` module that has now been implemented and tested.
+
+### Purpose
+
+`project-tree-types` is the junction/mapping module between projects and tree types.
+
+It is used to define which tree types are assigned to a specific project and is intended to support later validation in downstream modules such as `tree-scans`.
+
+It currently supports:
+- listing project/tree-type assignments
+- filtering assignments by `project_id`
+- assigning a tree type to a project
+- removing a tree type assignment from a project
+
+### Route Base
+
+Current route base:
+
+`/project-tree-types`
+
+Examples:
+- `GET /project-tree-types`
+- `GET /project-tree-types?project_id=1`
+- `POST /project-tree-types`
+- `DELETE /project-tree-types/:project_id/:tree_type_id`
+
+Swagger UI:
+
+`http://localhost:3000/api-docs`
+
+---
+
+### Files Added / Updated
+
+#### Module Files
+
+- `src/modules/project-tree-types/projectTreeTypes.routes.ts`
+- `src/modules/project-tree-types/projectTreeTypes.controller.ts`
+- `src/modules/project-tree-types/projectTreeTypes.service.ts`
+- `src/modules/project-tree-types/projectTreeTypes.schemas.ts`
+- `src/modules/project-tree-types/projectTreeTypes.docs.ts`
+- `src/modules/project-tree-types/index.ts`
+
+#### Route Registration
+
+- `src/routes/index.ts`
+
+#### Test Files
+
+- `tests/integration/project-tree-types.test.ts`
+- `tests/unit/project-tree-types.test.ts`
+
+---
+
+### Responsibility of Each File
+
+#### `projectTreeTypes.routes.ts`
+
+Defines all `project-tree-types` endpoints and applies middleware in the current project pattern.
+
+Current route protection:
+- `GET` uses `authMiddleware`
+- `GET` also uses `roleMiddleware(["ADMIN", "MANAGER"])`
+- `POST` uses `authMiddleware`
+- `POST` also uses `roleMiddleware(["ADMIN"])`
+- `DELETE` uses `authMiddleware`
+- `DELETE` also uses `roleMiddleware(["ADMIN"])`
+- request validation is applied using `validateMiddleware(...)`
+
+#### `projectTreeTypes.controller.ts`
+
+Receives validated requests and returns HTTP responses.
+
+Current controller responsibilities:
+- call the service layer
+- return status codes
+- return standard JSON success response shape
+
+#### `projectTreeTypes.service.ts`
+
+Contains the actual business logic and Prisma usage.
+
+Current service responsibilities:
+- fetch project/tree-type mappings from Prisma
+- optionally filter mappings by `project_id`
+- verify referenced project exists before create
+- verify referenced tree type exists before create
+- prevent duplicate mapping creation
+- create project/tree-type assignments
+- delete project/tree-type assignments
+- map Prisma response fields to API response shape
+- log create and delete actions
+
+#### `projectTreeTypes.schemas.ts`
+
+Contains Zod validation schemas for:
+- list query params
+- create body
+- delete path params
+
+#### `projectTreeTypes.docs.ts`
+
+Contains Swagger/OpenAPI annotations for:
+- GET `/project-tree-types`
+- POST `/project-tree-types`
+- DELETE `/project-tree-types/{project_id}/{tree_type_id}`
+
+Also defines request body/query/path parameter documentation so Swagger UI shows the required input correctly.
+
+#### `index.ts`
+
+Exports `projectTreeTypesRoutes` as the module entry point.
+
+#### `src/routes/index.ts`
+
+Registers the module centrally:
+
+`router.use("/project-tree-types", projectTreeTypesRoutes);`
+
+---
+
+### Request Flow
+
+#### A. GET `/project-tree-types`
+
+Flow:
+
+`routes -> authMiddleware -> roleMiddleware(["ADMIN", "MANAGER"]) -> validateMiddleware(listProjectTreeTypesSchema) -> controller -> service -> Prisma -> response`
+
+Detailed flow:
+1. request reaches `projectTreeTypes.routes.ts`
+2. `authMiddleware` checks bearer token using current auth scaffold
+3. `roleMiddleware(["ADMIN", "MANAGER"])` checks role using current scaffold
+4. `validateMiddleware` validates optional `project_id` query param
+5. controller calls `listProjectTreeTypes(query)`
+6. service fetches mappings from Prisma
+7. service includes related `project` and `treeType` data
+8. service maps DB fields to API response shape
+9. controller returns `200 OK`
+
+#### B. POST `/project-tree-types`
+
+Flow:
+
+`routes -> authMiddleware -> roleMiddleware(["ADMIN"]) -> validateMiddleware(createProjectTreeTypeSchema) -> controller -> service -> Prisma -> response`
+
+Detailed flow:
+1. request reaches create route
+2. `authMiddleware` checks authentication
+3. `roleMiddleware(["ADMIN"])` checks Admin role using current scaffold
+4. `validateMiddleware` validates request body
+5. controller calls `addProjectTreeType(payload)`
+6. service checks project exists
+7. service checks tree type exists
+8. service checks duplicate mapping
+9. service creates mapping using Prisma
+10. service logs create action
+11. controller returns `201 Created`
+
+#### C. DELETE `/project-tree-types/:project_id/:tree_type_id`
+
+Flow:
+
+`routes -> authMiddleware -> roleMiddleware(["ADMIN"]) -> validateMiddleware(deleteProjectTreeTypeSchema) -> controller -> service -> Prisma -> response`
+
+Detailed flow:
+1. request reaches delete route
+2. auth is checked
+3. admin role is checked
+4. `project_id` and `tree_type_id` are validated
+5. controller calls `removeProjectTreeType(projectId, treeTypeId)`
+6. service checks mapping exists
+7. service deletes mapping
+8. service logs delete action
+9. controller returns `200 OK`
+
+---
+
+### Access Matrix
+
+| Endpoint | Method | Auth Required | Role Required | Notes |
+|---|---|---:|---|---|
+| `/project-tree-types` | GET | Yes | `ADMIN`, `MANAGER` | Optional `project_id` filter |
+| `/project-tree-types` | POST | Yes | `ADMIN` | Assign tree type to project |
+| `/project-tree-types/:project_id/:tree_type_id` | DELETE | Yes | `ADMIN` | Remove assignment |
+
+Important note:
+- access currently depends on the existing scaffolded auth/role middleware
+- this module intentionally reuses that scaffold without redesigning it
+- Manager access is role-based only at this stage and is not yet project-scoped
+
+---
+
+### Project Tree Type Data Shape
+
+Current API response shape:
+
+```json
+{
+  "project_id": 1,
+  "tree_type_id": 3,
+  "project": {
+    "id": 1,
+    "name": "Northern NSW Reforestation"
+  },
+  "tree_type": {
+    "id": 3,
+    "name": "Mahogany",
+    "key": "mahogany",
+    "scientific_name": "Swietenia macrophylla",
+    "dry_weight_density": 550
+  }
+}
+```
+
+Current business rules:
+- `project_id` is required for create
+- `tree_type_id` is required for create
+- project must exist before assignment is created
+- tree type must exist before assignment is created
+- duplicate `(project_id, tree_type_id)` mapping is blocked
+- delete currently removes an existing mapping if found
+
+---
+
+### Validation Rules
+
+#### Query Validation
+
+`project_id` is optional for list requests.
+
+If provided, it must be:
+- numeric
+- integer
+- positive
+
+Invalid examples:
+- `abc`
+- `0`
+- `-1`
+
+#### Create Validation
+
+Accepted body example:
+
+```json
+{
+  "project_id": 1,
+  "tree_type_id": 3
+}
+```
+
+Rules:
+- `project_id` is required
+- `tree_type_id` is required
+- both values must be positive integers
+
+#### Delete Param Validation
+
+Both path params are required:
+- `project_id`
+- `tree_type_id`
+
+Rules:
+- both must be numeric
+- both must be integers
+- both must be positive
+
+---
+
+### Error Cases Handled
+
+The module currently handles:
+
+- missing token -> `401`
+- authenticated role outside Admin/Manager on GET -> `403`
+- non-admin mutation request -> `403`
+- invalid `project_id` query -> `400`
+- missing body fields on create -> `400`
+- invalid body ids on create -> `400`
+- invalid path params on delete -> `400`
+- project not found -> `404`
+- tree type not found -> `404`
+- mapping not found on delete -> `404`
+- duplicate mapping -> `409`
+
+---
+
+### Sorting Behaviour
+
+Current list sorting:
+
+- mappings are fetched with `orderBy: [{ projectId: "asc" }, { treeTypeId: "asc" }]`
+
+This means:
+- mappings are grouped in ascending `project_id` order
+- within a project, mappings are ordered by ascending `tree_type_id`
+
+If a different sort order is needed later, it should be changed in:
+
+`src/modules/project-tree-types/projectTreeTypes.service.ts`
+
+---
+
+### Test Coverage Added
+
+Two test files are currently used for this module:
+
+- `tests/integration/project-tree-types.test.ts`
+- `tests/unit/project-tree-types.test.ts`
+
+No separate schema-only test file was added because the repo does not currently have that as an established convention.
+
+#### A. Integration Tests Covered
+
+This suite now exercises the full runtime path:
+
+`route -> middleware -> controller -> service -> Prisma -> Postgres -> response`
+
+Covered scenarios:
+
+##### GET `/project-tree-types`
+- returns `401` when token is missing
+- returns `403` for authenticated role outside Admin/Manager
+- returns `200` for Admin
+- returns `200` for Manager
+- returns mapped records
+- returns empty array for a project filter when no mappings exist
+- applies `project_id` filtering when provided
+- returns `400` for invalid `project_id` query
+
+##### POST `/project-tree-types`
+- returns `401` when token is missing
+- returns `403` for non-admin user
+- returns `201` for valid admin request
+- returns `400` when body fields are missing
+- returns `400` for invalid ids
+- returns `404` when project is missing
+- returns `404` when tree type is missing
+- returns `409` when mapping already exists
+
+##### DELETE `/project-tree-types/:project_id/:tree_type_id`
+- returns `401` when token is missing
+- returns `403` for non-admin user
+- returns `200` for valid admin delete
+- returns `400` for invalid path params
+- returns `404` when mapping is missing
+
+#### B. Unit Tests Covered
+
+These tests exercise the service layer directly.
+
+Covered scenarios:
+
+##### `listProjectTreeTypes`
+- returns mapped assignments
+- applies `project_id` filter
+- returns empty array
+
+##### `addProjectTreeType`
+- creates mapping successfully
+- throws when project does not exist
+- throws when tree type does not exist
+- throws conflict when mapping already exists
+- maps DB uniqueness violation to conflict
+
+##### `removeProjectTreeType`
+- deletes an existing mapping successfully
+- throws not found when mapping is missing
+- logs delete action
+
+### Test Strategy Used
+
+Current test strategy for this module:
+
+- Jest is used as the test runner
+- integration tests use `supertest`
+- the main integration suite uses real Prisma and a real Postgres database
+- logger is mocked in unit/integration tests
+- integration auth behaviour uses the current development auth scaffold
+- the integration suite assumes a reachable `DATABASE_URL` and an already-synced Prisma schema
+
+This matches the current repo state where:
+- Jest is already configured
+- test files already live under `tests/unit` and `tests/integration`
+- the integration suite creates and cleans up its own fixture data
+
+---
+
+### How To Run Project Tree Types Tests
+
+Run unit tests only:
+
+```bash
+npm test -- --runInBand tests/unit/project-tree-types.test.ts
+```
+
+Before running the integration tests:
+
+- make sure Postgres is running
+- make sure `DATABASE_URL` points to the test database
+- make sure the Prisma schema is already applied
+
+Typical local setup:
+
+```bash
+npm run prisma:generate
+npm run prisma:push
+```
+
+Run integration tests only:
+
+```bash
+npm test -- --runInBand tests/integration/project-tree-types.test.ts
+```
+
+Run all `project-tree-types` tests:
+
+```bash
+npm test -- --runInBand tests/unit/project-tree-types.test.ts tests/integration/project-tree-types.test.ts
+```
+
+---
+
+### Current Limitations
+
+- auth and role checks depend on the existing scaffold and are not fully production-complete yet
+- Manager read access is not project-scoped at this stage
+- current delete behaviour does not yet block removal based on future `tree-scans` business rules because that rule has not been finalized in the current codebase
+
+---
+
+### Summary
+
+The `project-tree-types` module is now fully wired into the backend with:
+- route registration
+- controller/service separation
+- Zod validation
+- Swagger documentation
+- Admin/Manager read access
+- admin-only mutation access
+- duplicate-assignment protection
+- unit and real DB-backed API integration test coverage
+
+This module now provides the project-to-tree-type assignment layer needed before downstream modules such as `tree-scans` can validate whether a scanned tree type is allowed for a given project.
+
+## 13. User-Project Assignment API
+
+This module manages the assignment relationship between users and projects in the TreeO2 platform. It allows authorised users to view user-project assignments, assign users to projects, and remove users from projects.
+
+**Module Path:** `src/modules/user-project-assignment/`
+
+### Files
+- `userProjectAssignment.routes.ts`
+- `userProjectAssignment.controller.ts`
+- `userProjectAssignment.service.ts`
+- `index.ts`
+
+### 13.1 Purpose
+
+The User-Project Assignment API is responsible for managing which users are connected to which projects.
+
+This is important because projects need assigned users such as:
+- Managers
+- Inspectors
+- Farmers
+- Other project-related users
+
+The module does not create users or projects. It only manages the relationship between existing users and existing projects.
+
+### 13.2 Architecture Flow
+
+Every request follows the standard backend module structure:
+
+```text
+Route → Controller → Service → Prisma ORM → PostgreSQL → Response
+```
+
+#### Responsibilities
+
+#### Routes
+- Define endpoints
+- Apply authentication middleware
+- Apply role-based authorization
+- Contain Swagger documentation
+
+#### Controller
+- Receive request data
+- Read params/body
+- Call service methods
+- Return HTTP response
+
+#### Service
+- Validate user and project IDs
+- Check whether user exists
+- Check whether project exists
+- Check duplicate assignments
+- Execute create/delete database operations
+- Throw structured errors
+
+### 13.3 Security
+
+All endpoints are protected using Bearer Token authentication.
+
+Middleware used:
+- `authMiddleware`
+- `roleMiddleware`
+
+### 13.4 Access Control Matrix
+
+| Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
+|---|---|---|---|---|---|
+| GET /user-projects | Yes | Yes | No | No | No |
+| POST /user-projects | Yes | No | No | No | No |
+| DELETE /user-projects/{user_id}/{project_id} | Yes | No | No | No | No |
+
+### 13.5 Endpoints
+
+#### GET /user-projects
+
+Retrieve all user-project assignments.
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "userId": 1,
+      "projectId": 10,
+      "user": {
+        "id": 1,
+        "name": "Assigned User",
+        "email": "assigned-user@test.com"
+      },
+      "project": {
+        "id": 10,
+        "name": "Assignment Test Project",
+        "isActive": true
+      }
+    }
+  ]
+}
+```
+
+##### Status Codes
+- `200` Success
+- `401` Authentication required
+- `403` Insufficient permissions
+
+#### POST /user-projects
+
+Assign a user to a project.
+
+##### Request Body
+
+```json
+{
+  "userId": 1,
+  "projectId": 10
+}
+```
+
+##### Required Fields
+- `userId`
+- `projectId`
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "userId": 1,
+    "projectId": 10,
+    "user": {
+      "id": 1,
+      "name": "Assigned User",
+      "email": "assigned-user@test.com"
+    },
+    "project": {
+      "id": 10,
+      "name": "Assignment Test Project",
+      "isActive": true
+    }
+  }
+}
+```
+
+##### Status Codes
+- `201` Created
+- `400` Invalid payload
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` User or project not found
+- `409` Assignment already exists
+
+#### DELETE /user-projects/{user_id}/{project_id}
+
+Remove a user from a project.
+
+##### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| user_id | integer | Yes |
+| project_id | integer | Yes |
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "User project assignment removed successfully"
+  }
+}
+```
+
+##### Status Codes
+- `200` Success
+- `400` Invalid user or project ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Assignment not found
+
+### 13.6 Validation Rules
+
+#### Assignment Validation
+- `userId` must be a positive integer
+- `projectId` must be a positive integer
+- User must exist before assignment
+- Project must exist before assignment
+- Duplicate user-project assignments are not allowed
+
+#### Delete Validation
+- `user_id` must be a positive integer
+- `project_id` must be a positive integer
+- Assignment must exist before it can be removed
+
+### 13.7 Error Handling
+
+Uses centralised error middleware.
+
+#### Standard Error Response
+
+```json
+{
+  "success": false,
+  "message": "User not found"
+}
+```
+
+#### Common Errors
+- Authentication required
+- Insufficient permissions
+- Invalid userId or projectId
+- User not found
+- Project not found
+- Assignment already exists
+- Assignment not found
+- Internal server error
+
+### 13.8 Swagger Documentation
+
+All endpoints are documented in:
+
+`userProjectAssignment.routes.ts`
+
+Available at:
+
+`http://localhost:3000/api-docs`
+
+Swagger supports:
+- Interactive testing
+- Request examples
+- Response definitions
+- Security schemas
+
+### 13.9 Testing
+
+#### Test Files
+- `tests/unit/user-project-assignment.test.ts`
+- `tests/integration/user-project-assignment.test.ts`
+
+#### Covered Scenarios
+
+##### Authentication
+- No token returns `401`
+
+##### Authorization
+- Admin and Manager can list assignments
+- Inspector, Farmer, and Developer are blocked from listing assignments
+- Only Admin can assign users to projects
+- Only Admin can remove user-project assignments
+
+##### Read
+- Get all user-project assignments
+- Response returns assignment records with related user and project data
+
+##### Create
+- Valid assignment is created
+- Invalid payload is rejected
+- Missing user returns `404`
+- Missing project returns `404`
+- Duplicate assignment returns `409`
+
+##### Delete
+- Valid assignment is removed
+- Invalid path parameters are rejected
+- Missing assignment returns `404`
+- Database confirms assignment is deleted
+
+### 13.10 Summary
+
+The User-Project Assignment API follows the TreeO2 backend engineering standard:
+
+- Modular architecture
+- Secure authentication
+- Role-based access control
+- Clean separation of concerns
+- Strong validation
+- Relationship management between users and projects
+- Swagger documentation
+- Unit testing for service/business logic
+- Integration testing for full API flow
+- Scalable structure for future project-user access rules
+---
+
+## 14. Partners API
+
+This module manages partner organisations in the TreeO2 platform. It provides full CRUD operations with validation and role-based access control.
+
+**Module Path:** `src/modules/partners/`
+
+### Files
+
+- `partners.routes.ts`
+- `partners.controller.ts`
+- `partners.service.ts`
+- `index.ts`
+
+### 14.1 Purpose
+
+The Partners API is responsible for creating, retrieving, updating, and deleting partner organisations in the system.
+
+### 14.2 Architecture Flow
+
+Every request follows the standard backend module structure:
+
+```text
+Route -> Controller -> Service -> Prisma ORM -> PostgreSQL -> Response
+```
+
+#### Responsibilities
+
+#### Routes
+
+- Define endpoints
+- Apply authentication middleware
+- Apply role-based authorization
+- Contain Swagger documentation
+
+#### Controller
+
+- Receive request data
+- Read params and body
+- Call service methods
+- Return HTTP response
+
+#### Service
+
+- Perform validation
+- Apply business rules
+- Execute database queries
+- Throw structured errors
+
+### 14.3 Security
+
+All endpoints are protected using Bearer Token authentication.
+
+Middleware used:
+
+- `authMiddleware`
+- `roleMiddleware`
+
+### 14.4 Access Control Matrix
+
+| Endpoint              | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
+| --------------------- | ----- | ------- | --------- | ------ | --------- |
+| GET /partners         | Yes   | Yes     | No        | No     | No        |
+| GET /partners/{id}    | Yes   | Yes     | No        | No     | No        |
+| POST /partners        | Yes   | No      | No        | No     | No        |
+| PUT /partners/{id}    | Yes   | No      | No        | No     | No        |
+| DELETE /partners/{id} | Yes   | No      | No        | No     | No        |
+
+### 14.5 Endpoints
+
+#### GET /partners
+
+Retrieve all partners ordered by newest first.
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "TreeO2-Xpand Foundation",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+##### Status Codes
+
+- `200` Success
+- `401` Authentication required
+- `403` Insufficient permissions
+
+#### GET /partners/{id}
+
+Retrieve a single partner by ID.
+
+##### Path Parameters
+
+| Name | Type    | Required |
+| ---- | ------- | -------- |
+| id   | integer | Yes      |
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "TreeO2-Xpand Foundation",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+##### Status Codes
+
+- `200` Success
+- `400` Invalid partner ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Partner not found
+
+#### POST /partners
+
+Create a new partner.
+
+##### Request Body
+
+```json
+{
+  "name": "TreeO2-Xpand Foundation"
+}
+```
+
+##### Required Fields
+
+- `name`
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "TreeO2-Xpand Foundation",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+##### Status Codes
+
+- `201` Created
+- `400` Invalid payload
+- `401` Authentication required
+- `403` Insufficient permissions
+
+#### PUT /partners/{id}
+
+Update an existing partner.
+
+##### Path Parameters
+
+| Name | Type    | Required |
+| ---- | ------- | -------- |
+| id   | integer | Yes      |
+
+##### Request Body
+
+```json
+{
+  "name": "Updated Partner Name"
+}
+```
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "Updated Partner Name",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+##### Status Codes
+
+- `200` Success
+- `400` Invalid request or empty payload or invalid ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Partner not found
+
+#### DELETE /partners/{id}
+
+Delete a partner.
+
+##### Path Parameters
+
+| Name | Type    | Required |
+| ---- | ------- | -------- |
+| id   | integer | Yes      |
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Partner deleted successfully"
+  }
+}
+```
+
+##### Status Codes
+
+- `200` Success
+- `400` Invalid partner ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Partner not found
+
+### 14.6 Validation Rules
+
+#### Create Validation
+
+- `name` must be a non-empty string
+- `name` must not be blank or whitespace only
+
+#### Update Validation
+
+- At least one field must be provided
+- `name` if provided must be a non-empty string
+
+#### Delete Validation
+
+- Partner organisation must exist before deletion
+
+### 14.7 Error Handling
+
+Uses centralised error middleware.
+
+#### Standard Error Response
+
+```json
+{
+  "success": false,
+  "message": "Partner not found"
+}
+```
+
+#### Common Errors
+
+- Authentication required
+- Insufficient permissions
+- Invalid partner ID
+- Missing or empty name
+- Empty update payload
+- Partner not found
+- Internal server error
+
+### 14.8 Swagger Documentation
+
+All endpoints are documented in:
+
+`partners.routes.ts`
+
+Available at:
+
+`http://localhost:3000/api-docs`
+
+Swagger supports:
+
+- Interactive testing
+- Request examples
+- Response definitions
+- Security schemas
+
+### 14.9 Testing
+
+#### Test Files
+
+- `tests/unit/partners.test.ts`
+- `tests/integration/partners.test.ts`
+
+#### Covered Scenarios
+
+##### Authentication
+
+- No token returns `401`
+
+##### Authorization
+
+- Admin and Manager can access GET endpoints
+- Only Admin can create, update and delete
+- Other roles return `403`
+
+##### Read
+
+- Get all partners returns list
+- Get partner by ID returns correct record
+- Missing partner returns `404`
+- Invalid ID returns `400`
+
+##### Create
+
+- Valid partner created with `201`
+- Empty name rejected with `400`
+- Missing name rejected with `400`
+
+##### Update
+
+- Valid update succeeds with `200`
+- Empty payload rejected with `400`
+- Invalid ID rejected with `400`
+- Missing partner returns `404`
+
+##### Delete
+
+- Valid delete succeeds with `200`
+- Missing partner returns `404`
+- Invalid ID returns `400`
+
+### 14.10 How to Run Partners Tests
+
+Run unit tests only:
+
+```bash
+npm test -- --runInBand tests/unit/partners.test.ts
+```
+
+Run integration tests only:
+
+```bash
+npm test -- --runInBand tests/integration/partners.test.ts
+```
+
+Run both:
+
+```bash
+npm test -- --runInBand tests/unit/partners.test.ts tests/integration/partners.test.ts
+```
+
+### 14.11 Current Limitations
+
+- auth and role checks depend on the existing scaffold and are not fully production-complete yet
+- there is no soft delete — partner organisations are permanently removed on delete
+
+### 14.12 Summary
+
+The Partners API follows the TreeO2 backend engineering standard:
+
+- Modular architecture
+- Secure authentication
+- Role-based access control
+- Clean separation of concerns
+- Strong validation
+- Full CRUD support
+- Swagger documentation
+- Automated tests
+- Scalable structure for future enhancements
+
+
