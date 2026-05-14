@@ -1,10 +1,26 @@
 import type { NextFunction, Request, Response } from "express";
 import { treeScansService } from "./treeScans.service";
+import { AppError } from "../../middleware/errorHandler";
+import { ERROR_CODES } from "../../utils/errorCodes";
 import type {
   CreateTreeScanInput,
   ListTreeScansQuery,
   UpdateTreeScanInput,
 } from "./treeScans.schemas";
+
+const getAuthUser = (req: Request) => {
+  const id = Number(req.user?.sub);
+  const role = req.user?.role;
+
+  if (!Number.isInteger(id) || !role) {
+    throw new AppError(401, ERROR_CODES.AUTH_003, ERROR_CODES.AUTH_003);
+  }
+
+  return {
+    id,
+    role: String(role),
+  };
+};
 
 export class TreeScansController {
   // Create a new tree scan
@@ -28,10 +44,7 @@ export class TreeScansController {
     try {
       const query = req.query as unknown as ListTreeScansQuery;
 
-      const user = {
-        id: Number(req.user?.sub),
-        role: String(req.user?.role),
-      };
+      const user = getAuthUser(req);
 
       const result = await treeScansService.listTreeScans(query, user);
 
@@ -49,10 +62,7 @@ export class TreeScansController {
     try {
       const id = Number(req.params.id);
 
-      const user = {
-        id: Number(req.user?.sub),
-        role: String(req.user?.role),
-      };
+      const user = getAuthUser(req);
 
       const result = await treeScansService.getTreeScanById(id, user);
 
@@ -72,10 +82,7 @@ export class TreeScansController {
 
       const payload = req.body as UpdateTreeScanInput;
 
-      const user = {
-        id: Number(req.user?.sub),
-        role: String(req.user?.role),
-      };
+      const user = getAuthUser(req);
 
       const result = await treeScansService.updateTreeScan(id, payload, user);
 

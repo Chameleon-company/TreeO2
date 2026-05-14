@@ -3,7 +3,6 @@ import { TreeScansService } from "../../src/modules/tree-scans/treeScans.service
 
 jest.mock("@prisma/client", () => {
     const mockPrisma: any = {
-
         project: {
             findUnique: jest.fn(),
         },
@@ -31,8 +30,9 @@ jest.mock("@prisma/client", () => {
             create: jest.fn(),
         },
     };
-    
+
     mockPrisma.$transaction = jest.fn((callback: any) => callback(mockPrisma));
+
     class PrismaClientKnownRequestError extends Error {
         code: string;
 
@@ -287,7 +287,9 @@ describe("TreeScansService", () => {
         it("should throw DATA_001 when tree scan does not exist", async () => {
             mockPrisma.treeScan.findUnique.mockResolvedValue(null);
 
-            await expect(service.getTreeScanById(999, adminUser)).rejects.toMatchObject({
+            await expect(
+                service.getTreeScanById(999, adminUser),
+            ).rejects.toMatchObject({
                 statusCode: 404,
                 code: ERROR_CODES.DATA_001,
                 message: "Tree scan not found",
@@ -486,7 +488,6 @@ describe("TreeScansService", () => {
         const updateInput = {
             heightM: 4.1,
             circumferenceCm: 22,
-            isCorrected: true,
             correctionReason: "Measurement corrected after verification",
             validationNotes: "Updated after inspection",
         };
@@ -497,6 +498,7 @@ describe("TreeScansService", () => {
             mockPrisma.treeScan.update.mockResolvedValue({
                 ...treeScanRecord,
                 ...updateInput,
+                isCorrected: true,
                 correctedBy: 1,
             });
 
@@ -509,13 +511,14 @@ describe("TreeScansService", () => {
                 newData: {
                     ...treeScanRecord,
                     ...updateInput,
+                    isCorrected: true,
                     correctedBy: 1,
                 },
             });
         });
 
         it("should update a tree scan and create audit log", async () => {
-            const result = await service.updateTreeScan(1, updateInput, 1);
+            const result = await service.updateTreeScan(1, updateInput, adminUser);
 
             expect(mockPrisma.$transaction).toHaveBeenCalled();
 
@@ -545,14 +548,26 @@ describe("TreeScansService", () => {
             expect(result).toEqual({
                 ...treeScanRecord,
                 ...updateInput,
+                isCorrected: true,
                 correctedBy: 1,
+            });
+        });
+
+        it("should throw AUTH_004 when inspector tries to update a tree scan", async () => {
+            await expect(
+                service.updateTreeScan(1, updateInput, inspectorUser),
+            ).rejects.toMatchObject({
+                statusCode: 403,
+                code: ERROR_CODES.AUTH_004,
             });
         });
 
         it("should throw DATA_001 when tree scan does not exist", async () => {
             mockPrisma.treeScan.findUnique.mockResolvedValue(null);
 
-            await expect(service.updateTreeScan(999, updateInput, 1)).rejects.toMatchObject({
+            await expect(
+                service.updateTreeScan(999, updateInput, adminUser),
+            ).rejects.toMatchObject({
                 statusCode: 404,
                 code: ERROR_CODES.DATA_001,
                 message: "Tree scan not found",
@@ -603,7 +618,7 @@ describe("TreeScansService", () => {
                     speciesId: 7,
                     correctionReason: "Relational fields corrected",
                 },
-                1,
+                adminUser,
             );
 
             expect(mockPrisma.project.findUnique).toHaveBeenCalledWith({
@@ -624,7 +639,9 @@ describe("TreeScansService", () => {
         it("should throw SYS_002 when update fails unexpectedly", async () => {
             mockPrisma.treeScan.update.mockRejectedValue(new Error("DB failure"));
 
-            await expect(service.updateTreeScan(1, updateInput, 1)).rejects.toMatchObject({
+            await expect(
+                service.updateTreeScan(1, updateInput, adminUser),
+            ).rejects.toMatchObject({
                 statusCode: 500,
                 code: ERROR_CODES.SYS_002,
             });
@@ -697,7 +714,7 @@ describe("TreeScansService", () => {
                 message: "FOB ID is required",
             });
         });
-        
+
         it("should throw SYS_002 when recycle fails unexpectedly", async () => {
             mockPrisma.treeScan.updateMany.mockRejectedValue(new Error("DB failure"));
 

@@ -14,12 +14,12 @@ const router = Router();
 
 /**
  * LIST TREE SCANS
- * ADMIN + MANAGER + INSPECTOR
+ * ADMIN + MANAGER
  */
 router.get(
   "/",
   authMiddleware,
-  roleMiddleware(["ADMIN", "MANAGER", "INSPECTOR"]),
+  roleMiddleware(["ADMIN", "MANAGER"]),
   validateMiddleware(listTreeScansSchema),
   (req, res, next) => {
     void treeScansController.listTreeScans(req, res, next);
@@ -28,7 +28,7 @@ router.get(
 
 /**
  * GET TREE SCAN BY ID
- * ADMIN + MANAGER + INSPECTOR
+ * ADMIN + MANAGER + INSPECTOR SELF
  */
 router.get(
   "/:id",
@@ -42,12 +42,12 @@ router.get(
 
 /**
  * CREATE TREE SCAN
- * ADMIN + INSPECTOR
+ * INSPECTOR ONLY
  */
 router.post(
   "/",
   authMiddleware,
-  roleMiddleware(["ADMIN", "INSPECTOR"]),
+  roleMiddleware(["INSPECTOR"]),
   validateMiddleware(createTreeScanSchema),
   (req, res, next) => {
     void treeScansController.createTreeScan(req, res, next);
@@ -56,12 +56,12 @@ router.post(
 
 /**
  * UPDATE TREE SCAN
- * ADMIN + INSPECTOR
+ * ADMIN ONLY
  */
 router.put(
   "/:id",
   authMiddleware,
-  roleMiddleware(["ADMIN", "INSPECTOR"]),
+  roleMiddleware(["ADMIN"]),
   validateMiddleware(updateTreeScanSchema),
   (req, res, next) => {
     void treeScansController.updateTreeScan(req, res, next);
@@ -84,12 +84,12 @@ router.delete(
 
 /**
  * RECYCLE FOB SCANS
- * ADMIN ONLY
+ * ADMIN + MANAGER
  */
 router.post(
   "/recycle/:fobId",
   authMiddleware,
-  roleMiddleware(["ADMIN"]),
+  roleMiddleware(["ADMIN", "MANAGER"]),
   (req, res, next) => {
     void treeScansController.recycleFob(req, res, next);
   },

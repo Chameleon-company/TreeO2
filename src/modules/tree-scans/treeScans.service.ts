@@ -190,6 +190,14 @@ const assertCanAccessScan = async (
   throw new AppError(403, "Insufficient permissions", ERROR_CODES.AUTH_004);
 };
 
+const assertCanUpdateScan = (user: AuthUser) => {
+  if (user.role === "ADMIN") {
+    return;
+  }
+
+  throw new AppError(403, "Insufficient permissions", ERROR_CODES.AUTH_004);
+};
+
 // Service layer for managing tree scan operations
 export class TreeScansService {
   // List tree scans with pagination and filtering
@@ -325,9 +333,9 @@ export class TreeScansService {
   // Update an existing tree scan and create audit log
   async updateTreeScan(id: number, data: UpdateTreeScanInput, user: AuthUser) {
     try {
-      const existingScan = await ensureScanExists(id);
+      assertCanUpdateScan(user);
 
-      await assertCanAccessScan(existingScan, user);
+      const existingScan = await ensureScanExists(id);
 
       const changedBy = user.id;
 
@@ -380,8 +388,8 @@ export class TreeScansService {
             treeScanId: id,
             changedBy,
             changeReason: data.correctionReason ?? "Tree scan corrected",
-            oldData: existingScan as unknown as Prisma.InputJsonValue,
-            newData: updated as unknown as Prisma.InputJsonValue,
+            oldData: JSON.parse(JSON.stringify(existingScan)),
+            newData: JSON.parse(JSON.stringify(updated)),
           },
         });
 

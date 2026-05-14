@@ -2558,7 +2558,7 @@ The Partners API follows the TreeO2 backend engineering standard:
 ---
 ## 15. Tree Scans API
 
-This module manages tree scan records collected across the TreeO2 platform. It provides full CRUD operations, recycling support, validation, role-based access control, project-scoped access control, and relationship checks against projects, users, tree species, and scan batches.
+This module manages tree scan records collected across the TreeO2 platform. It provides tree scan creation, retrieval, correction, archiving, FOB recycling support, validation, role-based access control, project-scoped access control, and relationship checks against projects, users, tree species, and scan batches.
 
 **Module Path:** `src/modules/tree-scans/`
 
@@ -2570,7 +2570,9 @@ This module manages tree scan records collected across the TreeO2 platform. It p
 - `treeScans.constants.ts`
 - `index.ts`
 
-### 15.1 Purpose
+---
+
+## 15.1 Purpose
 
 The Tree Scans API is responsible for managing tree scan lifecycle operations in the system.
 
@@ -2580,9 +2582,11 @@ Tree scans are core operational records used for:
 - Recording geolocation data
 - Managing species assignments
 - Monitoring scan validation and corrections
-- Recycling archived FOB-linked scans
+- Recycling FOB-linked scans
 
-### 15.2 Architecture Flow
+---
+
+## 15.2 Architecture Flow
 
 Every request follows the standard backend module structure:
 
@@ -2590,70 +2594,79 @@ Every request follows the standard backend module structure:
 Route → Validation Middleware → Controller → Service → Prisma ORM → PostgreSQL → Response
 ```
 
-#### Responsibilities
+### Responsibilities
 
-#### Routes
+### Routes
 - Define endpoints
 - Apply authentication middleware
 - Apply role-based authorization
 - Attach validation schemas
 - Contain Swagger documentation
 
-#### Controller
+### Controller
 - Receive request data
 - Read params/query/body
-- Pass authenticated user context
+- Validate authenticated user context where required
+- Pass authenticated user context to the service
 - Call service methods
 - Return HTTP response
 
-#### Service
+### Service
 - Perform business validation
 - Validate relationships
 - Apply project-scoped access control
 - Execute database queries
 - Handle archive/recycle logic
 - Handle transactional audit logging
+- Convert audit data into JSON-safe values
 - Throw structured errors
 
-#### Schemas
+### Schemas
 - Validate request body
 - Validate params/query
 - Enforce numeric/date constraints
-- Enforce conditional validation rules
+- Validate recycle FOB route params
+- Prevent client-controlled correction metadata such as `isCorrected` and `correctedBy`
 
-### 15.3 Security
+---
+
+## 15.3 Security
 
 All endpoints are protected using Bearer Token authentication.
 
-Middleware used:
+### Middleware Used
 - `authMiddleware`
 - `roleMiddleware`
-- `validate`
+- `validateMiddleware`
 
-In addition to route-level authorization, service-level access control is enforced:
+### Service-Level Access Control
 
 - `ADMIN` can access all tree scans
-- `MANAGER` can only access scans belonging to assigned projects
-- `INSPECTOR` can only access scans assigned to themselves
+- `MANAGER` can access scans belonging to assigned projects
+- `INSPECTOR` can access scans assigned to themselves where allowed by route permissions
 
-### 15.4 Access Control Matrix
+---
+
+## 15.4 Access Control Matrix
 
 | Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
 |---|---|---|---|---|---|
-| GET /tree-scans | Yes | Yes (assigned projects only) | Yes (own scans only) | No | No |
+| GET /tree-scans | Yes | Yes (assigned projects only) | No | No | No |
 | GET /tree-scans/{id} | Yes | Yes (assigned projects only) | Yes (own scans only) | No | No |
-| POST /tree-scans | Yes | No | Yes | No | No |
-| PUT /tree-scans/{id} | Yes | No | Yes | No | No |
+| POST /tree-scans | No | No | Yes | No | No |
+| PUT /tree-scans/{id} | Yes | No | No | No | No |
 | DELETE /tree-scans/{id} | Yes | No | No | No | No |
-| POST /tree-scans/recycle/{fobId} | Yes | No | No | No | No |
+| POST /tree-scans/recycle/{fobId} | Yes | Yes | No | No | No |
 
-### 15.5 Endpoints
+---
 
-#### GET /tree-scans
+## 15.5 Endpoints
+
+### GET /tree-scans
 
 Retrieve paginated tree scans with optional filtering.
 
-##### Query Parameters
+#### Query Parameters
 
 | Name | Type | Required |
 |---|---|---|
@@ -2667,7 +2680,8 @@ Retrieve paginated tree scans with optional filtering.
 | isArchived | boolean | No |
 | isValid | boolean | No |
 
-##### Response
+#### Response
+
 ```json
 {
   "success": true,
@@ -2694,7 +2708,7 @@ Retrieve paginated tree scans with optional filtering.
 }
 ```
 
-##### Status Codes
+#### Status Codes
 - `200` Success
 - `400` Invalid query parameters
 - `401` Authentication required
@@ -2702,17 +2716,18 @@ Retrieve paginated tree scans with optional filtering.
 
 ---
 
-#### GET /tree-scans/{id}
+### GET /tree-scans/{id}
 
 Retrieve a single tree scan by ID.
 
-##### Path Parameters
+#### Path Parameters
 
 | Name | Type | Required |
 |---|---|---|
 | id | integer | Yes |
 
-##### Response
+#### Response
+
 ```json
 {
   "success": true,
@@ -2727,7 +2742,7 @@ Retrieve a single tree scan by ID.
 }
 ```
 
-##### Status Codes
+#### Status Codes
 - `200` Success
 - `400` Invalid tree scan ID
 - `401` Authentication required
@@ -2736,11 +2751,12 @@ Retrieve a single tree scan by ID.
 
 ---
 
-#### POST /tree-scans
+### POST /tree-scans
 
 Create a new tree scan.
 
-##### Request Body
+#### Request Body
+
 ```json
 {
   "fobId": "FOB-001",
@@ -2761,7 +2777,7 @@ Create a new tree scan.
 }
 ```
 
-##### Required Fields
+#### Required Fields
 - `fobId`
 - `projectId`
 - `farmerId`
@@ -2770,7 +2786,8 @@ Create a new tree scan.
 - `estimatedPlantedYear`
 - `estimatedPlantedMonth`
 
-##### Response
+#### Response
+
 ```json
 {
   "success": true,
@@ -2781,7 +2798,7 @@ Create a new tree scan.
 }
 ```
 
-##### Status Codes
+#### Status Codes
 - `201` Created
 - `400` Invalid payload
 - `401` Authentication required
@@ -2790,58 +2807,68 @@ Create a new tree scan.
 
 ---
 
-#### PUT /tree-scans/{id}
+### PUT /tree-scans/{id}
 
-Update an existing tree scan.
+Correct an existing tree scan and create an audit log entry.
 
-##### Path Parameters
+#### Path Parameters
 
 | Name | Type | Required |
 |---|---|---|
 | id | integer | Yes |
 
-##### Request Body
-Any subset of fields may be provided.
+#### Request Body
+
+Any editable correction field may be provided, but `correctionReason` is required.
 
 ```json
 {
   "heightM": 5.2,
-  "isCorrected": true,
   "correctionReason": "Incorrect field measurement"
 }
 ```
 
-##### Response
+#### Notes
+- `isCorrected` is controlled by the service and set automatically
+- `correctedBy` is controlled by the service using the authenticated user ID
+- Audit log creation and tree scan update are executed in a single Prisma transaction
+- Audit data is converted into JSON-safe values before insertion into JSONB fields
+
+#### Response
+
 ```json
 {
   "success": true,
   "data": {
     "id": 10,
-    "heightM": 5.2
+    "heightM": 5.2,
+    "isCorrected": true,
+    "correctedBy": 1
   }
 }
 ```
 
-##### Status Codes
+#### Status Codes
 - `200` Success
-- `400` Invalid request / empty payload
+- `400` Invalid request / empty payload / missing correction reason
 - `401` Authentication required
 - `403` Insufficient permissions
 - `404` Tree scan not found
 
 ---
 
-#### DELETE /tree-scans/{id}
+### DELETE /tree-scans/{id}
 
 Archive a tree scan.
 
-##### Path Parameters
+#### Path Parameters
 
 | Name | Type | Required |
 |---|---|---|
 | id | integer | Yes |
 
-##### Response
+#### Response
+
 ```json
 {
   "success": true,
@@ -2851,7 +2878,7 @@ Archive a tree scan.
 }
 ```
 
-##### Status Codes
+#### Status Codes
 - `200` Success
 - `400` Invalid tree scan ID
 - `401` Authentication required
@@ -2860,17 +2887,18 @@ Archive a tree scan.
 
 ---
 
-#### POST /tree-scans/recycle/{fobId}
+### POST /tree-scans/recycle/{fobId}
 
 Recycle active tree scans linked to a FOB identifier.
 
-##### Path Parameters
+#### Path Parameters
 
 | Name | Type | Required |
 |---|---|---|
 | fobId | string | Yes |
 
-##### Response
+#### Response
+
 ```json
 {
   "success": true,
@@ -2881,14 +2909,17 @@ Recycle active tree scans linked to a FOB identifier.
 }
 ```
 
-##### Status Codes
+#### Status Codes
 - `200` Success
+- `400` Invalid FOB ID
 - `401` Authentication required
 - `403` Insufficient permissions
 
-### 15.6 Validation Rules
+---
 
-#### Create Validation
+## 15.6 Validation Rules
+
+### Create Validation
 - FOB ID must be non-empty
 - IDs must be positive integers
 - Year must be within allowed range
@@ -2897,12 +2928,14 @@ Recycle active tree scans linked to a FOB identifier.
 - Decimal measurements must be positive
 - UUID fields must be valid UUIDs
 
-#### Update Validation
+### Update Validation
 - At least one field must be provided
+- `correctionReason` is required
 - Fields must match expected types
-- Correction reason required when `isCorrected=true`
+- `isCorrected` cannot be provided by the client
+- `correctedBy` cannot be provided by the client
 
-#### Relationship Validation
+### Relationship Validation
 - Project must exist
 - Project must be active
 - Farmer must exist
@@ -2912,23 +2945,27 @@ Recycle active tree scans linked to a FOB identifier.
 - Species must exist
 - Species must belong to project
 
-#### Access Control Validation
+### Access Control Validation
 - Managers can only access scans from assigned projects
-- Inspectors can only access scans assigned to themselves
+- Inspectors can only access scans assigned to themselves where route access allows
+- Tree scan updates are restricted to admins
 
-#### Archive Validation
+### Archive Validation
 - Tree scan must exist
 
-#### Recycle Validation
+### Recycle Validation
 - FOB ID must be non-empty
 - Matching active scans are archived
 - If no matching active scans exist, archived count returns `0`
 
-### 15.7 Error Handling
+---
+
+## 15.7 Error Handling
 
 Uses centralised error middleware.
 
-#### Standard Error Response
+### Standard Error Response
+
 ```json
 {
   "success": false,
@@ -2936,10 +2973,11 @@ Uses centralised error middleware.
 }
 ```
 
-#### Common Errors
+### Common Errors
 - Authentication required
 - Insufficient permissions
 - Invalid tree scan ID
+- Invalid FOB ID
 - Invalid coordinates
 - Missing required fields
 - Empty update payload
@@ -2951,7 +2989,9 @@ Uses centralised error middleware.
 - Tree scan not found
 - Internal server error
 
-### 15.8 Audit Logging
+---
+
+## 15.8 Audit Logging
 
 Tree scan corrections create audit records using transactional writes.
 
@@ -2961,47 +3001,61 @@ The following operations are executed within a Prisma transaction:
 
 This ensures both operations either succeed together or fail together.
 
-### 15.9 Swagger Documentation
+Audit data is explicitly converted into JSON-safe values before insertion into JSONB fields to avoid unsafe casting of Prisma results containing dates, decimals, or nested relation objects.
+
+---
+
+## 15.9 Swagger Documentation
 
 All endpoints are documented in:
 
-`treeScans.routes.ts`
+```text
+treeScans.routes.ts
+```
 
 Available at:
 
-`http://localhost:3000/api-docs`
+```text
+http://localhost:3000/api-docs
+```
 
-Swagger supports:
+### Swagger Supports
 - Interactive testing
 - Request examples
 - Response definitions
 - Security schemas
 
-### 15.10 Testing
+---
 
-#### Test Files
+## 15.10 Testing
+
+### Test Files
 - `tests/unit/tree-scans.test.ts`
 - `tests/integration/tree-scans.test.ts`
 
-#### Covered Scenarios
+### Covered Scenarios
 
-##### Authentication
+#### Authentication
 - No token returns `401`
 
-##### Authorization
+#### Authorization
 - Allowed roles succeed
 - Blocked roles return `403`
 - Managers restricted to assigned project scans
-- Inspectors restricted to own scans
+- Inspectors restricted to own scans where allowed
+- Admin-only update enforcement
+- Inspector blocked from list endpoint
+- Manager allowed for recycle endpoint
 
-##### Read
+#### Read
 - Get all tree scans
 - Get tree scan by ID
 - Filtering and pagination
 - Missing scan returns `404`
 
-##### Create
-- Valid tree scan created
+#### Create
+- Valid tree scan created by inspector
+- Admin create attempt rejected
 - Invalid payload rejected
 - Inactive project rejected
 - Invalid coordinates rejected
@@ -3009,22 +3063,26 @@ Swagger supports:
 - Unassigned inspector rejected
 - Unassigned species rejected
 
-##### Update
-- Valid update succeeds
+#### Update
+- Valid admin update succeeds
 - Transactional audit log creation
 - Empty payload rejected
 - Missing correction reason rejected
+- Non-admin update rejected
 - Missing tree scan rejected
 
-##### Delete
+#### Delete
 - Valid archive succeeds
 - Missing tree scan rejected
 
-##### Recycle
-- Valid recycle succeeds
+#### Recycle
+- Valid admin recycle succeeds
+- Valid manager recycle succeeds
 - Archived count returned correctly
 
-### 15.11 Summary
+---
+
+## 15.11 Summary
 
 The Tree Scans API follows the TreeO2 backend engineering standard:
 
@@ -3035,9 +3093,9 @@ The Tree Scans API follows the TreeO2 backend engineering standard:
 - Strong validation
 - Relationship integrity checks
 - Transactional audit logging
+- JSON-safe audit data storage
 - Archive and recycle support
 - Swagger documentation
 - Automated testing
 - Scalable backend structure
-
 ---

@@ -154,6 +154,70 @@
  *         validationNotes:
  *           type: string
  *           nullable: true
+ *
+ *     UpdateTreeScanInput:
+ *       type: object
+ *       description: Fields that can be corrected by an admin.
+ *       properties:
+ *         fobId:
+ *           type: string
+ *           example: FOB-001
+ *         projectId:
+ *           type: integer
+ *           example: 1
+ *         farmerId:
+ *           type: integer
+ *           example: 2
+ *         inspectorId:
+ *           type: integer
+ *           example: 4
+ *         speciesId:
+ *           type: integer
+ *           example: 3
+ *         estimatedPlantedYear:
+ *           type: integer
+ *           example: 2020
+ *         estimatedPlantedMonth:
+ *           type: integer
+ *           example: 6
+ *         plantedDate:
+ *           type: string
+ *           format: date
+ *           nullable: true
+ *         heightM:
+ *           type: number
+ *           nullable: true
+ *         circumferenceCm:
+ *           type: number
+ *           nullable: true
+ *         diameterCm:
+ *           type: number
+ *           nullable: true
+ *         latitude:
+ *           type: number
+ *           nullable: true
+ *         longitude:
+ *           type: number
+ *           nullable: true
+ *         photoId:
+ *           type: string
+ *           nullable: true
+ *         batchId:
+ *           type: integer
+ *           nullable: true
+ *         deviceId:
+ *           type: string
+ *           nullable: true
+ *         isArchived:
+ *           type: boolean
+ *         correctionReason:
+ *           type: string
+ *           example: Measurement corrected after inspection
+ *         isValid:
+ *           type: boolean
+ *         validationNotes:
+ *           type: string
+ *           nullable: true
  */
 
 /**
@@ -161,7 +225,7 @@
  * /tree-scans:
  *   get:
  *     summary: List tree scans
- *     description: Returns paginated tree scans with optional filters.
+ *     description: Admin and Manager only. Returns paginated tree scans with optional filters.
  *     tags: [Tree Scans]
  *     security:
  *       - bearerAuth: []
@@ -225,7 +289,7 @@
  * /tree-scans/{id}:
  *   get:
  *     summary: Get tree scan by ID
- *     description: Returns a single tree scan.
+ *     description: Admin and Manager can view accessible scans. Inspector can view own scan only.
  *     tags: [Tree Scans]
  *     security:
  *       - bearerAuth: []
@@ -251,7 +315,7 @@
  * /tree-scans:
  *   post:
  *     summary: Create tree scan
- *     description: Creates a new tree scan.
+ *     description: Inspector only. Creates a new tree scan.
  *     tags: [Tree Scans]
  *     security:
  *       - bearerAuth: []
@@ -279,7 +343,7 @@
  * /tree-scans/{id}:
  *   put:
  *     summary: Update tree scan
- *     description: Updates an existing tree scan and records audit data.
+ *     description: Admin only. Corrects an existing tree scan and records audit data.
  *     tags: [Tree Scans]
  *     security:
  *       - bearerAuth: []
@@ -294,7 +358,7 @@
  *       content:
  *         application/json:
  *           schema:
- *             type: object
+ *             $ref: '#/components/schemas/UpdateTreeScanInput'
  *     responses:
  *       200:
  *         description: Tree scan updated successfully
@@ -313,7 +377,7 @@
  * /tree-scans/{id}:
  *   delete:
  *     summary: Archive tree scan
- *     description: Soft deletes a tree scan using isArchived flag.
+ *     description: Admin only. Soft deletes a tree scan using isArchived flag.
  *     tags: [Tree Scans]
  *     security:
  *       - bearerAuth: []
@@ -339,7 +403,7 @@
  * /tree-scans/recycle/{fobId}:
  *   post:
  *     summary: Recycle FOB scans
- *     description: Archives all active scans linked to a FOB ID.
+ *     description: Admin and Manager only. Archives all active scans linked to a FOB ID.
  *     tags: [Tree Scans]
  *     security:
  *       - bearerAuth: []

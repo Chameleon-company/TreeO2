@@ -53,7 +53,7 @@ describe("Tree Scans Integration Tests", () => {
         deviceId: "DEVICE-001",
         validationNotes: "Healthy tree",
     });
-    
+
     beforeAll(async () => {
         await prisma.treeScanAudit.deleteMany();
         await prisma.treeScan.deleteMany();
@@ -77,7 +77,7 @@ describe("Tree Scans Integration Tests", () => {
                 },
             },
         });
-        
+
         await prisma.user.deleteMany({
             where: {
                 id: {
@@ -99,7 +99,7 @@ describe("Tree Scans Integration Tests", () => {
                 },
             },
         });
-        
+
         await prisma.treeType.deleteMany({
             where: {
                 key: {
@@ -295,7 +295,7 @@ describe("Tree Scans Integration Tests", () => {
                 canSignIn: true,
             },
         });
-        
+
         await prisma.$executeRaw`
             SELECT setval(
                 pg_get_serial_sequence('users', 'id'),
@@ -538,20 +538,12 @@ describe("Tree Scans Integration Tests", () => {
             ).toBe(true);
         });
 
-        it("should return 200 for INSPECTOR token and only return own scans", async () => {
+        it("should return 403 for INSPECTOR token", async () => {
             const response = await request(app)
                 .get("/tree-scans")
                 .set("Authorization", `Bearer ${TOKENS.INSPECTOR}`);
 
-            expect(response.status).toBe(200);
-            expect(response.body.success).toBe(true);
-            expect(Array.isArray(response.body.data.data)).toBe(true);
-            expect(
-                response.body.data.data.every(
-                    (scan: { inspectorId: number }) =>
-                        scan.inspectorId === inspectorId,
-                ),
-            ).toBe(true);
+            expect(response.status).toBe(403);
         });
 
         it("should return 403 for FARMER token", async () => {
@@ -658,15 +650,13 @@ describe("Tree Scans Integration Tests", () => {
             expect(response.status).toBe(401);
         });
 
-        it("should return 201 for ADMIN token and create a tree scan", async () => {
+        it("should return 403 for ADMIN token", async () => {
             const response = await request(app)
                 .post("/tree-scans")
                 .set("Authorization", `Bearer ${TOKENS.ADMIN}`)
                 .send(validPayload());
 
-            expect(response.status).toBe(201);
-            expect(response.body.success).toBe(true);
-            expect(response.body.data.fobId).toContain("FOB-");
+            expect(response.status).toBe(403);
         });
 
         it("should return 201 for INSPECTOR token and create a tree scan", async () => {
@@ -691,7 +681,7 @@ describe("Tree Scans Integration Tests", () => {
         it("should return 400 for invalid payload", async () => {
             const response = await request(app)
                 .post("/tree-scans")
-                .set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+                .set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
                 .send({
                     ...validPayload(),
                     fobId: "",
@@ -703,7 +693,7 @@ describe("Tree Scans Integration Tests", () => {
         it("should return 400 for inactive project", async () => {
             const response = await request(app)
                 .post("/tree-scans")
-                .set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+                .set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
                 .send({
                     ...validPayload(),
                     projectId: inactiveProjectId,
@@ -715,7 +705,7 @@ describe("Tree Scans Integration Tests", () => {
         it("should return 403 when farmer is not assigned to project", async () => {
             const response = await request(app)
                 .post("/tree-scans")
-                .set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+                .set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
                 .send({
                     ...validPayload(),
                     farmerId: unassignedFarmerId,
@@ -727,7 +717,7 @@ describe("Tree Scans Integration Tests", () => {
         it("should return 403 when inspector is not assigned to project", async () => {
             const response = await request(app)
                 .post("/tree-scans")
-                .set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+                .set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
                 .send({
                     ...validPayload(),
                     inspectorId: unassignedInspectorId,
@@ -739,7 +729,7 @@ describe("Tree Scans Integration Tests", () => {
         it("should return 400 when species is not assigned to project", async () => {
             const response = await request(app)
                 .post("/tree-scans")
-                .set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+                .set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
                 .send({
                     ...validPayload(),
                     speciesId: unassignedSpeciesId,
@@ -751,7 +741,7 @@ describe("Tree Scans Integration Tests", () => {
         it("should return 400 for invalid coordinates", async () => {
             const response = await request(app)
                 .post("/tree-scans")
-                .set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+                .set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
                 .send({
                     ...validPayload(),
                     latitude: 100,
@@ -789,6 +779,18 @@ describe("Tree Scans Integration Tests", () => {
             expect(response.body.data.isCorrected).toBe(true);
         });
 
+        it("should return 403 for INSPECTOR token", async () => {
+            const response = await request(app)
+                .put(`/tree-scans/${scanId}`)
+                .set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
+                .send({
+                    heightM: 4.1,
+                    correctionReason: "Inspector update attempt",
+                });
+
+            expect(response.status).toBe(403);
+        });
+
         it("should return 403 for MANAGER token", async () => {
             const response = await request(app)
                 .put(`/tree-scans/${scanId}`)
@@ -810,12 +812,12 @@ describe("Tree Scans Integration Tests", () => {
             expect(response.status).toBe(400);
         });
 
-        it("should return 400 when correction reason is missing for explicit correction", async () => {
+        it("should return 400 when correction reason is missing", async () => {
             const response = await request(app)
                 .put(`/tree-scans/${scanId}`)
                 .set("Authorization", `Bearer ${TOKENS.ADMIN}`)
                 .send({
-                    isCorrected: true,
+                    heightM: 4.1,
                 });
 
             expect(response.status).toBe(400);
@@ -897,12 +899,14 @@ describe("Tree Scans Integration Tests", () => {
             expect(response.body.data.archivedCount).toBeGreaterThanOrEqual(1);
         });
 
-        it("should return 403 for MANAGER token", async () => {
+        it("should return 200 for MANAGER token and archive scans linked to FOB", async () => {
             const response = await request(app)
                 .post("/tree-scans/recycle/FOB-BASE")
                 .set("Authorization", `Bearer ${TOKENS.MANAGER}`);
 
-            expect(response.status).toBe(403);
+            expect(response.status).toBe(200);
+            expect(response.body.success).toBe(true);
+            expect(response.body.data.archivedCount).toBeGreaterThanOrEqual(1);
         });
     });
 });
