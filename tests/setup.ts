@@ -1,0 +1,15 @@
+process.env.NODE_ENV = "development";
+process.env.JWT_SECRET = "test-secret-key-minimum-32-characters-long";
+process.env.JWT_EXPIRES_IN = "24h";
+process.env.AUTH_DEV_MODE = "true";
+process.env.AUTH_DEV_ADMIN_TOKEN = "dev-admin-token";
+process.env.AUTH_DEV_MANAGER_TOKEN = "dev-manager-token";
+process.env.AUTH_DEV_INSPECTOR_TOKEN = "dev-inspector-token";
+process.env.AUTH_DEV_FARMER_TOKEN = "dev-farmer-token";
+process.env.AUTH_DEV_DEVELOPER_TOKEN = "dev-developer-token";
+process.env.RATE_LIMIT_WINDOW_MS = "900000";
+process.env.RATE_LIMIT_MAX = "100";
+process.env.LOG_TO_FILE = "false";
+process.env.PORT = "3000";
+process.env.DATABASE_URL =
+  "postgresql://treeo2_user:treeo2_password@localhost:5432/treeo2?schema=public";
