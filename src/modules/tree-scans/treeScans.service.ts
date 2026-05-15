@@ -265,16 +265,19 @@ export class TreeScansService {
   }
 
   // Create a new tree scan
-  async createTreeScan(data: CreateTreeScanInput) {
+  async createTreeScan(data: CreateTreeScanInput, user: AuthUser) {
     try {
+      const inspectorId = user.id;
+
       await ensureProjectExists(data.projectId);
 
       await ensureUserExists(
         data.farmerId,
         TREE_SCAN_MESSAGES.FARMER_NOT_FOUND,
       );
+
       await ensureUserExists(
-        data.inspectorId,
+        inspectorId,
         TREE_SCAN_MESSAGES.INSPECTOR_NOT_FOUND,
       );
 
@@ -285,7 +288,7 @@ export class TreeScansService {
       );
 
       await ensureUserAssignedToProject(
-        data.inspectorId,
+        inspectorId,
         data.projectId,
         TREE_SCAN_MESSAGES.INSPECTOR_NOT_ASSIGNED,
       );
@@ -297,7 +300,7 @@ export class TreeScansService {
           fobId: data.fobId,
           projectId: data.projectId,
           farmerId: data.farmerId,
-          inspectorId: data.inspectorId,
+          inspectorId,
           speciesId: data.speciesId,
           estimatedPlantedYear: data.estimatedPlantedYear,
           estimatedPlantedMonth: data.estimatedPlantedMonth,
@@ -431,7 +434,7 @@ export class TreeScansService {
   }
 
   // Archive all active scans linked to a FOB ID
-  async recycleFob(fobId: string) {
+  async recycleFob(fobId: string, user: AuthUser) {
     if (!fobId.trim()) {
       throw new AppError(
         400,
@@ -441,11 +444,24 @@ export class TreeScansService {
     }
 
     try {
+      const where: Prisma.TreeScanWhereInput = {
+        fobId,
+        isArchived: false,
+        ...(user.role === "MANAGER"
+          ? {
+              project: {
+                userProjects: {
+                  some: {
+                    userId: user.id,
+                  },
+                },
+              },
+            }
+          : {}),
+      };
+
       const result = await prisma.treeScan.updateMany({
-        where: {
-          fobId,
-          isArchived: false,
-        },
+        where,
         data: {
           isArchived: true,
         },

@@ -39,7 +39,6 @@ describe("Tree Scans Integration Tests", () => {
         fobId: `FOB-${Date.now()}-${Math.random()}`,
         projectId,
         farmerId,
-        inspectorId,
         speciesId,
         estimatedPlantedYear: 2020,
         estimatedPlantedMonth: 6,
@@ -709,18 +708,6 @@ describe("Tree Scans Integration Tests", () => {
                 .send({
                     ...validPayload(),
                     farmerId: unassignedFarmerId,
-                });
-
-            expect(response.status).toBe(403);
-        });
-
-        it("should return 403 when inspector is not assigned to project", async () => {
-            const response = await request(app)
-                .post("/tree-scans")
-                .set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
-                .send({
-                    ...validPayload(),
-                    inspectorId: unassignedInspectorId,
                 });
 
             expect(response.status).toBe(403);

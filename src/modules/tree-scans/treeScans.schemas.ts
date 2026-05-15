@@ -30,8 +30,6 @@ export const createTreeScanSchema = z.object({
 
     farmerId: idSchema,
 
-    inspectorId: idSchema,
-
     speciesId: idSchema,
 
     estimatedPlantedYear: z.coerce
@@ -118,11 +116,7 @@ export const updateTreeScanSchema = z.object({
 
       deviceId: z.string().trim().max(100).optional(),
 
-      isArchived: z.boolean().optional(),
-
       correctionReason: z.string().trim().min(1).max(5000),
-
-      isValid: z.boolean().optional(),
 
       validationNotes: z.string().trim().max(5000).optional(),
     })

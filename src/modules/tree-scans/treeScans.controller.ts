@@ -28,7 +28,9 @@ export class TreeScansController {
     try {
       const payload = req.body as CreateTreeScanInput;
 
-      const result = await treeScansService.createTreeScan(payload);
+      const user = getAuthUser(req);
+
+      const result = await treeScansService.createTreeScan(payload, user);
 
       return res.status(201).json({
         success: true,
@@ -116,7 +118,9 @@ export class TreeScansController {
     try {
       const { fobId } = req.params;
 
-      const result = await treeScansService.recycleFob(fobId);
+      const user = getAuthUser(req);
+
+      const result = await treeScansService.recycleFob(fobId, user);
 
       return res.status(200).json({
         success: true,

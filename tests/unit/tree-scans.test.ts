@@ -77,7 +77,6 @@ describe("TreeScansService", () => {
         fobId: "FOB-001",
         projectId: 1,
         farmerId: 2,
-        inspectorId: 4,
         speciesId: 3,
         estimatedPlantedYear: 2020,
         estimatedPlantedMonth: 6,
@@ -96,6 +95,7 @@ describe("TreeScansService", () => {
     const treeScanRecord = {
         id: 1,
         ...validCreateInput,
+        inspectorId: inspectorUser.id,
         isArchived: false,
         isCorrected: false,
         correctedBy: null,
@@ -338,7 +338,7 @@ describe("TreeScansService", () => {
         });
 
         it("should create a tree scan successfully with valid input", async () => {
-            const result = await service.createTreeScan(validCreateInput);
+            const result = await service.createTreeScan(validCreateInput, inspectorUser);
 
             expect(mockPrisma.project.findUnique).toHaveBeenCalledWith({
                 where: { id: 1 },
@@ -365,7 +365,7 @@ describe("TreeScansService", () => {
         it("should throw DATA_001 when project does not exist", async () => {
             mockPrisma.project.findUnique.mockResolvedValue(null);
 
-            await expect(service.createTreeScan(validCreateInput)).rejects.toMatchObject({
+            await expect(service.createTreeScan(validCreateInput, inspectorUser)).rejects.toMatchObject({
                 statusCode: 404,
                 code: ERROR_CODES.DATA_001,
                 message: "Project not found",
@@ -378,7 +378,7 @@ describe("TreeScansService", () => {
                 isActive: false,
             });
 
-            await expect(service.createTreeScan(validCreateInput)).rejects.toMatchObject({
+            await expect(service.createTreeScan(validCreateInput, inspectorUser)).rejects.toMatchObject({
                 statusCode: 400,
                 code: ERROR_CODES.VAL_002,
                 message: "Project is inactive",
@@ -389,7 +389,7 @@ describe("TreeScansService", () => {
             mockPrisma.user.findUnique.mockReset();
             mockPrisma.user.findUnique.mockResolvedValueOnce(null);
 
-            await expect(service.createTreeScan(validCreateInput)).rejects.toMatchObject({
+            await expect(service.createTreeScan(validCreateInput, inspectorUser)).rejects.toMatchObject({
                 statusCode: 404,
                 code: ERROR_CODES.DATA_001,
                 message: "Farmer not found",
@@ -405,7 +405,7 @@ describe("TreeScansService", () => {
                 })
                 .mockResolvedValueOnce(null);
 
-            await expect(service.createTreeScan(validCreateInput)).rejects.toMatchObject({
+            await expect(service.createTreeScan(validCreateInput, inspectorUser)).rejects.toMatchObject({
                 statusCode: 404,
                 code: ERROR_CODES.DATA_001,
                 message: "Inspector not found",
@@ -419,7 +419,7 @@ describe("TreeScansService", () => {
                 accountActive: false,
             });
 
-            await expect(service.createTreeScan(validCreateInput)).rejects.toMatchObject({
+            await expect(service.createTreeScan(validCreateInput, inspectorUser)).rejects.toMatchObject({
                 statusCode: 400,
                 code: ERROR_CODES.VAL_002,
                 message: "User account is inactive",
@@ -430,7 +430,7 @@ describe("TreeScansService", () => {
             mockPrisma.userProject.findUnique.mockReset();
             mockPrisma.userProject.findUnique.mockResolvedValueOnce(null);
 
-            await expect(service.createTreeScan(validCreateInput)).rejects.toMatchObject({
+            await expect(service.createTreeScan(validCreateInput, inspectorUser)).rejects.toMatchObject({
                 statusCode: 403,
                 code: ERROR_CODES.AUTH_007,
                 message: "Farmer is not assigned to this project",
@@ -446,7 +446,7 @@ describe("TreeScansService", () => {
                 })
                 .mockResolvedValueOnce(null);
 
-            await expect(service.createTreeScan(validCreateInput)).rejects.toMatchObject({
+            await expect(service.createTreeScan(validCreateInput, inspectorUser)).rejects.toMatchObject({
                 statusCode: 403,
                 code: ERROR_CODES.AUTH_007,
                 message: "Inspector is not assigned to this project",
@@ -456,7 +456,7 @@ describe("TreeScansService", () => {
         it("should throw DATA_001 when species does not exist", async () => {
             mockPrisma.treeType.findUnique.mockResolvedValue(null);
 
-            await expect(service.createTreeScan(validCreateInput)).rejects.toMatchObject({
+            await expect(service.createTreeScan(validCreateInput, inspectorUser)).rejects.toMatchObject({
                 statusCode: 404,
                 code: ERROR_CODES.DATA_001,
                 message: "Tree type not found",
@@ -466,7 +466,7 @@ describe("TreeScansService", () => {
         it("should throw VAL_002 when species is not assigned to project", async () => {
             mockPrisma.projectTreeType.findUnique.mockResolvedValue(null);
 
-            await expect(service.createTreeScan(validCreateInput)).rejects.toMatchObject({
+            await expect(service.createTreeScan(validCreateInput, inspectorUser)).rejects.toMatchObject({
                 statusCode: 400,
                 code: ERROR_CODES.VAL_002,
                 message: "Tree type is not assigned to this project",
@@ -476,7 +476,7 @@ describe("TreeScansService", () => {
         it("should throw SYS_002 when create fails unexpectedly", async () => {
             mockPrisma.treeScan.create.mockRejectedValue(new Error("DB failure"));
 
-            await expect(service.createTreeScan(validCreateInput)).rejects.toMatchObject({
+            await expect(service.createTreeScan(validCreateInput, inspectorUser)).rejects.toMatchObject({
                 statusCode: 500,
                 code: ERROR_CODES.SYS_002,
             });
@@ -689,7 +689,7 @@ describe("TreeScansService", () => {
                 count: 3,
             });
 
-            const result = await service.recycleFob("FOB-001");
+            const result = await service.recycleFob("FOB-001", adminUser);
 
             expect(mockPrisma.treeScan.updateMany).toHaveBeenCalledWith({
                 where: {
@@ -708,7 +708,7 @@ describe("TreeScansService", () => {
         });
 
         it("should throw VAL_003 when FOB ID is empty", async () => {
-            await expect(service.recycleFob("")).rejects.toMatchObject({
+            await expect(service.recycleFob("", adminUser)).rejects.toMatchObject({
                 statusCode: 400,
                 code: ERROR_CODES.VAL_003,
                 message: "FOB ID is required",
@@ -718,9 +718,39 @@ describe("TreeScansService", () => {
         it("should throw SYS_002 when recycle fails unexpectedly", async () => {
             mockPrisma.treeScan.updateMany.mockRejectedValue(new Error("DB failure"));
 
-            await expect(service.recycleFob("FOB-001")).rejects.toMatchObject({
+            await expect(service.recycleFob("FOB-001", adminUser)).rejects.toMatchObject({
                 statusCode: 500,
                 code: ERROR_CODES.SYS_002,
+            });
+        });
+
+        it("should scope manager recycle to assigned projects", async () => {
+            mockPrisma.treeScan.updateMany.mockResolvedValue({
+                count: 2,
+            });
+        
+            const result = await service.recycleFob("FOB-001", managerUser);
+        
+            expect(mockPrisma.treeScan.updateMany).toHaveBeenCalledWith({
+                where: {
+                    fobId: "FOB-001",
+                    isArchived: false,
+                    project: {
+                        userProjects: {
+                            some: {
+                                userId: managerUser.id,
+                            },
+                        },
+                    },
+                },
+                data: {
+                    isArchived: true,
+                },
+            });
+        
+            expect(result).toEqual({
+                message: "FOB recycled successfully",
+                archivedCount: 2,
             });
         });
     });
