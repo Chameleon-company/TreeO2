@@ -1,1 +1,14 @@
+model ScanBatch {
+  id          Int      @id @default(autoincrement())
+  inspectorId Int      @map("inspector_id")
+  projectId   Int      @map("project_id")
+  uploadedAt  DateTime @default(now()) @map("uploaded_at")
 
+  inspector   User     @relation("ScanBatchInspector", fields: [inspectorId], references: [id], onDelete: Restrict)
+  project     Project  @relation("ProjectScanBatches", fields: [projectId], references: [id], onDelete: Restrict)
+  treeScans   TreeScan[]
+
+  @@index([inspectorId])
+  @@index([projectId])
+  @@map("scan_batches")
+}

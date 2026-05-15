@@ -1,1 +1,42 @@
+model TreeScan {
+  id                    Int        @id @default(autoincrement())
+  fobId                 String     @map("fob_id") @db.VarChar(80)
+  projectId             Int        @map("project_id")
+  farmerId              Int        @map("farmer_id")
+  inspectorId           Int        @map("inspector_id")
+  speciesId             Int        @map("species_id")
+  estimatedPlantedYear  Int        @map("estimated_planted_year")
+  estimatedPlantedMonth Int        @map("estimated_planted_month")
+  plantedDate           DateTime?  @map("planted_date") @db.Date
+  heightM               Decimal?   @map("height_m") @db.Decimal(12, 3)
+  circumferenceCm       Decimal?   @map("circumference_cm") @db.Decimal(12, 3)
+  diameterCm            Decimal?   @map("diameter_cm") @db.Decimal(12, 3)
+  latitude              Float?
+  longitude             Float?
+  photoId               String?    @map("photo_id") @db.Uuid
+  batchId               Int?       @map("batch_id")
+  deviceId              String?    @map("device_id") @db.VarChar(100)
+  isArchived            Boolean    @default(false) @map("is_archived")
+  isCorrected           Boolean    @default(false) @map("is_corrected")
+  correctedBy           Int?       @map("corrected_by")
+  correctionReason      String?    @map("correction_reason") @db.Text
+  isValid               Boolean    @default(true) @map("is_valid")
+  validationNotes       String?    @map("validation_notes") @db.Text
+  createdAt             DateTime   @default(now()) @map("created_at")
+  updatedAt             DateTime   @default(now()) @updatedAt @map("updated_at")
 
+  project               Project    @relation("ProjectTreeScans", fields: [projectId], references: [id], onDelete: Restrict)
+  farmer                User       @relation("FarmerTreeScans", fields: [farmerId], references: [id], onDelete: Restrict)
+  inspector             User       @relation("InspectorTreeScans", fields: [inspectorId], references: [id], onDelete: Restrict)
+  species               TreeType   @relation("SpeciesTreeScans", fields: [speciesId], references: [id], onDelete: Restrict)
+  batch                 ScanBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  correctedByUser       User?      @relation("CorrectedTreeScans", fields: [correctedBy], references: [id], onDelete: SetNull)
+  audits                TreeScanAudit[]
+
+  @@index([fobId])
+  @@index([projectId])
+  @@index([farmerId])
+  @@index([speciesId])
+  @@index([batchId])
+  @@map("tree_scans")
+}

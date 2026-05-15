@@ -7,12 +7,45 @@
 - **ESLint** — enforces code correctness
 - **Prettier** — enforces formatting
 - **Husky** — runs lint and format check before every commit
+- **Docker / Docker Compose** — standardises local development setup for backend + PostgreSQL
 
 ```bash
 npm run validate      # run all checks before opening a PR
 npm run lint:fix      # auto-fix lint issues
 npm run format        # auto-format source files
 ```
+
+---
+
+## Local Development with Docker
+
+For local development, Docker Compose can be used either to run PostgreSQL only or to run PostgreSQL and the backend together.
+
+Use:
+```bash
+docker compose up -d postgres
+```
+
+This is the preferred development path. Run the API locally with:
+
+```bash
+npm run prisma:generate
+# If migration files already exist, use:
+npm run prisma:migrate:dev
+# If migration files do not exist yet and you only need to sync the local DB, use:
+npm run prisma:push
+npm run dev
+```
+
+Prefer `npm run prisma:migrate:dev` for normal team development because it creates and applies tracked migrations. Use `npm run prisma:push` only when migration files are not available yet or for disposable local database sync.
+
+If you want both backend and database in containers, use:
+
+```bash
+docker compose up --build
+```
+
+The Compose backend setup currently automates Prisma client generation, schema push, and backend startup. That is compatible with the multi-file Prisma schema, but local team development should prefer migrations over `db push`.
 
 ---
 
@@ -69,9 +102,7 @@ isActive, hasPermission, canSignIn
 src/
 ├── config/          # env, database pool, logger, swagger config
 ├── middleware/      # Express middleware (auth, error handler)
-├── routes/          # URL definitions and middleware attachment only
-├── controllers/     # Handle req/res, validate input, call services
-├── services/        # Business logic, call repositories
+├── modules/         # Each folder represents an API (e.g. health, users)
 ├── repositories/    # All SQL queries — nothing else
 ├── types/           # Shared TypeScript types and enums
 ├── utils/           # Pure helper functions — no DB, no Express
@@ -80,44 +111,7 @@ src/
 ```
 
 ### What belongs where
-
-**Routes** — URL path + which controller function handles it. Nothing else.
-
-Always wrap async controllers with a non-async arrow function and `void`. Express route handlers expect a `void` return, not a `Promise` — passing an async function directly will cause a `no-misused-promises` lint error.
-
-```ts
-// No
-router.get('/:id', getUser);
-
-// Yes
-router.get('/:id', (req, res, next) => {
-  void getUser(req, res, next);
-});
-```
-
-**Controllers** — parse and validate `req`, call a service, return `res`. No SQL, no business logic.
-```ts
-export async function getUser(req: Request, res: Response, next: NextFunction): Promise<void> {
-  try {
-    const id = z.coerce.number().int().positive().parse(req.params.id);
-    const user = await getUserById(id);
-    res.json({ success: true, data: user });
-  } catch (err: unknown) {
-    next(err);
-  }
-}
-```
-
-**Services** — business logic only. Call repositories, throw `AppError` on failure. No `req/res`.
-```ts
-export async function getUserById(id: number): Promise<User> {
-  const user = await findUserById(id);
-  if (!user) import { ERROR_CODES } from './types/errorCodes';
-
-throw new AppError(404, ERROR_CODES.DATA_001);
-  return user;
-}
-```
+**Modules** — each folder represents one API and contains its routes, controller, service, and index file.
 
 **Repositories** — SQL queries only. No business logic, no error throwing (return `null` for not found).
 
@@ -435,4 +429,3 @@ Always:
 - keep commits small and meaningful
 - use descriptive branch names
 - test your code before committing
-

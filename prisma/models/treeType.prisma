@@ -8,6 +8,7 @@ model TreeType {
   updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at")
 
   projectTreeTypes ProjectTreeType[]
+  treeScans        TreeScan[]        @relation("SpeciesTreeScans")
 
   @@map("tree_types")
 }
