@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  schema   = "./models"
 }
 
 datasource db {
@@ -13,29 +14,4 @@ enum UserRole {
   MANAGER
   ADMIN
   DEVELOPER
-}
-model Organisation {
-  id        Int      @id @default(autoincrement())
-  name      String
-  createdAt DateTime @default(now())
-
-  projectOrganisations ProjectOrganisation[]
-}
-
-model Project {
-  id        Int      @id @default(autoincrement())
-  name      String
-
-  projectOrganisations ProjectOrganisation[]
-}
-
-model ProjectOrganisation {
-  projectId      Int
-  organisationId Int
-
-  project      Project      @relation(fields: [projectId], references: [id])
-  organisation Organisation @relation(fields: [organisationId], references: [id])
-
-  @@id([projectId, organisationId])
-  @@map("project_organisations")
 }
