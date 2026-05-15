@@ -227,7 +227,8 @@ export const UserManagementService = {
       }
     }
 
-    const { projectIds: _, ...dbData } = data;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { projectIds, ...dbData } = data;
 
     return prisma.user.update({
       where: { id: userId },
