@@ -1,10 +1,9 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma";
 
 const router = Router();
 
-// GET all relations
-router.get("/", async (_req, res, next) => {
+router.get("/", async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const data = await prisma.projectOrganisation.findMany({
       include: {
@@ -13,25 +12,24 @@ router.get("/", async (_req, res, next) => {
       },
     });
 
-    return res.json(data);
+    res.json(data);
   } catch (error) {
     next(error);
   }
 });
 
-// CREATE relation
-router.post("/", async (req, res, next) => {
+router.post("/", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const projectId = Number(req.body.projectId);
-    const organisationId = Number(req.body.organisationId);
+    const { projectId, organisationId } = req.body as {
+      projectId: number;
+      organisationId: number;
+    };
 
     if (!projectId || !organisationId) {
-      return res.status(400).json({
-        message: "projectId and organisationId are required",
-      });
+      res.status(400).json({ message: "projectId and organisationId are required" });
+      return;
     }
 
-    // SAFETY CHECK 
     const existing = await prisma.projectOrganisation.findUnique({
       where: {
         projectId_organisationId: {
@@ -42,9 +40,8 @@ router.post("/", async (req, res, next) => {
     });
 
     if (existing) {
-      return res.status(409).json({
-        message: "Relation already exists",
-      });
+      res.status(409).json({ message: "Relation already exists" });
+      return;
     }
 
     const result = await prisma.projectOrganisation.create({
@@ -54,28 +51,29 @@ router.post("/", async (req, res, next) => {
       },
     });
 
-    return res.status(201).json(result);
+    res.status(201).json(result);
   } catch (error) {
     next(error);
   }
 });
 
-// DELETE relation
-router.delete("/:projectId/:organisationId", async (req, res, next) => {
+router.delete("/:projectId/:organisationId", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const projectId = Number(req.params.projectId);
-    const organisationId = Number(req.params.organisationId);
+    const { projectId, organisationId } = req.params as {
+      projectId: string;
+      organisationId: string;
+    };
 
     const result = await prisma.projectOrganisation.delete({
       where: {
         projectId_organisationId: {
-          projectId,
-          organisationId,
+          projectId: Number(projectId),
+          organisationId: Number(organisationId),
         },
       },
     });
 
-    return res.json(result);
+    res.json(result);
   } catch (error) {
     next(error);
   }
