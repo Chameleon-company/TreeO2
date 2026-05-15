@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma";
 import { ERROR_CODES } from "../../utils/errorCodes";
 import { AppError } from "../../middleware/errorHandler";
 import type { Prisma } from "@prisma/client";
+import { hashPassword } from "../../lib/bcrypt";
 
 export type AuthUser = {
   id: number;
@@ -12,6 +13,7 @@ export type AuthUser = {
 export type CreateUserInput = {
   name: string;
   email: string;
+  password?: string;
   roleId: number;
   projectIds?: number[];
 };
@@ -135,6 +137,26 @@ export const UserManagementService = {
       throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
     }
 
+    if (data.email.length > 300) {
+      throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
+    }
+
+    // Validate password complexity if provided
+    if (data.password) {
+      if (data.password.length < 8 || data.password.length > 72) {
+        throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
+      }
+      if (!/[A-Z]/.test(data.password)) {
+        throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
+      }
+      if (!/[0-9]/.test(data.password)) {
+        throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
+      }
+      if (!/[^a-zA-Z0-9]/.test(data.password)) {
+        throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
+      }
+    }
+
     const role = await prisma.role.findUnique({
       where: { id: data.roleId },
     });
@@ -151,11 +173,17 @@ export const UserManagementService = {
       throw new AppError(409, ERROR_CODES.DATA_002, ERROR_CODES.DATA_002);
     }
 
+    // Hash password if provided
+    const passwordHash = data.password
+      ? await hashPassword(data.password)
+      : undefined;
+
     return prisma.user.create({
       data: {
         name: data.name.trim(),
         email: data.email.trim(),
         roleId: data.roleId,
+        ...(passwordHash && { passwordHash }),
       },
       select: userSelect,
     });
@@ -199,9 +227,11 @@ export const UserManagementService = {
       }
     }
 
+    const { projectIds: _projectIds, ...dbData } = data;
+
     return prisma.user.update({
       where: { id: userId },
-      data,
+      data: dbData,
       select: userSelect,
     });
   },
