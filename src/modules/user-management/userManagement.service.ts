@@ -227,7 +227,7 @@ export const UserManagementService = {
       }
     }
 
-    const { projectIds: _projectIds, ...dbData } = data;
+    const { projectIds: _, ...dbData } = data;
 
     return prisma.user.update({
       where: { id: userId },
