@@ -95,7 +95,6 @@ describe("UserManagementService - UNIT TESTS (FIXED)", () => {
         email: "test@test.com",
         roleId: 1,
       });
-
       expect(result.id).toBe(1);
     });
 
@@ -181,6 +180,69 @@ describe("UserManagementService - UNIT TESTS (FIXED)", () => {
       ).rejects.toMatchObject({
         statusCode: 403,
         code: expect.stringContaining("AUTH_004"),
+      });
+    });
+
+    it("should block INSPECTOR from getUsers", async () => {
+      await expect(
+        UserManagementService.getUsers({ id: 1, role: "INSPECTOR" }),
+      ).rejects.toMatchObject({
+        statusCode: 403,
+        code: expect.stringContaining("AUTH_004"),
+      });
+    });
+
+    it("should block FARMER from getUsers", async () => {
+      await expect(
+        UserManagementService.getUsers({ id: 1, role: "FARMER" }),
+      ).rejects.toMatchObject({
+        statusCode: 403,
+        code: expect.stringContaining("AUTH_004"),
+      });
+    });
+  });
+
+  //  DELETE USER 
+  describe("deleteUser", () => {
+    it("should soft-delete user", async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 1 });
+      mockPrisma.treeScan.findFirst.mockResolvedValue(null);
+      mockPrisma.user.update.mockResolvedValue({ id: 1 });
+
+      const result = await UserManagementService.deleteUser("1");
+
+      expect(result).toBe(true);
+    });
+
+    it("should throw not found", async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        UserManagementService.deleteUser("999"),
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        code: expect.stringContaining("DATA_001"),
+      });
+    });
+
+    it("should throw invalid id", async () => {
+      await expect(
+        UserManagementService.deleteUser("abc"),
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        code: expect.stringContaining("VAL_002"),
+      });
+    });
+
+    it("should block delete when user has linked tree scans", async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 1 });
+      mockPrisma.treeScan.findFirst.mockResolvedValue({ id: 99 });
+
+      await expect(
+        UserManagementService.deleteUser("1"),
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        code: expect.stringContaining("VAL_001"),
       });
     });
   });
