@@ -62,7 +62,7 @@ jobs:
         run: npx prisma db push
 
       - name: Test
-        run: npm run test:coverage
+        run: npm run test:coverage -- --runInBand
         env:
           PORT: 3000
           AUTH_DEV_MODE: true
@@ -71,6 +71,6 @@ jobs:
           AUTH_DEV_INSPECTOR_TOKEN: dev-inspector-token
           AUTH_DEV_FARMER_TOKEN: dev-farmer-token
           AUTH_DEV_DEVELOPER_TOKEN: dev-developer-token
-
+          
       - name: Build
         run: npm run build

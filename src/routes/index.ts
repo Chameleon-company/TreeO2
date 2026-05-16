@@ -11,6 +11,8 @@ import { userProjectAssignmentRoutes } from "../modules/user-project-assignment"
 import { userProjectRolesRoutes } from "../modules/user-project-roles";
 import { partnersRoutes } from "../modules/partners";
 
+import treeScansRoutes from "../modules/tree-scans";
+
 const router = Router();
 
 router.use("/health", healthRoutes);
@@ -24,5 +26,7 @@ router.use("/user-projects", userProjectAssignmentRoutes);
 router.use("/user-project-roles", userProjectRolesRoutes);
 router.use("/project-tree-types", projectTreeTypesRoutes);
 router.use("/partners", partnersRoutes);
+
+router.use("/tree-scans", treeScansRoutes);
 
 export default router;
