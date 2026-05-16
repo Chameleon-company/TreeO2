@@ -10,7 +10,9 @@ import { adoptersRouter } from "../modules/adopters";
 import { userProjectAssignmentRoutes } from "../modules/user-project-assignment";
 import { partnersRoutes } from "../modules/partners";
 
+
 import treeScansRoutes from "../modules/tree-scans";
+import dashboardRoutes from "../modules/dashboard/dashboard.routes";
 
 const router = Router();
 
@@ -26,5 +28,7 @@ router.use("/project-tree-types", projectTreeTypesRoutes);
 router.use("/partners", partnersRoutes);
 
 router.use("/tree-scans", treeScansRoutes);
+
+router.use("/dashboard", dashboardRoutes);
 
 export default router;
