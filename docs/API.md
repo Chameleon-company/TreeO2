@@ -3282,3 +3282,295 @@ The Adopters API follows the TreeO2 backend engineering standard:
 
 
 
+### PUT /tree-scans/{id}
+
+Correct an existing tree scan and create an audit log entry.
+
+#### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| id | integer | Yes |
+
+#### Request Body
+
+Any editable correction field may be provided, but `correctionReason` is required.
+
+```json
+{
+  "heightM": 5.2,
+  "correctionReason": "Incorrect field measurement"
+}
+```
+
+#### Notes
+- `isCorrected` is controlled by the service and set automatically
+- `correctedBy` is controlled by the service using the authenticated user ID
+- Audit log creation and tree scan update are executed in a single Prisma transaction
+- Audit data is converted into JSON-safe values before insertion into JSONB fields
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 10,
+    "heightM": 5.2,
+    "isCorrected": true,
+    "correctedBy": 1
+  }
+}
+```
+
+#### Status Codes
+- `200` Success
+- `400` Invalid request / empty payload / missing correction reason
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Tree scan not found
+
+---
+
+### DELETE /tree-scans/{id}
+
+Archive a tree scan.
+
+#### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| id | integer | Yes |
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Tree scan archived successfully"
+  }
+}
+```
+
+#### Status Codes
+- `200` Success
+- `400` Invalid tree scan ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Tree scan not found
+
+---
+
+### POST /tree-scans/recycle/{fobId}
+
+Recycle active tree scans linked to a FOB identifier.
+
+#### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| fobId | string | Yes |
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "FOB recycled successfully",
+    "archivedCount": 1
+  }
+}
+```
+
+#### Status Codes
+- `200` Success
+- `400` Invalid FOB ID
+- `401` Authentication required
+- `403` Insufficient permissions
+
+---
+
+## 15.6 Validation Rules
+
+### Create Validation
+- FOB ID must be non-empty
+- IDs must be positive integers
+- Year must be within allowed range
+- Month must be between 1 and 12
+- Coordinates must be within valid latitude/longitude ranges
+- Decimal measurements must be positive
+- UUID fields must be valid UUIDs
+
+### Update Validation
+- At least one field must be provided
+- `correctionReason` is required
+- Fields must match expected types
+- `isCorrected` cannot be provided by the client
+- `correctedBy` cannot be provided by the client
+
+### Relationship Validation
+- Project must exist
+- Project must be active
+- Farmer must exist
+- Inspector must exist
+- Farmer must belong to project
+- Inspector must belong to project
+- Species must exist
+- Species must belong to project
+
+### Access Control Validation
+- Managers can only access scans from assigned projects
+- Inspectors can only access scans assigned to themselves where route access allows
+- Tree scan updates are restricted to admins
+
+### Archive Validation
+- Tree scan must exist
+
+### Recycle Validation
+- FOB ID must be non-empty
+- Matching active scans are archived
+- If no matching active scans exist, archived count returns `0`
+
+---
+
+## 15.7 Error Handling
+
+Uses centralised error middleware.
+
+### Standard Error Response
+
+```json
+{
+  "success": false,
+  "message": "Tree scan not found"
+}
+```
+
+### Common Errors
+- Authentication required
+- Insufficient permissions
+- Invalid tree scan ID
+- Invalid FOB ID
+- Invalid coordinates
+- Missing required fields
+- Empty update payload
+- Project inactive
+- Farmer not assigned to project
+- Inspector not assigned to project
+- Tree type not assigned to project
+- Missing correction reason
+- Tree scan not found
+- Internal server error
+
+---
+
+## 15.8 Audit Logging
+
+Tree scan corrections create audit records using transactional writes.
+
+The following operations are executed within a Prisma transaction:
+- Tree scan update
+- Audit log creation
+
+This ensures both operations either succeed together or fail together.
+
+Audit data is explicitly converted into JSON-safe values before insertion into JSONB fields to avoid unsafe casting of Prisma results containing dates, decimals, or nested relation objects.
+
+---
+
+## 15.9 Swagger Documentation
+
+All endpoints are documented in:
+
+```text
+treeScans.routes.ts
+```
+
+Available at:
+
+```text
+http://localhost:3000/api-docs
+```
+
+### Swagger Supports
+- Interactive testing
+- Request examples
+- Response definitions
+- Security schemas
+
+---
+
+## 15.10 Testing
+
+### Test Files
+- `tests/unit/tree-scans.test.ts`
+- `tests/integration/tree-scans.test.ts`
+
+### Covered Scenarios
+
+#### Authentication
+- No token returns `401`
+
+#### Authorization
+- Allowed roles succeed
+- Blocked roles return `403`
+- Managers restricted to assigned project scans
+- Inspectors restricted to own scans where allowed
+- Admin-only update enforcement
+- Inspector blocked from list endpoint
+- Manager allowed for recycle endpoint
+
+#### Read
+- Get all tree scans
+- Get tree scan by ID
+- Filtering and pagination
+- Missing scan returns `404`
+
+#### Create
+- Valid tree scan created by inspector
+- Admin create attempt rejected
+- Invalid payload rejected
+- Inactive project rejected
+- Invalid coordinates rejected
+- Unassigned farmer rejected
+- Unassigned inspector rejected
+- Unassigned species rejected
+
+#### Update
+- Valid admin update succeeds
+- Transactional audit log creation
+- Empty payload rejected
+- Missing correction reason rejected
+- Non-admin update rejected
+- Missing tree scan rejected
+
+#### Delete
+- Valid archive succeeds
+- Missing tree scan rejected
+
+#### Recycle
+- Valid admin recycle succeeds
+- Valid manager recycle succeeds
+- Archived count returned correctly
+
+---
+
+## 15.11 Summary
+
+The Tree Scans API follows the TreeO2 backend engineering standard:
+
+- Modular architecture
+- Secure authentication
+- Role-based access control
+- Service-level access scoping
+- Strong validation
+- Relationship integrity checks
+- Transactional audit logging
+- JSON-safe audit data storage
+- Archive and recycle support
+- Swagger documentation
+- Automated testing
+- Scalable backend structure
+---
