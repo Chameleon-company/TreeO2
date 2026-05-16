@@ -151,7 +151,11 @@ export class UserProjectRoleService {
     }
   }
 
-  async deleteUserProjectRole(userId: number, projectId: number, roleId: number) {
+  async deleteUserProjectRole(
+    userId: number,
+    projectId: number,
+    roleId: number,
+  ) {
     assertIds(userId, projectId, roleId);
 
     try {
@@ -166,7 +170,11 @@ export class UserProjectRoleService {
       });
 
       if (!existing) {
-        throw new AppError(404, "User project role not found", ERROR_CODES.DATA_001);
+        throw new AppError(
+          404,
+          "User project role not found",
+          ERROR_CODES.DATA_001,
+        );
       }
 
       await prisma.userProjectRole.delete({
