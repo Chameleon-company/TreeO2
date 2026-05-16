@@ -3,13 +3,15 @@ import {
   SCAN_BATCHES_DEFAULTS,
   SCAN_BATCHES_LIMITS,
   SCAN_BATCHES_MESSAGES,
-} from "../constants/scan-batches.constants";
+} from "./scan-batches.constants";
 
 const currentYear = new Date().getFullYear();
 
 const futureDateValidator = (value: string | Date): boolean => {
   const parsedDate = value instanceof Date ? value : new Date(value);
-  return !Number.isNaN(parsedDate.getTime()) && parsedDate.getTime() <= Date.now();
+  return (
+    !Number.isNaN(parsedDate.getTime()) && parsedDate.getTime() <= Date.now()
+  );
 };
 
 const optionalPositiveNumber = (max: number) =>
@@ -27,14 +29,23 @@ const scanSchema = z.object({
     .min(1, "fob_id is required")
     .max(SCAN_BATCHES_LIMITS.FOB_ID_MAX_LENGTH),
 
-  farmer_id: z.coerce.number().int().positive("farmer_id must be a positive integer"),
+  farmer_id: z.coerce
+    .number()
+    .int()
+    .positive("farmer_id must be a positive integer"),
 
-  species_id: z.coerce.number().int().positive("species_id must be a positive integer"),
+  species_id: z.coerce
+    .number()
+    .int()
+    .positive("species_id must be a positive integer"),
 
   estimated_planted_year: z.coerce
     .number()
     .int()
-    .min(SCAN_BATCHES_LIMITS.MIN_PLANTED_YEAR, SCAN_BATCHES_MESSAGES.INVALID_PLANTED_YEAR)
+    .min(
+      SCAN_BATCHES_LIMITS.MIN_PLANTED_YEAR,
+      SCAN_BATCHES_MESSAGES.INVALID_PLANTED_YEAR,
+    )
     .max(currentYear, SCAN_BATCHES_MESSAGES.INVALID_PLANTED_YEAR),
 
   estimated_planted_month: z.coerce
@@ -53,13 +64,19 @@ const scanSchema = z.object({
 
   diameter_cm: optionalPositiveNumber(SCAN_BATCHES_LIMITS.MAX_DIAMETER_CM),
 
-  circumference_cm: optionalPositiveNumber(SCAN_BATCHES_LIMITS.MAX_CIRCUMFERENCE_CM),
+  circumference_cm: optionalPositiveNumber(
+    SCAN_BATCHES_LIMITS.MAX_CIRCUMFERENCE_CM,
+  ),
 
   latitude: z.coerce.number().min(-90).max(90).optional().nullable(),
 
   longitude: z.coerce.number().min(-180).max(180).optional().nullable(),
 
-  photo_id: z.string().uuid("photo_id must be a valid UUID").optional().nullable(),
+  photo_id: z
+    .string()
+    .uuid("photo_id must be a valid UUID")
+    .optional()
+    .nullable(),
 
   device_id: z
     .string()
@@ -70,7 +87,10 @@ const scanSchema = z.object({
 });
 
 export const createScanBatchSchema = z.object({
-  project_id: z.coerce.number().int().positive(SCAN_BATCHES_MESSAGES.PROJECT_REQUIRED),
+  project_id: z.coerce
+    .number()
+    .int()
+    .positive(SCAN_BATCHES_MESSAGES.PROJECT_REQUIRED),
 
   uploaded_at: z.coerce
     .date()
@@ -104,5 +124,7 @@ export const scanBatchIdParamSchema = z.object({
 });
 
 export type CreateScanBatchInput = z.infer<typeof createScanBatchSchema>;
-export type GetScanBatchesQueryInput = z.infer<typeof getScanBatchesQuerySchema>;
+export type GetScanBatchesQueryInput = z.infer<
+  typeof getScanBatchesQuerySchema
+>;
 export type ScanBatchIdParamInput = z.infer<typeof scanBatchIdParamSchema>;

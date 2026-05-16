@@ -34,8 +34,8 @@ export const SCAN_BATCHES_MESSAGES = {
   ADMIN_DELETE_ONLY: "Only Admin users can delete scan batches",
 
   INVALID_PLANTED_DATE: "Planted date cannot be in the future",
-  INVALID_SCAN_DATE: "Scan timestamp cannot be in the future",
-  INVALID_PLANTED_YEAR: "Estimated planted year must be between 1950 and the current year",
+  INVALID_PLANTED_YEAR:
+    "Estimated planted year must be between 1950 and the current year",
   INVALID_PLANTED_MONTH: "Estimated planted month must be between 1 and 12",
   INVALID_MEASUREMENT: "Tree measurement value is outside the allowed range",
 
@@ -65,7 +65,14 @@ export const SCAN_BATCHES_DEFAULTS = {
   MAX_LIMIT: 100,
 } as const;
 
-export const SCAN_BATCHES_ROLES = {
+export const SCAN_BATCHES_AUTH_ROLES = {
+  ADMIN: "ADMIN",
+  MANAGER: "MANAGER",
+  INSPECTOR: "INSPECTOR",
+  FARMER: "FARMER",
+} as const;
+
+export const SCAN_BATCHES_DB_ROLES = {
   ADMIN: "Admin",
   MANAGER: "Manager",
   INSPECTOR: "Inspector",

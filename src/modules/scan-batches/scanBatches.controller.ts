@@ -4,13 +4,20 @@ import {
   deleteScanBatch,
   getScanBatchById,
   getScanBatches,
-} from "../services/scanBatches.service";
+} from "./scanBatches.service";
+
 import {
   createScanBatchSchema,
   getScanBatchesQuerySchema,
   scanBatchIdParamSchema,
-} from "../schemas/scan-batches.schema";
-import { SCAN_BATCHES_MESSAGES } from "../constants/scan-batches.constants";
+} from "./scan-batches.schema";
+
+import { SCAN_BATCHES_MESSAGES } from "./scan-batches.constants";
+
+const getCurrentUser = (req: Request) => ({
+  id: Number(req.user?.sub),
+  role: req.user?.role ?? "",
+});
 
 // Handle request to fetch paginated scan batches
 export const getScanBatchesController = async (
@@ -21,10 +28,7 @@ export const getScanBatchesController = async (
   try {
     const query = getScanBatchesQuerySchema.parse(req.query);
 
-    const result = await getScanBatches(query, {
-      id: req.user!.id,
-      role: req.user!.role,
-    });
+    const result = await getScanBatches(query, getCurrentUser(req));
 
     res.status(200).json({
       success: true,
@@ -45,10 +49,7 @@ export const getScanBatchByIdController = async (
   try {
     const { id } = scanBatchIdParamSchema.parse(req.params);
 
-    const scanBatch = await getScanBatchById(id, {
-      id: req.user!.id,
-      role: req.user!.role,
-    });
+    const scanBatch = await getScanBatchById(id, getCurrentUser(req));
 
     res.status(200).json({
       success: true,
@@ -71,7 +72,7 @@ export const createScanBatchController = async (
 
     const scanBatch = await createScanBatch({
       ...validatedData,
-      inspector_id: req.user!.id,
+      inspector_id: getCurrentUser(req).id,
     });
 
     res.status(201).json({
