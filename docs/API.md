@@ -3099,3 +3099,394 @@ The Tree Scans API follows the TreeO2 backend engineering standard:
 - Automated testing
 - Scalable backend structure
 ---
+
+## 16. Adoptions API
+
+This module manages adoption records in the TreeO2 platform. It provides full CRUD operations for recording, retrieving, updating, and deleting tree adoption records.
+
+**Module Path:** `src/modules/adoptions/`
+
+### Files
+
+- `adoptions.routes.ts`
+- `adoptions.controller.ts`
+- `adoptions.service.ts`
+- `index.ts`
+
+### 16.1 Purpose
+
+The Adoptions API is responsible for managing adoption records linked to adopters and tree FOB identifiers.
+
+An adoption record stores:
+- the adopter linked to the adoption
+- the tree FOB ID
+- the adoption date
+- the creation timestamp
+
+### 16.2 Architecture Flow
+
+Every request follows the standard backend module structure:
+
+```text
+Route -> Controller -> Service -> Prisma ORM -> PostgreSQL -> Response
+```
+
+### Responsibilities
+
+#### Routes
+- Define endpoints
+- Apply authentication middleware
+- Apply role-based authorization
+- Contain Swagger documentation
+
+#### Controller
+- Receive request data
+- Read params and body
+- Call service methods
+- Return HTTP response
+
+#### Service
+- Validate user input
+- Apply business rules
+- Execute database queries
+- Throw structured errors
+
+### 16.3 Security
+
+All endpoints are protected using Bearer Token authentication.
+
+Middleware used:
+- `authMiddleware`
+- `roleMiddleware`
+
+### 16.4 Access Control Matrix
+
+| Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
+|---|---|---|---|---|---|
+| GET /adoptions | Yes | Yes | No | No | No |
+| GET /adoptions/{id} | Yes | Yes | No | No | No |
+| POST /adoptions | Yes | No | No | No | No |
+| PUT /adoptions/{id} | Yes | No | No | No | No |
+| DELETE /adoptions/{id} | Yes | No | No | No | No |
+
+### 16.5 Endpoints
+
+#### GET /adoptions
+
+Retrieve paginated adoption records.
+
+##### Query Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| page | integer | No |
+| limit | integer | No |
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "adopter_id": 1,
+      "fob_id": "NFC-001",
+      "adopted_at": "2026-05-14T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+##### Status Codes
+- `200` Success
+- `400` Invalid pagination parameters
+- `401` Authentication required
+- `403` Insufficient permissions
+
+---
+
+#### GET /adoptions/{id}
+
+Retrieve a single adoption by ID.
+
+##### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| id | integer | Yes |
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "adopter_id": 1,
+    "fob_id": "NFC-001",
+    "adopted_at": "2026-05-14T00:00:00.000Z"
+  }
+}
+```
+
+##### Status Codes
+- `200` Success
+- `400` Invalid adoption ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Adoption not found
+
+---
+
+#### POST /adoptions
+
+Create a new adoption record.
+
+##### Request Body
+
+```json
+{
+  "adopter_id": 1,
+  "fob_id": "NFC-001",
+  "adopted_at": "2026-05-14"
+}
+```
+
+##### Required Fields
+- `adopter_id`
+- `fob_id`
+- `adopted_at`
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "adopter_id": 1,
+    "fob_id": "NFC-001",
+    "adopted_at": "2026-05-14T00:00:00.000Z"
+  }
+}
+```
+
+##### Status Codes
+- `201` Created
+- `400` Invalid payload or missing required fields
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Adopter not found
+
+---
+
+#### PUT /adoptions/{id}
+
+Update an existing adoption record.
+
+##### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| id | integer | Yes |
+
+##### Request Body
+
+Any subset of fields may be provided.
+
+```json
+{
+  "fob_id": "NFC-UPDATED"
+}
+```
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "adopter_id": 1,
+    "fob_id": "NFC-UPDATED",
+    "adopted_at": "2026-05-14T00:00:00.000Z"
+  }
+}
+```
+
+##### Status Codes
+- `200` Success
+- `400` Invalid request, invalid ID, empty payload, or future adoption date
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Adoption or adopter not found
+
+---
+
+#### DELETE /adoptions/{id}
+
+Delete an adoption record.
+
+##### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| id | integer | Yes |
+
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Adoption deleted successfully"
+  }
+}
+```
+
+##### Status Codes
+- `200` Success
+- `400` Invalid adoption ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Adoption not found
+
+### 16.6 Validation Rules
+
+#### Create Validation
+- `adopter_id` must be a positive integer
+- `fob_id` must be a non-empty string
+- `adopted_at` must be a valid date
+- `adopted_at` cannot be in the future
+- adopter must exist before adoption is created
+
+#### Update Validation
+- adoption ID must be a positive integer
+- at least one field must be provided
+- if `adopter_id` is provided, it must be a positive integer and existing adopter
+- if `fob_id` is provided, it must be non-empty
+- if `adopted_at` is provided, it must be valid and not in the future
+
+#### Delete Validation
+- adoption must exist before deletion
+
+### 16.7 Error Handling
+
+Uses centralised error middleware.
+
+#### Standard Error Response
+
+```json
+{
+  "success": false,
+  "message": "Adoption not found"
+}
+```
+
+#### Common Errors
+- Authentication required
+- Insufficient permissions
+- Invalid adoption ID
+- Missing required fields
+- Invalid adoption date
+- Adoption date cannot be in the future
+- Adopter not found
+- Adoption not found
+- Empty update payload
+- Internal server error
+
+### 16.8 Swagger Documentation
+
+All endpoints are documented in:
+
+`adoptions.routes.ts`
+
+Available at:
+
+`http://localhost:3000/api-docs`
+
+Swagger supports:
+- Interactive testing
+- Request examples
+- Response definitions
+- Security schemas
+
+### 16.9 Testing
+
+#### Test Files
+- `tests/unit/adoptions.test.ts`
+- `tests/integration/adoptions.test.ts`
+
+#### Covered Scenarios
+
+##### Authentication
+- No token returns `401`
+
+##### Authorization
+- Admin and Manager can access GET endpoints
+- Only Admin can create, update, and delete
+- Other roles return `403`
+
+##### Read
+- Get all adoptions returns list
+- Get adoption by ID returns correct record
+- Missing adoption returns `404`
+- Invalid ID returns `400`
+
+##### Create
+- Valid adoption created with `201`
+- Missing fields rejected with `400`
+- Invalid adoption date rejected with `400`
+- Missing adopter rejected with `404`
+
+##### Update
+- Valid update succeeds with `200`
+- Empty payload rejected with `400`
+- Invalid ID rejected with `400`
+- Missing adoption returns `404`
+
+##### Delete
+- Valid delete succeeds with `200`
+- Missing adoption returns `404`
+- Invalid ID returns `400`
+
+### 16.10 How to Run Adoptions Tests
+
+Run unit tests only:
+
+```bash
+npm test -- --runInBand tests/unit/adoptions.test.ts
+```
+
+Run integration tests only:
+
+```bash
+npm test -- --runInBand tests/integration/adoptions.test.ts
+```
+
+Run both:
+
+```bash
+npm test -- --runInBand tests/unit/adoptions.test.ts tests/integration/adoptions.test.ts
+```
+
+### 16.11 Current Limitations
+
+- auth and role checks depend on the existing scaffold and are not fully production-complete yet
+- adoption records currently rely on FOB identifiers without deeper tree validation logic
+
+### 16.12 Summary
+
+The Adoptions API follows the TreeO2 backend engineering standard:
+
+- Modular architecture
+- Secure authentication
+- Role-based access control
+- Clean separation of concerns
+- Strong validation
+- Full CRUD support
+- Prisma-backed data access
+- Swagger documentation
+- Automated tests
+- Scalable structure for future enhancements
