@@ -1,6 +1,6 @@
 // Dashboard Service
 
-import { User } from '../../types';
+import { User, UserRole } from '../../types';
 import { prisma } from '../../lib/prisma';
 
 export async function getTotals(user: User) {
@@ -10,7 +10,7 @@ export async function getTotals(user: User) {
   let totalTrees = 0;
   let totalPartners = 0;
 
-  if (user.role === 'ADMIN') {
+  if (user.role === UserRole.Admin) {
     totalUsers = await prisma.user.count();
     totalProjects = await prisma.project.count();
     totalTrees = await prisma.treeScan.count();
@@ -35,7 +35,7 @@ export async function getTotals(user: User) {
 
 export async function getTreeCounts(user: User) {
   // For admin: count trees by species
-  if (user.role === 'ADMIN') {
+  if (user.role === UserRole.Admin) {
     const speciesCounts = await prisma.treeType.findMany({
       select: {
         name: true,
@@ -44,8 +44,8 @@ export async function getTreeCounts(user: User) {
         }
       }
     });
-    const species = speciesCounts.map(s => ({ name: s.name, count: s._count.treeScans }));
-    const total = species.reduce((sum, s) => sum + s.count, 0);
+    const species = speciesCounts.map((s: { name: string; _count: { treeScans: number } }) => ({ name: s.name, count: s._count.treeScans }));
+    const total = species.reduce((sum: number, s: { name: string; count: number }) => sum + s.count, 0);
     return { species, total, role: user.role };
   } else {
     // For non-admin, only their trees
@@ -54,11 +54,11 @@ export async function getTreeCounts(user: User) {
       select: { species: { select: { name: true } } }
     });
     const counts: Record<string, number> = {};
-    userTrees.forEach(t => {
+    userTrees.forEach((t: { species?: { name?: string } }) => {
       const name = t.species?.name || 'Unknown';
       counts[name] = (counts[name] || 0) + 1;
     });
-    const species = Object.entries(counts).map(([name, count]) => ({ name, count }));
+    const species = Object.entries(counts).map(([name, count]: [string, number]) => ({ name, count }));
     const total = userTrees.length;
     return { species, total, role: user.role };
   }
@@ -67,7 +67,7 @@ export async function getTreeCounts(user: User) {
 
 export async function getScanStats(user: User) {
   // For admin: all scan stats
-  if (user.role === 'ADMIN') {
+  if (user.role === UserRole.Admin) {
     const totalScans = await prisma.treeScan.count();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
