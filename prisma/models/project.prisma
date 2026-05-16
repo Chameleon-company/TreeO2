@@ -15,6 +15,8 @@ model Project {
   scanBatches      ScanBatch[]       @relation("ProjectScanBatches")
   treeScans        TreeScan[]        @relation("ProjectTreeScans")
 
+userProjectRoles    UserProjectRole[]
+
   @@index([countryId])
   @@index([adminLocationId])
   @@map("projects")
