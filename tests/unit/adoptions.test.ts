@@ -121,17 +121,86 @@ describe("AdoptionsService - Unit Tests", () => {
 
       mockedPrismaAdoption.count.mockResolvedValue(1);
 
-      const result = await adoptionsService.listAdoptions(1, 10);
+      const result = await adoptionsService.listAdoptions({
+        page: 1,
+        limit: 10,
+      });
 
       expect(result.data.length).toBe(1);
       expect(result.meta.total).toBe(1);
       expect(mockedPrismaAdoption.findMany).toHaveBeenCalled();
     });
 
-    it("should throw 400 for invalid pagination", async () => {
-      await expect(adoptionsService.listAdoptions(0, 10)).rejects.toThrow(
-        AppError,
+    it("should apply fob_id filter", async () => {
+      mockedPrismaAdoption.findMany.mockResolvedValue([]);
+      mockedPrismaAdoption.count.mockResolvedValue(0);
+
+      await adoptionsService.listAdoptions({
+        page: 1,
+        limit: 10,
+        fob_id: "NFC-001",
+      });
+
+      expect(mockedPrismaAdoption.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            fobId: {
+              contains: "NFC-001",
+              mode: "insensitive",
+            },
+          }),
+        }),
       );
+    });
+
+    it("should apply adopter_id filter", async () => {
+      mockedPrismaAdoption.findMany.mockResolvedValue([]);
+      mockedPrismaAdoption.count.mockResolvedValue(0);
+
+      await adoptionsService.listAdoptions({
+        page: 1,
+        limit: 10,
+        adopter_id: 1,
+      });
+
+      expect(mockedPrismaAdoption.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            adopterId: 1,
+          }),
+        }),
+      );
+    });
+
+    it("should apply year filter", async () => {
+      mockedPrismaAdoption.findMany.mockResolvedValue([]);
+      mockedPrismaAdoption.count.mockResolvedValue(0);
+
+      await adoptionsService.listAdoptions({
+        page: 1,
+        limit: 10,
+        year: 2026,
+      });
+
+      expect(mockedPrismaAdoption.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            adoptedAt: expect.objectContaining({
+              gte: expect.any(Date),
+              lte: expect.any(Date),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it("should throw 400 for invalid pagination", async () => {
+      await expect(
+        adoptionsService.listAdoptions({
+          page: 0,
+          limit: 10,
+        }),
+      ).rejects.toThrow(AppError);
     });
   });
 
@@ -153,9 +222,9 @@ describe("AdoptionsService - Unit Tests", () => {
     it("should throw 404 when adoption not found", async () => {
       mockedPrismaAdoption.findUnique.mockResolvedValue(null);
 
-      await expect(
-        adoptionsService.getAdoptionById(999),
-      ).rejects.toThrow(AppError);
+      await expect(adoptionsService.getAdoptionById(999)).rejects.toThrow(
+        AppError,
+      );
     });
 
     it("should throw 400 for invalid id", async () => {
@@ -247,9 +316,9 @@ describe("AdoptionsService - Unit Tests", () => {
     it("should throw 404 when deleting non-existing adoption", async () => {
       mockedPrismaAdoption.findUnique.mockResolvedValue(null);
 
-      await expect(
-        adoptionsService.deleteAdoption(999),
-      ).rejects.toThrow(AppError);
+      await expect(adoptionsService.deleteAdoption(999)).rejects.toThrow(
+        AppError,
+      );
     });
   });
 });
