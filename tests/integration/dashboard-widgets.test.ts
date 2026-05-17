@@ -44,3 +44,4 @@ describe("Dashboard Endpoints", () => {
     expect(res.body).toHaveProperty("role");
   });
 });
+

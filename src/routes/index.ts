@@ -11,7 +11,7 @@ import { userProjectAssignmentRoutes } from "../modules/user-project-assignment"
 import { partnersRoutes } from "../modules/partners";
 
 import treeScansRoutes from "../modules/tree-scans";
-import dashboardRoutes from "../modules/dashboard/dashboard.routes";
+import dashboardRoutes from "../modules/dashboard/dashboard.routes"; //dashboard
 
 const router = Router();
 

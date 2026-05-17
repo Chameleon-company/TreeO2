@@ -10,7 +10,7 @@ function isUser(obj: unknown): obj is User {
 
 /**
  * @swagger
- * /dashboard/totals:
+ * /dashboard/totals: 
  *   get:
  *     summary: Get dashboard totals
  *     tags:

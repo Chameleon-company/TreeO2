@@ -32,3 +32,4 @@ describe("Dashboard Service", () => {
     expect(result).toHaveProperty("role", UserRole.Admin);
   });
 });
+
