@@ -21,9 +21,10 @@ function isUser(obj: unknown): obj is User {
  *       200:
  *         description: Totals by role
  */
-export const getTotals = async (req: Request, res: Response) => {
+export const getTotals = async (req: Request, res: Response): Promise<void> => {
   if (!isUser(req.user)) {
-    return res.status(401).json({ message: "Unauthorized" });
+    res.status(401).json({ message: "Unauthorized" });
+    return;
   }
   const result = await DashboardService.getTotals(req.user);
   res.json(result);
@@ -42,9 +43,10 @@ export const getTotals = async (req: Request, res: Response) => {
  *       200:
  *         description: Tree counts by role
  */
-export const getTreeCounts = async (req: Request, res: Response) => {
+export const getTreeCounts = async (req: Request, res: Response): Promise<void> => {
   if (!isUser(req.user)) {
-    return res.status(401).json({ message: "Unauthorized" });
+    res.status(401).json({ message: "Unauthorized" });
+    return;
   }
   const result = await DashboardService.getTreeCounts(req.user);
   res.json(result);
@@ -63,9 +65,10 @@ export const getTreeCounts = async (req: Request, res: Response) => {
  *       200:
  *         description: Scan stats by role
  */
-export const getScanStats = async (req: Request, res: Response) => {
+export const getScanStats = async (req: Request, res: Response): Promise<void> => {
   if (!isUser(req.user)) {
-    return res.status(401).json({ message: "Unauthorized" });
+    res.status(401).json({ message: "Unauthorized" });
+    return;
   }
   const result = await DashboardService.getScanStats(req.user);
   res.json(result);
