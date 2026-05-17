@@ -10,6 +10,7 @@ import { adoptersRouter } from "../modules/adopters";
 import { adoptionsRoutes } from "../modules/adoptions";
 import { userProjectAssignmentRoutes } from "../modules/user-project-assignment";
 import { partnersRoutes } from "../modules/partners";
+import { scanBatchesRoutes } from "../modules/scan-batches";
 
 import treeScansRoutes from "../modules/tree-scans";
 
@@ -26,6 +27,7 @@ router.use("/localized-strings", localizationRoutes);
 router.use("/user-projects", userProjectAssignmentRoutes);
 router.use("/project-tree-types", projectTreeTypesRoutes);
 router.use("/partners", partnersRoutes);
+router.use("/scan-batches", scanBatchesRoutes);
 
 router.use("/tree-scans", treeScansRoutes);
 
