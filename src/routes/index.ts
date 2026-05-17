@@ -10,7 +10,6 @@ import { adoptersRouter } from "../modules/adopters";
 import { userProjectAssignmentRoutes } from "../modules/user-project-assignment";
 import { partnersRoutes } from "../modules/partners";
 
-
 import treeScansRoutes from "../modules/tree-scans";
 import dashboardRoutes from "../modules/dashboard/dashboard.routes";
 

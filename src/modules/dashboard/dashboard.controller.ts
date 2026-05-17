@@ -1,11 +1,11 @@
 // Dashboard Controller
 
-import { Request, Response } from 'express';
-import * as DashboardService from './dashboard.service';
-import { User } from '../../types';
+import { Request, Response } from "express";
+import * as DashboardService from "./dashboard.service";
+import { User } from "../../types";
 
-function isUser(obj: any): obj is User {
-  return obj && typeof obj === 'object' && 'role' in obj;
+function isUser(obj: unknown): obj is User {
+  return typeof obj === "object" && obj !== null && "role" in obj;
 }
 
 /**
@@ -23,7 +23,7 @@ function isUser(obj: any): obj is User {
  */
 export const getTotals = async (req: Request, res: Response) => {
   if (!isUser(req.user)) {
-    return res.status(401).json({ message: 'Unauthorized' });
+    return res.status(401).json({ message: "Unauthorized" });
   }
   const result = await DashboardService.getTotals(req.user);
   res.json(result);
@@ -44,7 +44,7 @@ export const getTotals = async (req: Request, res: Response) => {
  */
 export const getTreeCounts = async (req: Request, res: Response) => {
   if (!isUser(req.user)) {
-    return res.status(401).json({ message: 'Unauthorized' });
+    return res.status(401).json({ message: "Unauthorized" });
   }
   const result = await DashboardService.getTreeCounts(req.user);
   res.json(result);
@@ -65,7 +65,7 @@ export const getTreeCounts = async (req: Request, res: Response) => {
  */
 export const getScanStats = async (req: Request, res: Response) => {
   if (!isUser(req.user)) {
-    return res.status(401).json({ message: 'Unauthorized' });
+    return res.status(401).json({ message: "Unauthorized" });
   }
   const result = await DashboardService.getScanStats(req.user);
   res.json(result);
