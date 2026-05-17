@@ -5,6 +5,8 @@ model Role {
   primaryUsers User[]      @relation("PrimaryRole")
   roleAssignments          UserRoleAssignment[] 
 
+  userProjectRoles    UserProjectRole[]
+  
   @@map("roles")
 }
 
