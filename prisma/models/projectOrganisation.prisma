@@ -1,0 +1,10 @@
+model ProjectOrganisation {
+  projectId      Int
+  organisationId Int
+
+  project      Project       @relation(fields: [projectId], references: [id])
+  organisation Organisation  @relation(fields: [organisationId], references: [id])
+
+  @@id([projectId, organisationId])
+  @@map("project_organisations")
+}

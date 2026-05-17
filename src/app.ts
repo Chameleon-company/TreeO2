@@ -38,8 +38,17 @@ app.use(express.urlencoded({ extended: true }));
 // Swagger docs
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Module Routes
+// Routes (central router)
 app.use("/", routes);
+
+// Health check (keep this from your version)
+app.get("/health", (_req, res) => {
+  res.json({
+    success: true,
+    status: "ok",
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // 404 & error handler
 app.use(notFound);

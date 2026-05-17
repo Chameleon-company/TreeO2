@@ -12,6 +12,7 @@ model Project {
   adminLocation    Location?         @relation("ProjectAdminLocation", fields: [adminLocationId], references: [id], onDelete: Restrict)
   userProjects     UserProject[]
   projectTreeTypes ProjectTreeType[]
+  projectOrganisations ProjectOrganisation[]
   scanBatches      ScanBatch[]       @relation("ProjectScanBatches")
   treeScans        TreeScan[]        @relation("ProjectTreeScans")
 
