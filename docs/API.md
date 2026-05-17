@@ -3490,3 +3490,415 @@ The Adoptions API follows the TreeO2 backend engineering standard:
 - Swagger documentation
 - Automated tests
 - Scalable structure for future enhancements
+
+---
+## 17. Scan Batches API
+
+This module manages scan batch upload and retrieval operations across the TreeO2 platform. It provides scan batch creation, pagination, project-scoped access control, validation, deletion protection, Swagger documentation, and automated testing coverage.
+
+**Module Path:** `src/modules/scan-batches/`
+
+### Files
+- `scanBatches.routes.ts`
+- `scanBatches.controller.ts`
+- `scanBatches.service.ts`
+- `scan-batches.schema.ts`
+- `scan-batches.constants.ts`
+- `scan-batches.docs.ts`
+- `index.ts`
+
+---
+
+## 17.1 Purpose
+
+The Scan Batches API is responsible for managing grouped tree scan uploads in the system.
+
+Scan batches are operational upload containers used for:
+- Grouping uploaded tree scans
+- Managing inspector uploads
+- Tracking project-based scan submissions
+- Validating relationships between inspectors, projects, farmers, and species
+- Enforcing project-scoped access control
+- Preventing deletion of batches linked to existing tree scans
+
+---
+
+## 17.2 Architecture Flow
+
+Every request follows the standard backend module structure:
+
+```text
+Route → Validation Schema → Controller → Service → Prisma ORM → PostgreSQL → Response
+```
+
+### Responsibilities
+
+### Routes
+- Define endpoints
+- Apply authentication middleware
+- Apply role-based authorization
+- Register Swagger documentation
+
+### Controller
+- Parse request params/query/body
+- Validate authenticated user context
+- Pass validated data to service layer
+- Return structured HTTP responses
+
+### Service
+- Perform business validation
+- Validate project relationships
+- Apply access control rules
+- Execute Prisma database operations
+- Handle transactional batch creation
+- Prevent invalid delete operations
+- Throw structured application errors
+
+### Schemas
+- Validate request body
+- Validate query parameters
+- Validate path parameters
+- Enforce numeric/date validation rules
+- Validate coordinates and measurements
+
+---
+
+## 17.3 Security
+
+All endpoints are protected using Bearer Token authentication.
+
+### Middleware Used
+- `authMiddleware`
+- `roleMiddleware`
+
+### Service-Level Access Control
+
+- `ADMIN` can access all scan batches
+- `MANAGER` can access batches from assigned projects only
+- `INSPECTOR` can upload and access only their own batches
+
+---
+
+## 17.4 Access Control Matrix
+
+| Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
+|---|---|---|---|---|---|
+| GET /scan-batches | Yes | Yes (assigned projects only) | Yes (own batches only) | No | No |
+| GET /scan-batches/{id} | Yes | Yes (assigned projects only) | Yes (own batches only) | No | No |
+| POST /scan-batches | No | No | Yes | No | No |
+| DELETE /scan-batches/{id} | Yes | No | No | No | No |
+
+---
+
+## 17.5 Endpoints
+
+### GET /scan-batches
+
+Retrieve paginated scan batches with optional filtering.
+
+#### Query Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| page | integer | No |
+| limit | integer | No |
+| project_id | integer | No |
+| inspector_id | integer | No |
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "Scan batches fetched successfully",
+  "data": [
+    {
+      "id": 1,
+      "inspectorId": 4,
+      "projectId": 1,
+      "uploadedAt": "2024-05-20T10:35:00.000Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+#### Status Codes
+- `200` Success
+- `400` Invalid query parameters
+- `401` Authentication required
+- `403` Insufficient permissions
+
+---
+
+### GET /scan-batches/{id}
+
+Retrieve a single scan batch by ID.
+
+#### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| id | integer | Yes |
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "Scan batch fetched successfully",
+  "data": {
+    "id": 1,
+    "inspectorId": 4,
+    "projectId": 1,
+    "uploadedAt": "2024-05-20T10:35:00.000Z"
+  }
+}
+```
+
+#### Status Codes
+- `200` Success
+- `400` Invalid scan batch ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Scan batch not found
+
+---
+
+### POST /scan-batches
+
+Create a new scan batch and associate uploaded tree scans.
+
+#### Request Body
+
+```json
+{
+  "project_id": 1,
+  "uploaded_at": "2024-05-20T10:35:00.000Z",
+  "scans": [
+    {
+      "fob_id": "SWAGGER-001",
+      "farmer_id": 16,
+      "species_id": 1,
+      "estimated_planted_year": 2024,
+      "estimated_planted_month": 5,
+      "planted_date": "2024-05-20",
+      "height_m": 2.5,
+      "circumference_cm": 45.3,
+      "diameter_cm": 14.4,
+      "latitude": -8.5569,
+      "longitude": 125.5603,
+      "device_id": "MOB-001"
+    }
+  ]
+}
+```
+
+#### Required Fields
+- `project_id`
+- `scans`
+- `fob_id`
+- `farmer_id`
+- `species_id`
+- `estimated_planted_year`
+- `estimated_planted_month`
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "Scan batch uploaded successfully",
+  "data": {
+    "id": 1,
+    "inspectorId": 4,
+    "projectId": 1
+  }
+}
+```
+
+#### Status Codes
+- `201` Created
+- `400` Validation failed
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Related entity not found
+- `422` Invalid project or measurement values
+
+---
+
+### DELETE /scan-batches/{id}
+
+Delete a scan batch if it contains no related tree scans.
+
+#### Path Parameters
+
+| Name | Type | Required |
+|---|---|---|
+| id | integer | Yes |
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "Scan batch deleted successfully"
+}
+```
+
+#### Status Codes
+- `200` Success
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Scan batch not found
+- `409` Scan batch contains related tree scans
+
+---
+
+## 17.6 Validation Rules
+
+### Create Validation
+- Project ID must be positive integer
+- Inspector must exist
+- Inspector must have INSPECTOR role
+- Inspector account must be active
+- Project must exist
+- Project must be active
+- Inspector must belong to project
+- Farmer must exist
+- Farmer must belong to project
+- Species must exist
+- Species must belong to project
+- Height must not exceed allowed limit
+- Diameter must not exceed allowed limit
+- Circumference must not exceed allowed limit
+- Coordinates must be valid
+- Month must be between 1 and 12
+
+### Access Control Validation
+- Managers can access batches from assigned projects only
+- Inspectors can access only their own batches
+- Only inspectors can upload batches
+- Only admins can delete batches
+
+### Delete Validation
+- Batch must exist
+- Batch cannot contain related tree scans
+
+---
+
+## 17.7 Error Handling
+
+Uses centralized error middleware.
+
+### Standard Error Response
+
+```json
+{
+  "success": false,
+  "message": "Scan batch not found"
+}
+```
+
+### Common Errors
+- Authentication required
+- Insufficient permissions
+- Invalid scan batch ID
+- Invalid coordinates
+- Invalid measurement values
+- Project inactive
+- Inspector not assigned to project
+- Farmer not assigned to project
+- Species not assigned to project
+- Scan batch not found
+- Scan batch contains related tree scans
+
+---
+
+## 17.8 Swagger Documentation
+
+All endpoints are documented in:
+
+```text
+scan-batches.docs.ts
+```
+
+Available at:
+
+```text
+http://localhost:3000/api-docs
+```
+
+### Swagger Supports
+- Interactive endpoint testing
+- Request examples
+- Response schemas
+- Security schemas
+- Query parameter documentation
+
+---
+
+## 17.9 Testing
+
+### Test Files
+- `tests/unit/scan-batches.test.ts`
+- `tests/integration/scan-batches.test.ts`
+
+### Covered Scenarios
+
+#### Authentication
+- No token returns `401`
+
+#### Authorization
+- Admin access validation
+- Manager assigned-project restrictions
+- Inspector own-batch restrictions
+- Inspector-only upload validation
+- Admin-only delete validation
+
+#### Read
+- Get all scan batches
+- Get scan batch by ID
+- Pagination validation
+- Filtering validation
+- Missing batch returns `404`
+
+#### Create
+- Valid scan batch upload
+- Invalid role rejection
+- Inactive inspector rejection
+- Inactive project rejection
+- Invalid coordinates rejection
+- Invalid measurement rejection
+- Unassigned farmer rejection
+- Unassigned inspector rejection
+- Unassigned species rejection
+- Multi-scan validation
+
+#### Delete
+- Valid delete succeeds
+- Delete blocked when tree scans exist
+- Missing scan batch rejected
+
+---
+
+## 17.10 Summary
+
+The Scan Batches API follows the TreeO2 backend engineering standard:
+
+- Modular backend architecture
+- Secure authentication
+- Role-based access control
+- Project-scoped authorization
+- Strong validation rules
+- Relationship integrity validation
+- Protected delete operations
+- Swagger documentation
+- Automated unit testing
+- Automated integration testing
+- Scalable backend structure
