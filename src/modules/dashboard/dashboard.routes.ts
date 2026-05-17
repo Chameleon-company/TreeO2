@@ -4,9 +4,15 @@ import { authMiddleware } from "../../middleware/auth.middleware";
 
 const router = Router();
 
-type AsyncRouteHandler = (req: Request, res: Response, next: NextFunction) => Promise<void>;
+type AsyncRouteHandler = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<void>;
 
-function asyncHandler(fn: AsyncRouteHandler): (req: Request, res: Response, next: NextFunction) => void {
+function asyncHandler(
+  fn: AsyncRouteHandler,
+): (req: Request, res: Response, next: NextFunction) => void {
   return (req, res, next) => {
     void fn(req, res, next).catch(next);
   };

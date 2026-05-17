@@ -10,7 +10,7 @@ function isUser(obj: unknown): obj is User {
 
 /**
  * @swagger
- * /dashboard/totals: 
+ * /dashboard/totals:
  *   get:
  *     summary: Get dashboard totals
  *     tags:
@@ -43,7 +43,10 @@ export const getTotals = async (req: Request, res: Response): Promise<void> => {
  *       200:
  *         description: Tree counts by role
  */
-export const getTreeCounts = async (req: Request, res: Response): Promise<void> => {
+export const getTreeCounts = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   if (!isUser(req.user)) {
     res.status(401).json({ message: "Unauthorized" });
     return;
@@ -65,7 +68,10 @@ export const getTreeCounts = async (req: Request, res: Response): Promise<void> 
  *       200:
  *         description: Scan stats by role
  */
-export const getScanStats = async (req: Request, res: Response): Promise<void> => {
+export const getScanStats = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   if (!isUser(req.user)) {
     res.status(401).json({ message: "Unauthorized" });
     return;
