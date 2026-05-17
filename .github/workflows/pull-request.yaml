@@ -61,6 +61,9 @@ jobs:
       - name: Setup test database
         run: npx prisma db push
 
+      - name: Seed database
+        run: npx ts-node prisma/seed.ts
+
       - name: Test
         run: npm run test:coverage -- --runInBand
         env:
