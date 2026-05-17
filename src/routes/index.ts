@@ -9,6 +9,7 @@ import { localizationRoutes } from "../modules/localization";
 import { adoptersRouter } from "../modules/adopters";
 import { adoptionsRoutes } from "../modules/adoptions";
 import { userProjectAssignmentRoutes } from "../modules/user-project-assignment";
+import { userProjectRolesRoutes } from "../modules/user-project-roles";
 import { partnersRoutes } from "../modules/partners";
 
 import treeScansRoutes from "../modules/tree-scans";
@@ -24,6 +25,7 @@ router.use("/tree-types", treeTypesRoutes);
 router.use("/projects", projectManagementRoutes);
 router.use("/localized-strings", localizationRoutes);
 router.use("/user-projects", userProjectAssignmentRoutes);
+router.use("/user-project-roles", userProjectRolesRoutes);
 router.use("/project-tree-types", projectTreeTypesRoutes);
 router.use("/partners", partnersRoutes);
 
