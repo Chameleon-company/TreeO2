@@ -2201,6 +2201,16 @@ This module manages partner organisations in the TreeO2 platform. It provides fu
 
 ### 14.1 Purpose
 
+The Adopters API is responsible for managing adopter records in the system.
+
+Adopters represent individuals or organisations associated with tree adoption activities.
+
+The module currently supports:
+- listing adopters with pagination
+- retrieving a single adopter
+- creating adopters
+- updating adopters
+- deleting adopters
 The Partners API is responsible for creating, retrieving, updating, and deleting partner organisations in the system.
 
 ### 14.2 Architecture Flow
@@ -2208,6 +2218,7 @@ The Partners API is responsible for creating, retrieving, updating, and deleting
 Every request follows the standard backend module structure:
 
 ```text
+Route → Controller → Service → Prisma ORM → PostgreSQL → Response
 Route -> Controller -> Service -> Prisma ORM -> PostgreSQL -> Response
 ```
 
@@ -2221,6 +2232,16 @@ Route -> Controller -> Service -> Prisma ORM -> PostgreSQL -> Response
 - Contain Swagger documentation
 
 #### Controller
+- Receive request data
+- Read params/query/body
+- Call service methods
+- Return HTTP responses
+
+#### Service
+- Apply validation and business rules
+- Execute Prisma queries
+- Throw structured AppError responses
+- Prevent invalid operations
 
 - Receive request data
 - Read params and body
@@ -2247,6 +2268,27 @@ Middleware used:
 
 | Endpoint              | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
 | --------------------- | ----- | ------- | --------- | ------ | --------- |
+| GET /adopters         | Yes   | Yes     | No        | No     | No        |
+| GET /adopters/{id}    | Yes   | Yes     | No        | No     | No        |
+| POST /adopters        | Yes   | No      | No        | No     | No        |
+| PUT /adopters/{id}    | Yes   | No      | No        | No     | No        |
+| DELETE /adopters/{id} | Yes   | No      | No        | No     | No        |
+
+
+### 14.5 Endpoints
+
+#### GET /adopters
+
+Retrieve a paginated list of adopters.
+
+| Name  | Type    | Required | Default |
+| ----- | ------- | -------- | ------- |
+| page  | integer | No       | 1       |
+| limit | integer | No       | 10      |
+
+Example Request
+
+GET /adopters?page=1&limit=10
 | GET /partners         | Yes   | Yes     | No        | No     | No        |
 | GET /partners/{id}    | Yes   | Yes     | No        | No     | No        |
 | POST /partners        | Yes   | No      | No        | No     | No        |
@@ -2267,6 +2309,16 @@ Retrieve all partners ordered by newest first.
   "data": [
     {
       "id": 1,
+      "name": "Hashini",
+      "email": "hashini@gmail.com",
+      "createdAt": "2026-05-12T10:00:00.000Z"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 1
+  }
       "name": "TreeO2-Xpand Foundation",
       "createdAt": "2025-01-01T00:00:00.000Z"
     }
@@ -2275,6 +2327,13 @@ Retrieve all partners ordered by newest first.
 ```
 
 ##### Status Codes
+- `200` Success
+- `400` Invalid pagination values
+- `401` Authentication required
+- `403` Insufficient permissions
+
+#### GET /adopters/{id}
+Retrieve a single adopter by ID.
 
 - `200` Success
 - `401` Authentication required
@@ -2290,6 +2349,7 @@ Retrieve a single partner by ID.
 | ---- | ------- | -------- |
 | id   | integer | Yes      |
 
+
 ##### Response
 
 ```json
@@ -2297,6 +2357,23 @@ Retrieve a single partner by ID.
   "success": true,
   "data": {
     "id": 1,
+    "name": "Hashini",
+    "email": "hashini@gmail.com",
+    "createdAt": "2026-05-12T10:00:00.000Z"
+  }
+}
+```
+Status Codes
+- 200 Success
+- 400 Invalid adopter ID
+- 401 Authentication required
+- 403 Insufficient permissions
+- 404 Adopter not found
+
+#### POST /adopters
+
+Create a new adopter.
+
     "name": "TreeO2-Xpand Foundation",
     "createdAt": "2025-01-01T00:00:00.000Z"
   }
@@ -2319,6 +2396,12 @@ Create a new partner.
 
 ```json
 {
+  "name": "Hashini",
+  "email": "hashini@gmail.com"
+}
+```
+Required Fields
+- name
   "name": "TreeO2-Xpand Foundation"
 }
 ```
@@ -2334,6 +2417,12 @@ Create a new partner.
   "success": true,
   "data": {
     "id": 1,
+    "name": "Hashini",
+    "email": "hashini@gmail.com"
+  }
+}
+```
+##### Status Codes
     "name": "TreeO2-Xpand Foundation",
     "createdAt": "2025-01-01T00:00:00.000Z"
   }
@@ -2346,6 +2435,11 @@ Create a new partner.
 - `400` Invalid payload
 - `401` Authentication required
 - `403` Insufficient permissions
+- `409` Duplicate adopter
+
+#### PUT /adopters/{id}
+
+Update an existing adopter.
 
 #### PUT /partners/{id}
 
@@ -2357,6 +2451,15 @@ Update an existing partner.
 | ---- | ------- | -------- |
 | id   | integer | Yes      |
 
+
+##### Request Body
+Any subset of fields may be provided.
+```json
+{
+  "name": "Updated Name",
+  "email": "updated@gmail.com"
+}
+```
 ##### Request Body
 
 ```json
@@ -2372,6 +2475,20 @@ Update an existing partner.
   "success": true,
   "data": {
     "id": 1,
+    "name": "Updated Name",
+    "email": "updated@gmail.com"
+  }
+}
+```
+##### Status Codes
+- `200` Success
+- `400` Invalid request / empty payload / invalid ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Adopter not found
+
+#### DELETE /adopters/{id}
+Delete an adopter.
     "name": "Updated Partner Name",
     "createdAt": "2025-01-01T00:00:00.000Z"
   }
@@ -2396,12 +2513,70 @@ Delete a partner.
 | ---- | ------- | -------- |
 | id   | integer | Yes      |
 
+
+```
 ##### Response
 
 ```json
 {
   "success": true,
   "data": {
+    "message": "Adopter deleted successfully"
+  }
+}
+```
+##### Status Codes
+- `200` Success
+- `400` Invalid request / empty payload / invalid ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Adopter not found
+
+### 14.6 Validation Rules
+
+#### Pagination Validation
+- `page` must be: numeric , integer , greater than 0
+- `limit` must be: numeric , integer , greater than 0
+
+#### Create Validation
+
+Rules:
+- name is required
+- name must be non-empty after trim
+- email must be a string if provided
+
+Accepted example:
+```json
+{
+  "name": "Hashini",
+  "email": "hashini@gmail.com"
+}
+```
+
+#### Update Validation
+
+Rules:
+- at least one field must be provided
+- partial updates are allowed
+- name must not be empty if provided
+- email must be a string if provided
+
+Accepted example:
+```json
+{
+  "email": "updated@gmail.com"
+}
+```
+#### ID Validation
+
+id must be:
+- numeric
+- integer
+- positive
+
+### 14.7 Error Handling
+
+Uses centralised error middleware with AppError and ERROR_CODES.
     "message": "Partner deleted successfully"
   }
 }
@@ -2440,11 +2615,22 @@ Uses centralised error middleware.
 ```json
 {
   "success": false,
+  "message": "Adopter not found",
+  "code": "DATA_001"
   "message": "Partner not found"
 }
 ```
 
 #### Common Errors
+- Authentication required (401)
+- Insufficient permissions (403)
+- Invalid pagination (400)
+- Invalid adopter ID (400)
+- Missing required fields (400)
+- Empty update payload (400)
+- Invalid email (400)
+- Adopter not found (404)
+- Internal server error (500)
 
 - Authentication required
 - Insufficient permissions
@@ -2458,6 +2644,7 @@ Uses centralised error middleware.
 
 All endpoints are documented in:
 
+`adopters.routes.ts`
 `partners.routes.ts`
 
 Available at:
@@ -2474,6 +2661,100 @@ Swagger supports:
 ### 14.9 Testing
 
 #### Test Files
+- `tests/unit/adopters.test.ts`
+- `tests/integration/adopters.test.ts`
+
+#### Unit Tests Covered
+These tests exercise the service layer directly.
+
+#### Covered Scenarios
+
+##### listAdopters
+- returns paginated adopters
+- validates invalid page values
+- validates invalid limit values
+
+##### getAdopterById
+- returns adopter
+- throws for invalid id
+- throws when adopter missing
+
+##### createAdopter
+- creates adopter successfully
+- rejects missing name
+- rejects empty name
+- rejects invalid email type
+
+##### updateAdopter
+- updates adopter successfully
+- supports partial updates
+- rejects empty payload
+- rejects invalid name
+- rejects invalid email
+- throws when adopter missing
+
+#####  deleteAdopter
+- deletes adopter successfully
+- throws when adopter missing
+- rejects invalid id
+
+#### Integration Tests Covered
+These tests exercise the full API flow:
+route → middleware → controller → service → Prisma → response
+
+#### Covered scenarios:
+
+#### Authentication
+- returns 401 when token missing
+#### Authorization
+- Manager can access GET routes
+- non-admin roles blocked from mutations
+- returns 403 for unauthorized roles
+
+#### GET /adopters
+- returns paginated results
+- validates pagination query params
+
+#### GET /adopters/{id}
+- returns adopter
+- returns 400 for invalid ID
+- returns 404 when missing
+
+#### POST /adopters
+- creates adopter successfully
+- validates request body
+- rejects invalid email
+
+#### PUT /adopters/{id}
+- updates adopter
+- supports partial update
+- returns 404 when adopter missing
+
+#### DELETE /adopters/{id}
+- deletes adopter
+- returns 404 when adopter missing
+
+### 14.10 Test Strategy Used
+Current test strategy for this module:
+
+- Jest is used as the test runner
+- integration tests use supertest
+- Prisma is mocked in unit tests
+- integration tests use the real database flow
+- auth behaviour uses the current development auth scaffold
+- integration tests create and clean up their own data
+
+###  14.11 How To Run Adopter Tests
+Run unit tests only:
+
+npm test -- tests/unit/adopters.test.ts
+
+Run integration tests only:
+
+npm test -- tests/integration/adopters.test.ts
+
+### 14.12 Summary
+The Adopters API follows the TreeO2 backend engineering standard:
 
 - `tests/unit/partners.test.ts`
 - `tests/integration/partners.test.ts`
@@ -2550,262 +2831,456 @@ The Partners API follows the TreeO2 backend engineering standard:
 - Role-based access control
 - Clean separation of concerns
 - Strong validation
+- Relationship management between users and projects
+- Swagger documentation
+- Unit testing for service/business logic
+- Integration testing for full API flow
+- Scalable structure for future project-user access rules
+---
 - Full CRUD support
 - Swagger documentation
 - Automated tests
 - Scalable structure for future enhancements
 
----
-## 15. Tree Scans API
+## 15. Adopters API
 
-This module manages tree scan records collected across the TreeO2 platform. It provides tree scan creation, retrieval, correction, archiving, FOB recycling support, validation, role-based access control, project-scoped access control, and relationship checks against projects, users, tree species, and scan batches.
+This module manages adopter records used within the TreeO2 platform. It provides CRUD operations with validation, authentication, role-based access control, pagination support, and automated test coverage.
 
-**Module Path:** `src/modules/tree-scans/`
+**Module Path:** `src/modules/adopters/`
 
 ### Files
-- `treeScans.routes.ts`
-- `treeScans.controller.ts`
-- `treeScans.service.ts`
-- `treeScans.schemas.ts`
-- `treeScans.constants.ts`
+- `adopters.routes.ts`
+- `adopters.controller.ts`
+- `adopters.service.ts`
 - `index.ts`
 
----
+### 15.1 Purpose
 
-## 15.1 Purpose
+The Adopters API is responsible for managing adopter records in the system.
 
-The Tree Scans API is responsible for managing tree scan lifecycle operations in the system.
+Adopters represent individuals or organisations associated with tree adoption activities.
 
-Tree scans are core operational records used for:
-- Capturing planted tree information
-- Tracking field inspections
-- Recording geolocation data
-- Managing species assignments
-- Monitoring scan validation and corrections
-- Recycling FOB-linked scans
+The module currently supports:
+- listing adopters with pagination
+- retrieving a single adopter
+- creating adopters
+- updating adopters
+- deleting adopters
 
----
-
-## 15.2 Architecture Flow
+### 15.2 Architecture Flow
 
 Every request follows the standard backend module structure:
 
 ```text
-Route → Validation Middleware → Controller → Service → Prisma ORM → PostgreSQL → Response
+Route → Controller → Service → Prisma ORM → PostgreSQL → Response
 ```
 
-### Responsibilities
+#### Responsibilities
 
-### Routes
+#### Routes
 - Define endpoints
 - Apply authentication middleware
 - Apply role-based authorization
-- Attach validation schemas
 - Contain Swagger documentation
 
-### Controller
+#### Controller
 - Receive request data
 - Read params/query/body
-- Validate authenticated user context where required
-- Pass authenticated user context to the service
 - Call service methods
-- Return HTTP response
+- Return HTTP responses
 
-### Service
-- Perform business validation
-- Validate relationships
-- Apply project-scoped access control
-- Execute database queries
-- Handle archive/recycle logic
-- Handle transactional audit logging
-- Convert audit data into JSON-safe values
-- Throw structured errors
+#### Service
+- Apply validation and business rules
+- Execute Prisma queries
+- Throw structured AppError responses
+- Prevent invalid operations
 
-### Schemas
-- Validate request body
-- Validate params/query
-- Enforce numeric/date constraints
-- Validate recycle FOB route params
-- Prevent client-controlled correction metadata such as `isCorrected` and `correctedBy`
-
----
-
-## 15.3 Security
+### 15.3 Security
 
 All endpoints are protected using Bearer Token authentication.
 
-### Middleware Used
+Middleware used:
 - `authMiddleware`
 - `roleMiddleware`
-- `validateMiddleware`
 
-### Service-Level Access Control
+### 15.4 Access Control Matrix
 
-- `ADMIN` can access all tree scans
-- `MANAGER` can access scans belonging to assigned projects
-- `INSPECTOR` can access scans assigned to themselves where allowed by route permissions
+| Endpoint              | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
+| --------------------- | ----- | ------- | --------- | ------ | --------- |
+| GET /adopters         | Yes   | Yes     | No        | No     | No        |
+| GET /adopters/{id}    | Yes   | Yes     | No        | No     | No        |
+| POST /adopters        | Yes   | No      | No        | No     | No        |
+| PUT /adopters/{id}    | Yes   | No      | No        | No     | No        |
+| DELETE /adopters/{id} | Yes   | No      | No        | No     | No        |
 
----
 
-## 15.4 Access Control Matrix
+### 15.5 Endpoints
 
-| Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
-|---|---|---|---|---|---|
-| GET /tree-scans | Yes | Yes (assigned projects only) | No | No | No |
-| GET /tree-scans/{id} | Yes | Yes (assigned projects only) | Yes (own scans only) | No | No |
-| POST /tree-scans | No | No | Yes | No | No |
-| PUT /tree-scans/{id} | Yes | No | No | No | No |
-| DELETE /tree-scans/{id} | Yes | No | No | No | No |
-| POST /tree-scans/recycle/{fobId} | Yes | Yes | No | No | No |
+#### GET /adopters
 
----
+Retrieve a paginated list of adopters.
 
-## 15.5 Endpoints
+| Name  | Type    | Required | Default |
+| ----- | ------- | -------- | ------- |
+| page  | integer | No       | 1       |
+| limit | integer | No       | 10      |
 
-### GET /tree-scans
+Example Request
 
-Retrieve paginated tree scans with optional filtering.
+GET /adopters?page=1&limit=10
 
-#### Query Parameters
-
-| Name | Type | Required |
-|---|---|---|
-| page | integer | No |
-| limit | integer | No |
-| projectId | integer | No |
-| farmerId | integer | No |
-| inspectorId | integer | No |
-| speciesId | integer | No |
-| batchId | integer | No |
-| isArchived | boolean | No |
-| isValid | boolean | No |
-
-#### Response
+##### Response
 
 ```json
 {
   "success": true,
-  "data": {
-    "data": [
-      {
-        "id": 1,
-        "fobId": "FOB-001",
-        "projectId": 1,
-        "farmerId": 2,
-        "inspectorId": 4,
-        "speciesId": 3,
-        "estimatedPlantedYear": 2020,
-        "estimatedPlantedMonth": 6
-      }
-    ],
-    "meta": {
-      "page": 1,
-      "limit": 10,
-      "total": 1,
-      "totalPages": 1
+  "data": [
+    {
+      "id": 1,
+      "name": "Hashini",
+      "email": "hashini@gmail.com",
+      "createdAt": "2026-05-12T10:00:00.000Z"
     }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 1
   }
 }
 ```
 
-#### Status Codes
+##### Status Codes
 - `200` Success
-- `400` Invalid query parameters
+- `400` Invalid pagination values
 - `401` Authentication required
 - `403` Insufficient permissions
 
----
+#### GET /adopters/{id}
+Retrieve a single adopter by ID.
 
-### GET /tree-scans/{id}
+##### Path Parameters
 
-Retrieve a single tree scan by ID.
+| Name | Type    | Required |
+| ---- | ------- | -------- |
+| id   | integer | Yes      |
 
-#### Path Parameters
 
-| Name | Type | Required |
-|---|---|---|
-| id | integer | Yes |
-
-#### Response
+##### Response
 
 ```json
 {
   "success": true,
   "data": {
     "id": 1,
-    "fobId": "FOB-001",
-    "projectId": 1,
-    "farmerId": 2,
-    "inspectorId": 4,
-    "speciesId": 3
+    "name": "Hashini",
+    "email": "hashini@gmail.com",
+    "createdAt": "2026-05-12T10:00:00.000Z"
   }
 }
 ```
+Status Codes
+- 200 Success
+- 400 Invalid adopter ID
+- 401 Authentication required
+- 403 Insufficient permissions
+- 404 Adopter not found
 
-#### Status Codes
-- `200` Success
-- `400` Invalid tree scan ID
-- `401` Authentication required
-- `403` Insufficient permissions
-- `404` Tree scan not found
+#### POST /adopters
 
----
+Create a new adopter.
 
-### POST /tree-scans
 
-Create a new tree scan.
-
-#### Request Body
+##### Request Body
 
 ```json
 {
-  "fobId": "FOB-001",
-  "projectId": 1,
-  "farmerId": 2,
-  "inspectorId": 4,
-  "speciesId": 3,
-  "estimatedPlantedYear": 2020,
-  "estimatedPlantedMonth": 6,
-  "plantedDate": "2026-05-12",
-  "heightM": 4.5,
-  "circumferenceCm": 22.1,
-  "diameterCm": 7.0,
-  "latitude": -6.2,
-  "longitude": 106.8,
-  "deviceId": "ANDROID-01",
-  "validationNotes": "Healthy tree"
+  "name": "Hashini",
+  "email": "hashini@gmail.com"
 }
 ```
+Required Fields
+- name
 
-#### Required Fields
-- `fobId`
-- `projectId`
-- `farmerId`
-- `inspectorId`
-- `speciesId`
-- `estimatedPlantedYear`
-- `estimatedPlantedMonth`
-
-#### Response
+##### Response
 
 ```json
 {
   "success": true,
   "data": {
-    "id": 10,
-    "fobId": "FOB-001"
+    "id": 1,
+    "name": "Hashini",
+    "email": "hashini@gmail.com"
   }
 }
 ```
-
-#### Status Codes
+##### Status Codes
 - `201` Created
 - `400` Invalid payload
 - `401` Authentication required
 - `403` Insufficient permissions
-- `404` Related entity not found
+- `409` Duplicate adopter
 
+#### PUT /adopters/{id}
+
+Update an existing adopter.
+
+##### Path Parameters
+
+| Name | Type    | Required |
+| ---- | ------- | -------- |
+| id   | integer | Yes      |
+
+
+##### Request Body
+Any subset of fields may be provided.
+```json
+{
+  "name": "Updated Name",
+  "email": "updated@gmail.com"
+}
+```
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "Updated Name",
+    "email": "updated@gmail.com"
+  }
+}
+```
+##### Status Codes
+- `200` Success
+- `400` Invalid request / empty payload / invalid ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Adopter not found
+
+#### DELETE /adopters/{id}
+Delete an adopter.
+
+##### Path Parameters
+
+| Name | Type    | Required |
+| ---- | ------- | -------- |
+| id   | integer | Yes      |
+
+
+```
+##### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Adopter deleted successfully"
+  }
+}
+```
+##### Status Codes
+- `200` Success
+- `400` Invalid request / empty payload / invalid ID
+- `401` Authentication required
+- `403` Insufficient permissions
+- `404` Adopter not found
+
+### 15.6 Validation Rules
+
+#### Pagination Validation
+- `page` must be: numeric , integer , greater than 0
+- `limit` must be: numeric , integer , greater than 0
+
+#### Create Validation
+
+Rules:
+- name is required
+- name must be non-empty after trim
+- email must be a string if provided
+
+Accepted example:
+```json
+{
+  "name": "Hashini",
+  "email": "hashini@gmail.com"
+}
+```
+
+#### Update Validation
+
+Rules:
+- at least one field must be provided
+- partial updates are allowed
+- name must not be empty if provided
+- email must be a string if provided
+
+Accepted example:
+```json
+{
+  "email": "updated@gmail.com"
+}
+```
+#### ID Validation
+
+id must be:
+- numeric
+- integer
+- positive
+
+### 15.7 Error Handling
+
+Uses centralised error middleware with AppError and ERROR_CODES.
+
+#### Standard Error Response
+
+```json
+{
+  "success": false,
+  "message": "Adopter not found",
+  "code": "DATA_001"
+}
+```
+
+#### Common Errors
+- Authentication required (401)
+- Insufficient permissions (403)
+- Invalid pagination (400)
+- Invalid adopter ID (400)
+- Missing required fields (400)
+- Empty update payload (400)
+- Invalid email (400)
+- Adopter not found (404)
+- Internal server error (500)
+
+### 15.8 Swagger Documentation
+
+All endpoints are documented in:
+
+`adopters.routes.ts`
+
+Available at:
+
+`http://localhost:3000/api-docs`
+
+Swagger supports:
+- Interactive testing
+- Request examples
+- Response definitions
+- Security schemas
+
+### 15.9 Testing
+
+#### Test Files
+- `tests/unit/adopters.test.ts`
+- `tests/integration/adopters.test.ts`
+
+#### Unit Tests Covered
+These tests exercise the service layer directly.
+
+#### Covered Scenarios
+
+##### listAdopters
+- returns paginated adopters
+- validates invalid page values
+- validates invalid limit values
+
+##### getAdopterById
+- returns adopter
+- throws for invalid id
+- throws when adopter missing
+
+##### createAdopter
+- creates adopter successfully
+- rejects missing name
+- rejects empty name
+- rejects invalid email type
+
+##### updateAdopter
+- updates adopter successfully
+- supports partial updates
+- rejects empty payload
+- rejects invalid name
+- rejects invalid email
+- throws when adopter missing
+
+#####  deleteAdopter
+- deletes adopter successfully
+- throws when adopter missing
+- rejects invalid id
+
+#### Integration Tests Covered
+These tests exercise the full API flow:
+route → middleware → controller → service → Prisma → response
+
+#### Covered scenarios:
+
+#### Authentication
+- returns 401 when token missing
+#### Authorization
+- Manager can access GET routes
+- non-admin roles blocked from mutations
+- returns 403 for unauthorized roles
+
+#### GET /adopters
+- returns paginated results
+- validates pagination query params
+
+#### GET /adopters/{id}
+- returns adopter
+- returns 400 for invalid ID
+- returns 404 when missing
+
+#### POST /adopters
+- creates adopter successfully
+- validates request body
+- rejects invalid email
+
+#### PUT /adopters/{id}
+- updates adopter
+- supports partial update
+- returns 404 when adopter missing
+
+#### DELETE /adopters/{id}
+- deletes adopter
+- returns 404 when adopter missing
+
+### 15.10 Test Strategy Used
+Current test strategy for this module:
+
+- Jest is used as the test runner
+- integration tests use supertest
+- Prisma is mocked in unit tests
+- integration tests use the real database flow
+- auth behaviour uses the current development auth scaffold
+- integration tests create and clean up their own data
+
+###  15.11 How To Run Adopter Tests
+Run unit tests only:
+
+npm test -- tests/unit/adopters.test.ts
+
+Run integration tests only:
+
+npm test -- tests/integration/adopters.test.ts
+
+### 15.12 Summary
+The Adopters API follows the TreeO2 backend engineering standard:
+
+- Modular architecture
+- Secure authentication
+- Role-based access control
+- Clean separation of concerns
+- Strong validation
+- Relationship management between users and projects
+- Swagger documentation
+- Unit testing for service/business logic
+- Integration testing for full API flow
+- Scalable structure for future project-user access rules
 ---
+
+
 
 ### PUT /tree-scans/{id}
 
