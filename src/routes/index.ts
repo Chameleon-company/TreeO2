@@ -13,6 +13,7 @@ import { partnersRoutes } from "../modules/partners";
 import { scanBatchesRoutes } from "../modules/scan-batches";
 
 import treeScansRoutes from "../modules/tree-scans";
+import dashboardRoutes from "../modules/dashboard/dashboard.routes"; //dashboard
 
 const router = Router();
 
@@ -30,5 +31,7 @@ router.use("/partners", partnersRoutes);
 router.use("/scan-batches", scanBatchesRoutes);
 
 router.use("/tree-scans", treeScansRoutes);
+
+router.use("/dashboard", dashboardRoutes);
 
 export default router;
