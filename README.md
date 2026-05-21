@@ -54,17 +54,20 @@ docker compose up -d postgres
 npm run prisma:generate
 
 # 5. Apply schema changes
+# Choose one:
 # If migration files already exist, use:
 npm run prisma:migrate:dev
 # If migration files do not exist yet and you only need to sync the local DB, use:
 npm run prisma:push
 
 # 6. Seed local data
-npm run prisma:seed
+ALLOW_SAMPLE_SEED=true npm run prisma:seed
 
 # 7. Start dev server
 npm run dev
 ```
+
+The sample seed is for local development only. It expects a clean local database and is intentionally blocked unless `ALLOW_SAMPLE_SEED=true` is provided. It will only run when `NODE_ENV` is `development` or `test`.
 
 API is available at `http://localhost:3000`  
 Health check: `GET /health`
@@ -113,7 +116,7 @@ tests/
 | `npm run prisma:push` | Push schema directly to the database without creating migrations |
 | `npm run prisma:migrate:dev` | Create and apply a development migration |
 | `npm run prisma:migrate:deploy` | Apply migrations |
-| `npm run prisma:seed` | Seed local data |
+| `npm run prisma:seed` | Seed local sample data after setting `ALLOW_SAMPLE_SEED=true` |
 | `npm test` | Run Jest tests |
 
 ## Prisma Schema Layout
