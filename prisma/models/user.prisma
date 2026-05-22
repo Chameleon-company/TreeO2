@@ -38,6 +38,11 @@ model User {
   treeScanAudits     TreeScanAudit[]  @relation("TreeScanAuditChangedBy")
   userOrganisations UserOrganisation[]
 
+<<<<<<< HEAD
+=======
+userProjectRoles        UserProjectRole[] @relation("UserProjectRoles")
+  assignedProjectRoles    UserProjectRole[] @relation("AssignedByUser")
+>>>>>>> ea7e82b06212ec29e6995640c7dc2df550adf1d1
 
   @@map("users")
 }
