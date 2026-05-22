@@ -3100,7 +3100,6 @@ The Tree Scans API follows the TreeO2 backend engineering standard:
 - Scalable backend structure
 ---
 
-###########################Hashini
 ## 16. Adopters API
 
 This module manages adopter records used within the TreeO2 platform. It provides CRUD operations with validation, authentication, role-based access control, pagination support, and automated test coverage.
