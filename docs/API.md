@@ -284,7 +284,7 @@ Soft delete user (Admin only)
 - Prevent deletion if user linked to treeScan records
 ---
 
-## 9. Tree Types API
+## 10. Tree Types API
 
 This section documents the `tree-types` module that has now been implemented and tested.
 
@@ -783,7 +783,7 @@ The `tree-types` module is now fully wired into the backend with:
 
 This module now serves as one of the more complete examples of the project’s current module-based API structure and can be used as a reference for implementing similar CRUD-style master-data APIs.
 
-## 10. Project Management API
+## 11. Project Management API
 
 This module manages project records used across the TreeO2 platform. It provides full CRUD operations with validation, role-based access control, and integration with related entities such as countries, locations, and tree scans.
 
@@ -795,7 +795,7 @@ This module manages project records used across the TreeO2 platform. It provides
 - `projectManagement.service.ts`
 - `index.ts`
 
-### 10.1 Purpose
+### 11.1 Purpose
 
 The Project Management API is responsible for creating, retrieving, updating, and deleting projects in the system.
 
@@ -805,7 +805,7 @@ Projects are core records used to organise:
 - Country-level operations
 - Administrative ownership
 
-### 10.2 Architecture Flow
+### 11.2 Architecture Flow
 
 Every request follows the standard backend module structure:
 
@@ -833,7 +833,7 @@ Route → Controller → Service → Prisma ORM → PostgreSQL → Response
 - Execute database queries
 - Throw structured errors
 
-### 10.3 Security
+### 11.3 Security
 
 All endpoints are protected using Bearer Token authentication.
 
@@ -841,7 +841,7 @@ Middleware used:
 - `authMiddleware`
 - `roleMiddleware`
 
-### 10.4 Access Control Matrix
+### 11.4 Access Control Matrix
 
 | Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
 |---|---|---|---|---|---|
@@ -851,7 +851,7 @@ Middleware used:
 | PUT /projects/{id} | Yes | No | No | No | No |
 | DELETE /projects/{id} | Yes | No | No | No | No |
 
-### 10.5 Endpoints
+### 11.5 Endpoints
 
 #### GET /projects
 
@@ -1020,7 +1020,7 @@ Delete a project.
 - `404` Project not found
 - `409` Cannot delete project with dependent scans
 
-### 10.6 Validation Rules
+### 11.6 Validation Rules
 
 #### Create Validation
 - Name must be a non-empty string
@@ -1042,7 +1042,7 @@ Delete a project.
 - Project must exist
 - Project cannot be deleted if linked scans exist
 
-### 10.7 Error Handling
+### 11.7 Error Handling
 
 Uses centralised error middleware.
 
@@ -1066,7 +1066,7 @@ Uses centralised error middleware.
 - Project has dependent scans
 - Internal server error
 
-### 10.8 Swagger Documentation
+### 11.8 Swagger Documentation
 
 All endpoints are documented in:
 
@@ -1082,7 +1082,7 @@ Swagger supports:
 - Response definitions
 - Security schemas
 
-### 10.9 Testing
+### 11.9 Testing
 
 #### Test Files
 - `tests/unit/project-management.test.ts`
@@ -1117,7 +1117,7 @@ Swagger supports:
 - Missing project rejected
 - Protected delete blocked when dependencies exist
 
-### 10.10 Summary
+### 11.10 Summary
 
 The Project Management API follows the TreeO2 backend engineering standard:
 
@@ -1133,7 +1133,7 @@ The Project Management API follows the TreeO2 backend engineering standard:
 
 ---
 
-## 11. Localization API
+## 12. Localization API
 
 This module manages localized string resources used across the TreeO2 platform. It provides read and administrative write operations for multilingual content with context filtering, language fallback support, and role-based access control.
 
@@ -1145,12 +1145,12 @@ This module manages localized string resources used across the TreeO2 platform. 
 - `localization.service.ts`
 - `index.ts`
 
-### 11.1 Purpose
+### 12.1 Purpose
 
 The Localization API is responsible for creating, retrieving, updating, and deleting localized strings in the system.
 
 
-### 11.2 Architecture Flow
+### 12.2 Architecture Flow
 
 Every request in this module follows a simple class-based flow:
 
@@ -1181,7 +1181,7 @@ localization.routes.ts (Router + middleware)
 - Reads and writes localized strings via Prisma
 - Returns data or throws handled errors
 
-### 11.3 Security
+### 12.3 Security
 
 All endpoints are protected using Bearer Token authentication.
 
@@ -1189,7 +1189,7 @@ Middleware used:
 - `authMiddleware`
 - `roleMiddleware`
 
-### 11.4 Access Control Matrix
+### 12.4 Access Control Matrix
 
 | Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
 |---|---|---|---|---|---|
@@ -1198,7 +1198,7 @@ Middleware used:
 | PUT /localized-strings/{id} | Yes | No | No | No | No |
 | DELETE /localized-strings/{id} | Yes | No | No | No | No |
 
-### 11.5 Endpoints
+### 12.5 Endpoints
 
 #### GET /localized-strings
 
@@ -1343,7 +1343,7 @@ Delete a localized string.
 - `403` Insufficient permissions
 - `404` Localized string not found
 
-### 11.6 Validation Rules
+### 12.6 Validation Rules
 
 #### List Validation
 - `preferredLanguage` / `preferred_language` must be non-empty strings (max 10).
@@ -1367,7 +1367,7 @@ Delete a localized string.
 - `id` must be a positive integer
 - Target localized string must exist
 
-### 11.7 Error Handling
+### 12.7 Error Handling
 
 Uses centralised error middleware.
 
@@ -1387,7 +1387,7 @@ Uses centralised error middleware.
 - Resource not found (`DATA_001`)
 - Internal server error (`SYS_001`)
 
-### 11.8 Swagger Documentation
+### 12.8 Swagger Documentation
 
 All endpoints are documented in:
 
@@ -1403,7 +1403,7 @@ Swagger supports:
 - Response definitions
 - Security schemas
 
-### 11.9 Testing
+### 12.9 Testing
 
 #### Test Files
 - `tests/unit/localization.test.ts`
@@ -1440,7 +1440,7 @@ Swagger supports:
 - Valid delete succeeds
 - Missing target rejected
 
-### 11.10 Summary
+### 12.10 Summary
 
 The Localization API follows the TreeO2 backend engineering standard:
 
@@ -1454,7 +1454,7 @@ The Localization API follows the TreeO2 backend engineering standard:
 - Automated tests
 - Scalable structure for multilingual expansion
 
-## 12. Project Tree Types API
+## 13. Project Tree Types API
 
 This section documents the `project-tree-types` module that has now been implemented and tested.
 
@@ -1902,7 +1902,7 @@ The `project-tree-types` module is now fully wired into the backend with:
 
 This module now provides the project-to-tree-type assignment layer needed before downstream modules such as `tree-scans` can validate whether a scanned tree type is allowed for a given project.
 
-## 13. User-Project Assignment API
+## 14. User-Project Assignment API
 
 This module manages the assignment relationship between users and projects in the TreeO2 platform. It allows authorised users to view user-project assignments, assign users to projects, and remove users from projects.
 
@@ -1914,7 +1914,7 @@ This module manages the assignment relationship between users and projects in th
 - `userProjectAssignment.service.ts`
 - `index.ts`
 
-### 13.1 Purpose
+### 14.1 Purpose
 
 The User-Project Assignment API is responsible for managing which users are connected to which projects.
 
@@ -1926,7 +1926,7 @@ This is important because projects need assigned users such as:
 
 The module does not create users or projects. It only manages the relationship between existing users and existing projects.
 
-### 13.2 Architecture Flow
+### 14.2 Architecture Flow
 
 Every request follows the standard backend module structure:
 
@@ -1956,7 +1956,7 @@ Route → Controller → Service → Prisma ORM → PostgreSQL → Response
 - Execute create/delete database operations
 - Throw structured errors
 
-### 13.3 Security
+### 14.3 Security
 
 All endpoints are protected using Bearer Token authentication.
 
@@ -1964,7 +1964,7 @@ Middleware used:
 - `authMiddleware`
 - `roleMiddleware`
 
-### 13.4 Access Control Matrix
+### 14.4 Access Control Matrix
 
 | Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
 |---|---|---|---|---|---|
@@ -1972,7 +1972,7 @@ Middleware used:
 | POST /user-projects | Yes | No | No | No | No |
 | DELETE /user-projects/{user_id}/{project_id} | Yes | No | No | No | No |
 
-### 13.5 Endpoints
+### 14.5 Endpoints
 
 #### GET /user-projects
 
@@ -2083,7 +2083,7 @@ Remove a user from a project.
 - `403` Insufficient permissions
 - `404` Assignment not found
 
-### 13.6 Validation Rules
+### 14.6 Validation Rules
 
 #### Assignment Validation
 - `userId` must be a positive integer
@@ -2097,7 +2097,7 @@ Remove a user from a project.
 - `project_id` must be a positive integer
 - Assignment must exist before it can be removed
 
-### 13.7 Error Handling
+### 14.7 Error Handling
 
 Uses centralised error middleware.
 
@@ -2120,7 +2120,7 @@ Uses centralised error middleware.
 - Assignment not found
 - Internal server error
 
-### 13.8 Swagger Documentation
+### 14.8 Swagger Documentation
 
 All endpoints are documented in:
 
@@ -2136,7 +2136,7 @@ Swagger supports:
 - Response definitions
 - Security schemas
 
-### 13.9 Testing
+### 14.9 Testing
 
 #### Test Files
 - `tests/unit/user-project-assignment.test.ts`
@@ -2170,7 +2170,7 @@ Swagger supports:
 - Missing assignment returns `404`
 - Database confirms assignment is deleted
 
-### 13.10 Summary
+### 14.10 Summary
 
 The User-Project Assignment API follows the TreeO2 backend engineering standard:
 
@@ -2186,7 +2186,7 @@ The User-Project Assignment API follows the TreeO2 backend engineering standard:
 - Scalable structure for future project-user access rules
 ---
 
-## 14. Partners API
+## 15. Partners API
 
 This module manages partner organisations in the TreeO2 platform. It provides full CRUD operations with validation and role-based access control.
 
@@ -2199,11 +2199,11 @@ This module manages partner organisations in the TreeO2 platform. It provides fu
 - `partners.service.ts`
 - `index.ts`
 
-### 14.1 Purpose
+### 15.1 Purpose
 
 The Partners API is responsible for creating, retrieving, updating, and deleting partner organisations in the system.
 
-### 14.2 Architecture Flow
+### 15.2 Architecture Flow
 
 Every request follows the standard backend module structure:
 
@@ -2234,7 +2234,7 @@ Route -> Controller -> Service -> Prisma ORM -> PostgreSQL -> Response
 - Execute database queries
 - Throw structured errors
 
-### 14.3 Security
+### 15.3 Security
 
 All endpoints are protected using Bearer Token authentication.
 
@@ -2243,7 +2243,7 @@ Middleware used:
 - `authMiddleware`
 - `roleMiddleware`
 
-### 14.4 Access Control Matrix
+### 15.4 Access Control Matrix
 
 | Endpoint              | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
 | --------------------- | ----- | ------- | --------- | ------ | --------- |
@@ -2253,7 +2253,7 @@ Middleware used:
 | PUT /partners/{id}    | Yes   | No      | No        | No     | No        |
 | DELETE /partners/{id} | Yes   | No      | No        | No     | No        |
 
-### 14.5 Endpoints
+### 15.5 Endpoints
 
 #### GET /partners
 
@@ -2415,7 +2415,7 @@ Delete a partner.
 - `403` Insufficient permissions
 - `404` Partner not found
 
-### 14.6 Validation Rules
+### 15.6 Validation Rules
 
 #### Create Validation
 
@@ -2431,7 +2431,7 @@ Delete a partner.
 
 - Partner organisation must exist before deletion
 
-### 14.7 Error Handling
+### 15.7 Error Handling
 
 Uses centralised error middleware.
 
@@ -2454,7 +2454,7 @@ Uses centralised error middleware.
 - Partner not found
 - Internal server error
 
-### 14.8 Swagger Documentation
+### 15.8 Swagger Documentation
 
 All endpoints are documented in:
 
@@ -2471,7 +2471,7 @@ Swagger supports:
 - Response definitions
 - Security schemas
 
-### 14.9 Testing
+### 15.9 Testing
 
 #### Test Files
 
@@ -2516,7 +2516,7 @@ Swagger supports:
 - Missing partner returns `404`
 - Invalid ID returns `400`
 
-### 14.10 How to Run Partners Tests
+### 15.10 How to Run Partners Tests
 
 Run unit tests only:
 
@@ -2536,12 +2536,12 @@ Run both:
 npm test -- --runInBand tests/unit/partners.test.ts tests/integration/partners.test.ts
 ```
 
-### 14.11 Current Limitations
+### 15.11 Current Limitations
 
 - auth and role checks depend on the existing scaffold and are not fully production-complete yet
 - there is no soft delete — partner organisations are permanently removed on delete
 
-### 14.12 Summary
+### 15.12 Summary
 
 The Partners API follows the TreeO2 backend engineering standard:
 
@@ -2556,7 +2556,8 @@ The Partners API follows the TreeO2 backend engineering standard:
 - Scalable structure for future enhancements
 
 ---
-## 15. Tree Scans API
+
+## 16. Tree Scans API
 
 This module manages tree scan records collected across the TreeO2 platform. It provides tree scan creation, retrieval, correction, archiving, FOB recycling support, validation, role-based access control, project-scoped access control, and relationship checks against projects, users, tree species, and scan batches.
 
@@ -2572,7 +2573,7 @@ This module manages tree scan records collected across the TreeO2 platform. It p
 
 ---
 
-## 15.1 Purpose
+### 16.1 Purpose
 
 The Tree Scans API is responsible for managing tree scan lifecycle operations in the system.
 
@@ -2586,7 +2587,7 @@ Tree scans are core operational records used for:
 
 ---
 
-## 15.2 Architecture Flow
+### 16.2 Architecture Flow
 
 Every request follows the standard backend module structure:
 
@@ -2630,16 +2631,16 @@ Route → Validation Middleware → Controller → Service → Prisma ORM → Po
 
 ---
 
-## 15.3 Security
+### 16.3 Security
 
 All endpoints are protected using Bearer Token authentication.
 
-### Middleware Used
+#### Middleware Used
 - `authMiddleware`
 - `roleMiddleware`
 - `validateMiddleware`
 
-### Service-Level Access Control
+#### Service-Level Access Control
 
 - `ADMIN` can access all tree scans
 - `MANAGER` can access scans belonging to assigned projects
@@ -2647,7 +2648,7 @@ All endpoints are protected using Bearer Token authentication.
 
 ---
 
-## 15.4 Access Control Matrix
+### 16.4 Access Control Matrix
 
 | Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
 |---|---|---|---|---|---|
@@ -2660,13 +2661,13 @@ All endpoints are protected using Bearer Token authentication.
 
 ---
 
-## 15.5 Endpoints
+### 16.5 Endpoints
 
-### GET /tree-scans
+#### GET /tree-scans
 
 Retrieve paginated tree scans with optional filtering.
 
-#### Query Parameters
+##### Query Parameters
 
 | Name | Type | Required |
 |---|---|---|
@@ -2680,7 +2681,7 @@ Retrieve paginated tree scans with optional filtering.
 | isArchived | boolean | No |
 | isValid | boolean | No |
 
-#### Response
+##### Response
 
 ```json
 {
@@ -2708,7 +2709,7 @@ Retrieve paginated tree scans with optional filtering.
 }
 ```
 
-#### Status Codes
+##### Status Codes
 - `200` Success
 - `400` Invalid query parameters
 - `401` Authentication required
@@ -2716,17 +2717,17 @@ Retrieve paginated tree scans with optional filtering.
 
 ---
 
-### GET /tree-scans/{id}
+#### GET /tree-scans/{id}
 
 Retrieve a single tree scan by ID.
 
-#### Path Parameters
+##### Path Parameters
 
 | Name | Type | Required |
 |---|---|---|
 | id | integer | Yes |
 
-#### Response
+##### Response
 
 ```json
 {
@@ -2742,7 +2743,7 @@ Retrieve a single tree scan by ID.
 }
 ```
 
-#### Status Codes
+##### Status Codes
 - `200` Success
 - `400` Invalid tree scan ID
 - `401` Authentication required
@@ -2751,11 +2752,11 @@ Retrieve a single tree scan by ID.
 
 ---
 
-### POST /tree-scans
+#### POST /tree-scans
 
 Create a new tree scan.
 
-#### Request Body
+##### Request Body
 
 ```json
 {
@@ -2777,7 +2778,7 @@ Create a new tree scan.
 }
 ```
 
-#### Required Fields
+##### Required Fields
 - `fobId`
 - `projectId`
 - `farmerId`
@@ -2786,7 +2787,7 @@ Create a new tree scan.
 - `estimatedPlantedYear`
 - `estimatedPlantedMonth`
 
-#### Response
+##### Response
 
 ```json
 {
@@ -2798,7 +2799,7 @@ Create a new tree scan.
 }
 ```
 
-#### Status Codes
+##### Status Codes
 - `201` Created
 - `400` Invalid payload
 - `401` Authentication required
@@ -2807,17 +2808,17 @@ Create a new tree scan.
 
 ---
 
-### PUT /tree-scans/{id}
+#### PUT /tree-scans/{id}
 
 Correct an existing tree scan and create an audit log entry.
 
-#### Path Parameters
+##### Path Parameters
 
 | Name | Type | Required |
 |---|---|---|
 | id | integer | Yes |
 
-#### Request Body
+##### Request Body
 
 Any editable correction field may be provided, but `correctionReason` is required.
 
@@ -2828,13 +2829,13 @@ Any editable correction field may be provided, but `correctionReason` is require
 }
 ```
 
-#### Notes
+##### Notes
 - `isCorrected` is controlled by the service and set automatically
 - `correctedBy` is controlled by the service using the authenticated user ID
 - Audit log creation and tree scan update are executed in a single Prisma transaction
 - Audit data is converted into JSON-safe values before insertion into JSONB fields
 
-#### Response
+##### Response
 
 ```json
 {
@@ -2848,7 +2849,7 @@ Any editable correction field may be provided, but `correctionReason` is require
 }
 ```
 
-#### Status Codes
+##### Status Codes
 - `200` Success
 - `400` Invalid request / empty payload / missing correction reason
 - `401` Authentication required
@@ -2857,17 +2858,17 @@ Any editable correction field may be provided, but `correctionReason` is require
 
 ---
 
-### DELETE /tree-scans/{id}
+#### DELETE /tree-scans/{id}
 
 Archive a tree scan.
 
-#### Path Parameters
+##### Path Parameters
 
 | Name | Type | Required |
 |---|---|---|
 | id | integer | Yes |
 
-#### Response
+##### Response
 
 ```json
 {
@@ -2878,7 +2879,7 @@ Archive a tree scan.
 }
 ```
 
-#### Status Codes
+##### Status Codes
 - `200` Success
 - `400` Invalid tree scan ID
 - `401` Authentication required
@@ -2887,17 +2888,17 @@ Archive a tree scan.
 
 ---
 
-### POST /tree-scans/recycle/{fobId}
+#### POST /tree-scans/recycle/{fobId}
 
 Recycle active tree scans linked to a FOB identifier.
 
-#### Path Parameters
+##### Path Parameters
 
 | Name | Type | Required |
 |---|---|---|
 | fobId | string | Yes |
 
-#### Response
+##### Response
 
 ```json
 {
@@ -2909,7 +2910,7 @@ Recycle active tree scans linked to a FOB identifier.
 }
 ```
 
-#### Status Codes
+##### Status Codes
 - `200` Success
 - `400` Invalid FOB ID
 - `401` Authentication required
@@ -2917,9 +2918,9 @@ Recycle active tree scans linked to a FOB identifier.
 
 ---
 
-## 15.6 Validation Rules
+### 16.6 Validation Rules
 
-### Create Validation
+#### Create Validation
 - FOB ID must be non-empty
 - IDs must be positive integers
 - Year must be within allowed range
@@ -2928,14 +2929,14 @@ Recycle active tree scans linked to a FOB identifier.
 - Decimal measurements must be positive
 - UUID fields must be valid UUIDs
 
-### Update Validation
+#### Update Validation
 - At least one field must be provided
 - `correctionReason` is required
 - Fields must match expected types
 - `isCorrected` cannot be provided by the client
 - `correctedBy` cannot be provided by the client
 
-### Relationship Validation
+#### Relationship Validation
 - Project must exist
 - Project must be active
 - Farmer must exist
@@ -2945,26 +2946,26 @@ Recycle active tree scans linked to a FOB identifier.
 - Species must exist
 - Species must belong to project
 
-### Access Control Validation
+#### Access Control Validation
 - Managers can only access scans from assigned projects
 - Inspectors can only access scans assigned to themselves where route access allows
 - Tree scan updates are restricted to admins
 
-### Archive Validation
+#### Archive Validation
 - Tree scan must exist
 
-### Recycle Validation
+#### Recycle Validation
 - FOB ID must be non-empty
 - Matching active scans are archived
 - If no matching active scans exist, archived count returns `0`
 
 ---
 
-## 15.7 Error Handling
+### 16.7 Error Handling
 
 Uses centralised error middleware.
 
-### Standard Error Response
+#### Standard Error Response
 
 ```json
 {
@@ -2973,7 +2974,7 @@ Uses centralised error middleware.
 }
 ```
 
-### Common Errors
+#### Common Errors
 - Authentication required
 - Insufficient permissions
 - Invalid tree scan ID
@@ -2991,7 +2992,7 @@ Uses centralised error middleware.
 
 ---
 
-## 15.8 Audit Logging
+### 16.8 Audit Logging
 
 Tree scan corrections create audit records using transactional writes.
 
@@ -3005,7 +3006,7 @@ Audit data is explicitly converted into JSON-safe values before insertion into J
 
 ---
 
-## 15.9 Swagger Documentation
+### 16.9 Swagger Documentation
 
 All endpoints are documented in:
 
@@ -3019,7 +3020,7 @@ Available at:
 http://localhost:3000/api-docs
 ```
 
-### Swagger Supports
+#### Swagger Supports
 - Interactive testing
 - Request examples
 - Response definitions
@@ -3027,18 +3028,18 @@ http://localhost:3000/api-docs
 
 ---
 
-## 15.10 Testing
+### 16.10 Testing
 
-### Test Files
+#### Test Files
 - `tests/unit/tree-scans.test.ts`
 - `tests/integration/tree-scans.test.ts`
 
-### Covered Scenarios
+#### Covered Scenarios
 
-#### Authentication
+##### Authentication
 - No token returns `401`
 
-#### Authorization
+##### Authorization
 - Allowed roles succeed
 - Blocked roles return `403`
 - Managers restricted to assigned project scans
@@ -3047,13 +3048,13 @@ http://localhost:3000/api-docs
 - Inspector blocked from list endpoint
 - Manager allowed for recycle endpoint
 
-#### Read
+##### Read
 - Get all tree scans
 - Get tree scan by ID
 - Filtering and pagination
 - Missing scan returns `404`
 
-#### Create
+##### Create
 - Valid tree scan created by inspector
 - Admin create attempt rejected
 - Invalid payload rejected
@@ -3063,7 +3064,7 @@ http://localhost:3000/api-docs
 - Unassigned inspector rejected
 - Unassigned species rejected
 
-#### Update
+##### Update
 - Valid admin update succeeds
 - Transactional audit log creation
 - Empty payload rejected
@@ -3071,18 +3072,18 @@ http://localhost:3000/api-docs
 - Non-admin update rejected
 - Missing tree scan rejected
 
-#### Delete
+##### Delete
 - Valid archive succeeds
 - Missing tree scan rejected
 
-#### Recycle
+##### Recycle
 - Valid admin recycle succeeds
 - Valid manager recycle succeeds
 - Archived count returned correctly
 
 ---
 
-## 15.11 Summary
+### 16.11 Summary
 
 The Tree Scans API follows the TreeO2 backend engineering standard:
 
@@ -3100,7 +3101,7 @@ The Tree Scans API follows the TreeO2 backend engineering standard:
 - Scalable backend structure
 ---
 
-## 16. Adopters API
+## 17. Adopters API
 
 This module manages adopter records used within the TreeO2 platform. It provides CRUD operations with validation, authentication, role-based access control, pagination support, and automated test coverage.
 
@@ -3112,7 +3113,7 @@ This module manages adopter records used within the TreeO2 platform. It provides
 - `adopters.service.ts`
 - `index.ts`
 
-### 16.1 Purpose
+### 17.1 Purpose
 
 The Adopters API is responsible for managing adopter records in the system.
 
@@ -3125,7 +3126,7 @@ The module currently supports:
 - updating adopters
 - deleting adopters
 
-### 16.2 Architecture Flow
+### 17.2 Architecture Flow
 
 Every request follows the standard backend module structure:
 
@@ -3153,7 +3154,7 @@ Route → Controller → Service → Prisma ORM → PostgreSQL → Response
 - Throw structured AppError responses
 - Prevent invalid operations
 
-### 16.3 Security
+### 17.3 Security
 
 All endpoints are protected using Bearer Token authentication.
 
@@ -3161,7 +3162,7 @@ Middleware used:
 - `authMiddleware`
 - `roleMiddleware`
 
-### 16.4 Access Control Matrix
+### 17.4 Access Control Matrix
 
 | Endpoint              | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
 | --------------------- | ----- | ------- | --------- | ------ | --------- |
@@ -3172,7 +3173,7 @@ Middleware used:
 | DELETE /adopters/{id} | Yes   | No      | No        | No     | No        |
 
 
-### 16.5 Endpoints
+### 17.5 Endpoints
 
 #### GET /adopters
 
@@ -3344,7 +3345,7 @@ Delete an adopter.
 - `403` Insufficient permissions
 - `404` Adopter not found
 
-### 16.6 Validation Rules
+### 17.6 Validation Rules
 
 #### Pagination Validation
 - `page` must be: numeric , integer , greater than 0
@@ -3386,7 +3387,7 @@ id must be:
 - integer
 - positive
 
-### 16.7 Error Handling
+### 17.7 Error Handling
 
 Uses centralised error middleware with AppError and ERROR_CODES.
 
@@ -3411,7 +3412,7 @@ Uses centralised error middleware with AppError and ERROR_CODES.
 - Adopter not found (404)
 - Internal server error (500)
 
-### 16.8 Swagger Documentation
+### 17.8 Swagger Documentation
 
 All endpoints are documented in:
 
@@ -3427,7 +3428,7 @@ Swagger supports:
 - Response definitions
 - Security schemas
 
-### 16.9 Testing
+### 17.9 Testing
 
 #### Test Files
 - `tests/unit/adopters.test.ts`
@@ -3503,7 +3504,7 @@ route → middleware → controller → service → Prisma → response
 - deletes adopter
 - returns 404 when adopter missing
 
-### 16.10 Test Strategy Used
+### 17.10 Test Strategy Used
 Current test strategy for this module:
 
 - Jest is used as the test runner
@@ -3513,7 +3514,7 @@ Current test strategy for this module:
 - auth behaviour uses the current development auth scaffold
 - integration tests create and clean up their own data
 
-###  16.11 How To Run Adopter Tests
+###  17.11 How To Run Adopter Tests
 Run unit tests only:
 
 npm test -- tests/unit/adopters.test.ts
@@ -3522,7 +3523,7 @@ Run integration tests only:
 
 npm test -- tests/integration/adopters.test.ts
 
-### 16.12 Summary
+### 17.12 Summary
 The Adopters API follows the TreeO2 backend engineering standard:
 
 - Modular architecture
@@ -3538,7 +3539,7 @@ The Adopters API follows the TreeO2 backend engineering standard:
 ---
 
 
-## 16. Adoptions API
+## 18. Adoptions API
 
 This module manages adoption records in the TreeO2 platform. It provides full CRUD operations for recording, retrieving, updating, and deleting tree adoption records.
 
@@ -3551,7 +3552,7 @@ This module manages adoption records in the TreeO2 platform. It provides full CR
 - `adoptions.service.ts`
 - `index.ts`
 
-### 16.1 Purpose
+### 18.1 Purpose
 
 The Adoptions API is responsible for managing adoption records linked to adopters and tree FOB identifiers.
 
@@ -3561,7 +3562,7 @@ An adoption record stores:
 - the adoption date
 - the creation timestamp
 
-### 16.2 Architecture Flow
+### 18.2 Architecture Flow
 
 Every request follows the standard backend module structure:
 
@@ -3589,7 +3590,7 @@ Route -> Controller -> Service -> Prisma ORM -> PostgreSQL -> Response
 - Execute database queries
 - Throw structured errors
 
-### 16.3 Security
+### 18.3 Security
 
 All endpoints are protected using Bearer Token authentication.
 
@@ -3597,7 +3598,7 @@ Middleware used:
 - `authMiddleware`
 - `roleMiddleware`
 
-### 16.4 Access Control Matrix
+### 18.4 Access Control Matrix
 
 | Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
 |---|---|---|---|---|---|
@@ -3607,7 +3608,7 @@ Middleware used:
 | PUT /adoptions/{id} | Yes | No | No | No | No |
 | DELETE /adoptions/{id} | Yes | No | No | No | No |
 
-### 16.5 Endpoints
+### 18.5 Endpoints
 
 #### GET /adoptions
 
@@ -3790,7 +3791,7 @@ Delete an adoption record.
 - `403` Insufficient permissions
 - `404` Adoption not found
 
-### 16.6 Validation Rules
+### 18.6 Validation Rules
 
 #### Create Validation
 - `adopter_id` must be a positive integer
@@ -3809,7 +3810,7 @@ Delete an adoption record.
 #### Delete Validation
 - adoption must exist before deletion
 
-### 16.7 Error Handling
+### 18.7 Error Handling
 
 Uses centralised error middleware.
 
@@ -3834,7 +3835,7 @@ Uses centralised error middleware.
 - Empty update payload
 - Internal server error
 
-### 16.8 Swagger Documentation
+### 18.8 Swagger Documentation
 
 All endpoints are documented in:
 
@@ -3850,7 +3851,7 @@ Swagger supports:
 - Response definitions
 - Security schemas
 
-### 16.9 Testing
+### 18.9 Testing
 
 #### Test Files
 - `tests/unit/adoptions.test.ts`
@@ -3889,7 +3890,7 @@ Swagger supports:
 - Missing adoption returns `404`
 - Invalid ID returns `400`
 
-### 16.10 How to Run Adoptions Tests
+### 18.10 How to Run Adoptions Tests
 
 Run unit tests only:
 
@@ -3909,12 +3910,12 @@ Run both:
 npm test -- --runInBand tests/unit/adoptions.test.ts tests/integration/adoptions.test.ts
 ```
 
-### 16.11 Current Limitations
+### 18.11 Current Limitations
 
 - auth and role checks depend on the existing scaffold and are not fully production-complete yet
 - adoption records currently rely on FOB identifiers without deeper tree validation logic
 
-### 16.12 Summary
+### 18.12 Summary
 
 The Adoptions API follows the TreeO2 backend engineering standard:
 
@@ -3930,7 +3931,8 @@ The Adoptions API follows the TreeO2 backend engineering standard:
 - Scalable structure for future enhancements
 
 ---
-## 17. Scan Batches API
+
+## 19. Scan Batches API
 
 This module manages scan batch upload and retrieval operations across the TreeO2 platform. It provides scan batch creation, pagination, project-scoped access control, validation, deletion protection, Swagger documentation, and automated testing coverage.
 
@@ -3947,7 +3949,7 @@ This module manages scan batch upload and retrieval operations across the TreeO2
 
 ---
 
-## 17.1 Purpose
+### 19.1 Purpose
 
 The Scan Batches API is responsible for managing grouped tree scan uploads in the system.
 
@@ -3961,7 +3963,7 @@ Scan batches are operational upload containers used for:
 
 ---
 
-## 17.2 Architecture Flow
+### 19.2 Architecture Flow
 
 Every request follows the standard backend module structure:
 
@@ -3969,21 +3971,21 @@ Every request follows the standard backend module structure:
 Route → Validation Schema → Controller → Service → Prisma ORM → PostgreSQL → Response
 ```
 
-### Responsibilities
+#### Responsibilities
 
-### Routes
+#### Routes
 - Define endpoints
 - Apply authentication middleware
 - Apply role-based authorization
 - Register Swagger documentation
 
-### Controller
+#### Controller
 - Parse request params/query/body
 - Validate authenticated user context
 - Pass validated data to service layer
 - Return structured HTTP responses
 
-### Service
+#### Service
 - Perform business validation
 - Validate project relationships
 - Apply access control rules
@@ -3992,7 +3994,7 @@ Route → Validation Schema → Controller → Service → Prisma ORM → Postgr
 - Prevent invalid delete operations
 - Throw structured application errors
 
-### Schemas
+#### Schemas
 - Validate request body
 - Validate query parameters
 - Validate path parameters
@@ -4001,15 +4003,15 @@ Route → Validation Schema → Controller → Service → Prisma ORM → Postgr
 
 ---
 
-## 17.3 Security
+### 19.3 Security
 
 All endpoints are protected using Bearer Token authentication.
 
-### Middleware Used
+#### Middleware Used
 - `authMiddleware`
 - `roleMiddleware`
 
-### Service-Level Access Control
+#### Service-Level Access Control
 
 - `ADMIN` can access all scan batches
 - `MANAGER` can access batches from assigned projects only
@@ -4017,7 +4019,7 @@ All endpoints are protected using Bearer Token authentication.
 
 ---
 
-## 17.4 Access Control Matrix
+### 19.4 Access Control Matrix
 
 | Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
 |---|---|---|---|---|---|
@@ -4028,13 +4030,13 @@ All endpoints are protected using Bearer Token authentication.
 
 ---
 
-## 17.5 Endpoints
+### 19.5 Endpoints
 
-### GET /scan-batches
+#### GET /scan-batches
 
 Retrieve paginated scan batches with optional filtering.
 
-#### Query Parameters
+##### Query Parameters
 
 | Name | Type | Required |
 |---|---|---|
@@ -4043,7 +4045,7 @@ Retrieve paginated scan batches with optional filtering.
 | project_id | integer | No |
 | inspector_id | integer | No |
 
-#### Response
+##### Response
 
 ```json
 {
@@ -4066,7 +4068,7 @@ Retrieve paginated scan batches with optional filtering.
 }
 ```
 
-#### Status Codes
+##### Status Codes
 - `200` Success
 - `400` Invalid query parameters
 - `401` Authentication required
@@ -4074,17 +4076,17 @@ Retrieve paginated scan batches with optional filtering.
 
 ---
 
-### GET /scan-batches/{id}
+#### GET /scan-batches/{id}
 
 Retrieve a single scan batch by ID.
 
-#### Path Parameters
+##### Path Parameters
 
 | Name | Type | Required |
 |---|---|---|
 | id | integer | Yes |
 
-#### Response
+##### Response
 
 ```json
 {
@@ -4099,7 +4101,7 @@ Retrieve a single scan batch by ID.
 }
 ```
 
-#### Status Codes
+##### Status Codes
 - `200` Success
 - `400` Invalid scan batch ID
 - `401` Authentication required
@@ -4108,11 +4110,11 @@ Retrieve a single scan batch by ID.
 
 ---
 
-### POST /scan-batches
+#### POST /scan-batches
 
 Create a new scan batch and associate uploaded tree scans.
 
-#### Request Body
+##### Request Body
 
 ```json
 {
@@ -4137,7 +4139,7 @@ Create a new scan batch and associate uploaded tree scans.
 }
 ```
 
-#### Required Fields
+##### Required Fields
 - `project_id`
 - `scans`
 - `fob_id`
@@ -4146,7 +4148,7 @@ Create a new scan batch and associate uploaded tree scans.
 - `estimated_planted_year`
 - `estimated_planted_month`
 
-#### Response
+##### Response
 
 ```json
 {
@@ -4160,7 +4162,7 @@ Create a new scan batch and associate uploaded tree scans.
 }
 ```
 
-#### Status Codes
+##### Status Codes
 - `201` Created
 - `400` Validation failed
 - `401` Authentication required
@@ -4170,17 +4172,17 @@ Create a new scan batch and associate uploaded tree scans.
 
 ---
 
-### DELETE /scan-batches/{id}
+#### DELETE /scan-batches/{id}
 
 Delete a scan batch if it contains no related tree scans.
 
-#### Path Parameters
+##### Path Parameters
 
 | Name | Type | Required |
 |---|---|---|
 | id | integer | Yes |
 
-#### Response
+##### Response
 
 ```json
 {
@@ -4189,7 +4191,7 @@ Delete a scan batch if it contains no related tree scans.
 }
 ```
 
-#### Status Codes
+##### Status Codes
 - `200` Success
 - `401` Authentication required
 - `403` Insufficient permissions
@@ -4198,9 +4200,9 @@ Delete a scan batch if it contains no related tree scans.
 
 ---
 
-## 17.6 Validation Rules
+### 19.6 Validation Rules
 
-### Create Validation
+#### Create Validation
 - Project ID must be positive integer
 - Inspector must exist
 - Inspector must have INSPECTOR role
@@ -4218,23 +4220,23 @@ Delete a scan batch if it contains no related tree scans.
 - Coordinates must be valid
 - Month must be between 1 and 12
 
-### Access Control Validation
+#### Access Control Validation
 - Managers can access batches from assigned projects only
 - Inspectors can access only their own batches
 - Only inspectors can upload batches
 - Only admins can delete batches
 
-### Delete Validation
+#### Delete Validation
 - Batch must exist
 - Batch cannot contain related tree scans
 
 ---
 
-## 17.7 Error Handling
+### 19.7 Error Handling
 
 Uses centralized error middleware.
 
-### Standard Error Response
+#### Standard Error Response
 
 ```json
 {
@@ -4243,7 +4245,7 @@ Uses centralized error middleware.
 }
 ```
 
-### Common Errors
+#### Common Errors
 - Authentication required
 - Insufficient permissions
 - Invalid scan batch ID
@@ -4258,7 +4260,7 @@ Uses centralized error middleware.
 
 ---
 
-## 17.8 Swagger Documentation
+### 19.8 Swagger Documentation
 
 All endpoints are documented in:
 
@@ -4272,7 +4274,7 @@ Available at:
 http://localhost:3000/api-docs
 ```
 
-### Swagger Supports
+#### Swagger Supports
 - Interactive endpoint testing
 - Request examples
 - Response schemas
@@ -4281,32 +4283,32 @@ http://localhost:3000/api-docs
 
 ---
 
-## 17.9 Testing
+### 19.9 Testing
 
-### Test Files
+#### Test Files
 - `tests/unit/scan-batches.test.ts`
 - `tests/integration/scan-batches.test.ts`
 
-### Covered Scenarios
+#### Covered Scenarios
 
-#### Authentication
+##### Authentication
 - No token returns `401`
 
-#### Authorization
+##### Authorization
 - Admin access validation
 - Manager assigned-project restrictions
 - Inspector own-batch restrictions
 - Inspector-only upload validation
 - Admin-only delete validation
 
-#### Read
+##### Read
 - Get all scan batches
 - Get scan batch by ID
 - Pagination validation
 - Filtering validation
 - Missing batch returns `404`
 
-#### Create
+##### Create
 - Valid scan batch upload
 - Invalid role rejection
 - Inactive inspector rejection
@@ -4318,14 +4320,14 @@ http://localhost:3000/api-docs
 - Unassigned species rejection
 - Multi-scan validation
 
-#### Delete
+##### Delete
 - Valid delete succeeds
 - Delete blocked when tree scans exist
 - Missing scan batch rejected
 
 ---
 
-## 17.10 Summary
+### 19.10 Summary
 
 The Scan Batches API follows the TreeO2 backend engineering standard:
 
