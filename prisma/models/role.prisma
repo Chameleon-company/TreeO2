@@ -6,6 +6,7 @@ model Role {
   roleAssignments UserRoleAssignment[]
 
   userProjectRoles UserProjectRole[]
+  rolePermissions  RolePermission[]
 
   @@map("roles")
 }
