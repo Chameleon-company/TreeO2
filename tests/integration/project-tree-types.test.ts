@@ -1,8 +1,7 @@
-import express from "express";
+import "dotenv/config"
 import request from "supertest";
 import { prisma } from "../../src/lib/prisma";
-
-const originalEnv = { ...process.env };
+import app from "../../src/app";
 
 jest.mock("../../src/config/logger", () => ({
   logger: {
@@ -11,29 +10,16 @@ jest.mock("../../src/config/logger", () => ({
   },
 }));
 
-const createApp = (): express.Express => {
-  const projectTreeTypesRoutes = require("../../src/modules/project-tree-types/projectTreeTypes.routes")
-    .default as express.Router;
-  const { errorHandler } = require("../../src/middleware/errorHandler") as {
-    errorHandler: express.ErrorRequestHandler;
-  };
-  const app = express();
-  app.use(express.json());
-  app.use("/project-tree-types", projectTreeTypesRoutes);
-  app.use(errorHandler);
-  return app;
-};
-
 const adminAuthHeader = {
-  Authorization: "Bearer test-admin-token",
+	Authorization: `Bearer ${process.env.AUTH_DEV_ADMIN_TOKEN}`,
 };
 
 const managerAuthHeader = {
-  Authorization: "Bearer test-manager-token",
+	Authorization: `Bearer ${process.env.AUTH_DEV_MANAGER_TOKEN}`,
 };
 
 const farmerAuthHeader = {
-  Authorization: "Bearer test-farmer-token",
+	Authorization: `Bearer ${process.env.AUTH_DEV_FARMER_TOKEN}`,
 };
 
 const suitePrefix = `project-tree-types-api-${Date.now()}`;
@@ -45,7 +31,6 @@ const nextUnique = (label: string): string => {
 };
 
 describe("Project Tree Types API", () => {
-  let app: express.Express;
   const projectIds: number[] = [];
   const treeTypeIds: number[] = [];
 
@@ -91,21 +76,6 @@ describe("Project Tree Types API", () => {
     });
 
   beforeAll(async () => {
-    process.env = {
-      ...originalEnv,
-      NODE_ENV: "development",
-      DATABASE_URL:
-        originalEnv.DATABASE_URL ??
-        "postgresql://treeo2_user:treeo2_password@localhost:5432/treeo2?schema=public",
-      JWT_SECRET:
-        originalEnv.JWT_SECRET ?? "12345678901234567890123456789012",
-      AUTH_DEV_MODE: "true",
-      AUTH_DEV_ADMIN_TOKEN: "test-admin-token",
-      AUTH_DEV_MANAGER_TOKEN: "test-manager-token",
-      AUTH_DEV_FARMER_TOKEN: "test-farmer-token",
-    };
-
-    app = createApp();
     await prisma.$connect();
   });
 
@@ -141,7 +111,6 @@ describe("Project Tree Types API", () => {
 
   afterAll(async () => {
     await prisma.$disconnect();
-    process.env = originalEnv;
   });
 
   describe("GET /project-tree-types", () => {

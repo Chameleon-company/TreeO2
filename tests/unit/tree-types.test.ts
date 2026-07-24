@@ -48,7 +48,7 @@ describe("TreeTypesService", () => {
   beforeEach(() => {
     service = new TreeTypesService();
     jest.clearAllMocks();
-    prismaMock.$transaction.mockImplementation(async (callback) =>
+    prismaMock.$transaction.mockImplementation((callback) =>
       callback(prismaMock),
     );
     prismaMock.projectTreeType.count.mockResolvedValue(0);

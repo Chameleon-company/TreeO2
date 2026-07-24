@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -21,10 +21,11 @@ const main = async (): Promise<void> => {
 };
 
 void main()
-  .catch(async (err: unknown) => {
+  .catch((err: unknown) => {
     console.error("Seed failed", err);
     process.exit(1);
   })
-  .finally(async () => {
-    await prisma.$disconnect();
+  .finally(() => {
+    // ignore error
+    prisma.$disconnect().catch(() => {});
   });
