@@ -59,7 +59,7 @@ jobs:
         run: npm run format:check
 
       - name: Setup test database
-        run: npx prisma db push
+        run: npm run prisma:migrate:deploy
 
       - name: Test
         run: npm run test:coverage -- --runInBand
