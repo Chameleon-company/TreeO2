@@ -29,12 +29,12 @@ const router = Router();
  *         description: Insufficient permissions
  */
 router.get(
-  "/",
-  authMiddleware,
-  roleMiddleware(["ADMIN", "MANAGER"]),
-  (req, res, next) => {
-    void userProjectAssignmentController.getAssignments(req, res, next);
-  },
+	"/",
+	authMiddleware,
+	roleMiddleware(["ADMIN", "MANAGER"]),
+	(req, res, next) => {
+		void userProjectAssignmentController.getAssignments(req, res, next);
+	},
 );
 
 /**
@@ -77,12 +77,12 @@ router.get(
  *         description: Assignment already exists
  */
 router.post(
-  "/",
-  authMiddleware,
-  roleMiddleware(["ADMIN"]),
-  (req, res, next) => {
-    void userProjectAssignmentController.assignUserToProject(req, res, next);
-  },
+	"/",
+	authMiddleware,
+	roleMiddleware(["ADMIN"]),
+	(req, res, next) => {
+		void userProjectAssignmentController.assignUserToProject(req, res, next);
+	},
 );
 
 /**
@@ -119,12 +119,12 @@ router.post(
  *         description: Assignment not found
  */
 router.delete(
-  "/:user_id/:project_id",
-  authMiddleware,
-  roleMiddleware(["ADMIN"]),
-  (req, res, next) => {
-    void userProjectAssignmentController.removeUserFromProject(req, res, next);
-  },
+	"/:user_id/:project_id",
+	authMiddleware,
+	roleMiddleware(["ADMIN"]),
+	(req, res, next) => {
+		void userProjectAssignmentController.removeUserFromProject(req, res, next);
+	},
 );
 
 export default router;

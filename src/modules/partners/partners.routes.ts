@@ -30,12 +30,12 @@ const router = Router();
  */
 // Returns the full list of partners. Accessible by Admin and Manager.
 router.get(
-  "/",
-  authMiddleware,
-  roleMiddleware(["ADMIN", "MANAGER"]),
-  (req, res, next) => {
-    void partnersController.getAllPartners(req, res, next);
-  },
+	"/",
+	authMiddleware,
+	roleMiddleware(["ADMIN", "MANAGER"]),
+	(req, res, next) => {
+		void partnersController.getAllPartners(req, res, next);
+	},
 );
 
 /**
@@ -67,12 +67,12 @@ router.get(
  */
 // Returns a single partner by ID. Accessible by Admin and Manager.
 router.get(
-  "/:id",
-  authMiddleware,
-  roleMiddleware(["ADMIN", "MANAGER"]),
-  (req, res, next) => {
-    void partnersController.getPartnerById(req, res, next);
-  },
+	"/:id",
+	authMiddleware,
+	roleMiddleware(["ADMIN", "MANAGER"]),
+	(req, res, next) => {
+		void partnersController.getPartnerById(req, res, next);
+	},
 );
 
 /**
@@ -110,12 +110,12 @@ router.get(
  */
 // Creates a new partner. Only Admin can do this.
 router.post(
-  "/",
-  authMiddleware,
-  roleMiddleware(["ADMIN"]),
-  (req, res, next) => {
-    void partnersController.createPartner(req, res, next);
-  },
+	"/",
+	authMiddleware,
+	roleMiddleware(["ADMIN"]),
+	(req, res, next) => {
+		void partnersController.createPartner(req, res, next);
+	},
 );
 
 /**
@@ -160,12 +160,12 @@ router.post(
  */
 // Updates a partner by ID. Only Admin can do this.
 router.put(
-  "/:id",
-  authMiddleware,
-  roleMiddleware(["ADMIN"]),
-  (req, res, next) => {
-    void partnersController.updatePartner(req, res, next);
-  },
+	"/:id",
+	authMiddleware,
+	roleMiddleware(["ADMIN"]),
+	(req, res, next) => {
+		void partnersController.updatePartner(req, res, next);
+	},
 );
 
 /**
@@ -197,12 +197,12 @@ router.put(
  */
 // Deletes a partner by ID. Only Admin can do this.
 router.delete(
-  "/:id",
-  authMiddleware,
-  roleMiddleware(["ADMIN"]),
-  (req, res, next) => {
-    void partnersController.deletePartner(req, res, next);
-  },
+	"/:id",
+	authMiddleware,
+	roleMiddleware(["ADMIN"]),
+	(req, res, next) => {
+		void partnersController.deletePartner(req, res, next);
+	},
 );
 
 export default router;

@@ -15,7 +15,7 @@ const healthController = new HealthController();
  *         description: Server is running
  */
 router.get("/", (req, res) => {
-  void healthController.getHealth(req, res);
+	void healthController.getHealth(req, res);
 });
 
 export default router;
