@@ -173,5 +173,29 @@ describe('authMiddleware - Comprehensive Unit Tests', () => {
         expect(req.user.projectRoles).toEqual(['Developer']);
       }
     });
+
+    it('should assign spec-compliant OrganisationAdmin payload for dev-org-admin-token', () => {
+      req.headers = { authorization: `Bearer ${env.AUTH_DEV_ORG_ADMIN_TOKEN}` };
+
+      authMiddleware(req as Request, res as Response, next);
+
+      expect(next).toHaveBeenCalledWith();
+      expect(req.user?.scope).toBe('project');
+      if (req.user?.scope === 'project') {
+        expect(req.user.organisationRole).toBe('OrganisationAdmin');
+      }
+    });
+
+    it('should assign spec-compliant SupportAdmin payload for dev-support-admin-token', () => {
+      req.headers = { authorization: `Bearer ${env.AUTH_DEV_SUPPORT_ADMIN_TOKEN}` };
+
+      authMiddleware(req as Request, res as Response, next);
+
+      expect(next).toHaveBeenCalledWith();
+      expect(req.user?.scope).toBe('identity');
+      if (req.user?.scope === 'identity') {
+        expect(req.user.systemRole).toBe('SupportAdmin');
+      }
+    });
   });
 });
