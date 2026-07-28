@@ -146,10 +146,12 @@ Current schemas:
 ### `src/modules/auth/auth.types.ts`
 
 Contains:
-- auth-specific TypeScript types
-- string role names
-- JWT payload type
-- request body types
+- Auth-specific TypeScript types and payload interfaces per Specification v1.3 Section 14
+- TypeScript Discriminated Union: `type JwtPayload = IdentityJwtPayload | ProjectJwtPayload`
+  - `IdentityJwtPayload` (`scope: 'identity'`): Used for authentication, profile lookup (`/auth/me`), and project selection.
+  - `ProjectJwtPayload` (`scope: 'project'`): Used for project-scoped operational endpoints, carrying `projectId`, `organisationId`, `organisationRole`, and `projectRoles[]`.
+- Removed unspec'd `email` claim to strictly align with Section 14 sample JWT claims.
+- Retained optional `role?: RoleName` property for temporary backwards compatibility during migration.
 
 ### `src/modules/auth/auth.docs.ts`
 
@@ -171,31 +173,36 @@ Purpose:
 ### `src/middleware/auth.middleware.ts`
 
 Purpose:
-- validates bearer token presence
-- verifies JWT
-- attaches payload to `req.user`
+- validates Bearer token presence in HTTP `Authorization` header
+- verifies JWT signature using secret key
+- attaches decoded `JwtPayload` to `req.user`
 
-Current temporary development support:
-- if `AUTH_DEV_MODE=true` and the app is running in development mode
-- the middleware accepts fixed local dev tokens:
-  - `dev-admin-token`
-  - `dev-farmer-token`
-  - `dev-manager-token`
-  - `dev-inspector-token`
-  - `dev-developer-token`
-- these tokens attach a dev user payload to `req.user`
-- if no dev token matches, normal JWT verification still runs
+Current temporary development support (`AUTH_DEV_MODE=true`):
+- when `NODE_ENV=development` and `AUTH_DEV_MODE=true`, local fixed dev tokens can be used for protected API testing
+- supported dev tokens (7 spec-compliant payloads):
+  - `Bearer dev-admin-token` (`scope: 'identity'`, `systemRole: 'SystemAdmin'`)
+  - `Bearer dev-support-admin-token` (`scope: 'identity'`, `systemRole: 'SupportAdmin'`)
+  - `Bearer dev-org-admin-token` (`scope: 'project'`, `organisationRole: 'OrganisationAdmin'`, `projectId: 1`)
+  - `Bearer dev-manager-token` (`scope: 'project'`, `projectId: 1`, `projectRoles: ['Manager']`)
+  - `Bearer dev-inspector-token` (`scope: 'project'`, `projectId: 1`, `projectRoles: ['Inspector']`)
+  - `Bearer dev-farmer-token` (`scope: 'project'`, `projectId: 1`, `projectRoles: ['Farmer']`)
+  - `Bearer dev-developer-token` (`scope: 'project'`, `projectId: 1`, `projectRoles: ['Developer']`)
+- if no dev token matches, normal JWT verification applies
 
 ### `src/middleware/role.middleware.ts`
 
 Purpose:
-- checks whether the authenticated user has one of the allowed roles
+- legacy role check middleware checking `req.user.role`
+- guarded with optional chaining to support the new `JwtPayload` Discriminated Union without breaking legacy routes
 
 ### `src/middleware/projectScope.middleware.ts`
 
 Purpose:
-- placeholder for project-scoped authorization
-- currently reads `x-project-id` and stores it on `req.projectScope`
+- cryptographic token scope gatekeeper per Specification v1.3 Section 15
+- **Deprecation of `x-project-id` Header:** Client-supplied HTTP headers are completely ignored to prevent header spoofing vulnerabilities.
+- **Scope Enforcement:** Requires `req.user.scope === 'project'`. If an Identity Access Token (`scope: 'identity'`) is sent to a project route, returns `403 Forbidden` (`AUTH_004: Invalid token scope for project route`).
+- **Context Attachment:** Extracts cryptographically signed `req.user.projectId` and populates `req.projectScope = { projectId }` for downstream controllers.
+- **Route Wiring:** Attached after `authMiddleware` across operational project routes (`/tree-scans`, `/scan-batches`, `/project-tree-types`).
 
 ### `src/middleware/validate.middleware.ts`
 
@@ -300,9 +307,11 @@ Required conditions:
 
 Supported local bearer tokens:
 - `Bearer dev-admin-token`
-- `Bearer dev-farmer-token`
+- `Bearer dev-support-admin-token`
+- `Bearer dev-org-admin-token`
 - `Bearer dev-manager-token`
 - `Bearer dev-inspector-token`
+- `Bearer dev-farmer-token`
 - `Bearer dev-developer-token`
 
 Purpose:
@@ -344,12 +353,12 @@ Expected behavior:
 ### `GET /auth/test/project-scope`
 
 Purpose:
-- verify project-scope middleware behavior
+- verify project-scope middleware behavior per Section 15 of v1.3 spec
 
 Expected behavior:
 - no token -> `401`
-- missing or invalid `x-project-id` -> `403`
-- valid authenticated user plus valid `x-project-id` -> `200`
+- token with `scope === 'identity'` -> `403` (`AUTH_004: Invalid token scope`)
+- Project-Scoped token (`scope === 'project'`) with valid `projectId` -> `200`
 
 ---
 
