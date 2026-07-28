@@ -1,13 +1,14 @@
 import { Router } from "express";
 import { treeScansController } from "./treeScans.controller";
 import { authMiddleware } from "../../middleware/auth.middleware";
+import { projectScopeMiddleware } from "../../middleware/projectScope.middleware";
 import { roleMiddleware } from "../../middleware/role.middleware";
 import { validateMiddleware } from "../../middleware/validate.middleware";
 import {
-	createTreeScanSchema,
-	listTreeScansSchema,
-	treeScanIdSchema,
-	updateTreeScanSchema,
+  createTreeScanSchema,
+  listTreeScansSchema,
+  treeScanIdSchema,
+  updateTreeScanSchema,
 } from "./treeScans.schemas";
 
 const router = Router();
@@ -17,13 +18,14 @@ const router = Router();
  * ADMIN + MANAGER
  */
 router.get(
-	"/",
-	authMiddleware,
-	roleMiddleware(["ADMIN", "MANAGER"]),
-	validateMiddleware(listTreeScansSchema),
-	(req, res, next) => {
-		void treeScansController.listTreeScans(req, res, next);
-	},
+  "/",
+  authMiddleware,
+  projectScopeMiddleware,
+  roleMiddleware(["ADMIN", "MANAGER"]),
+  validateMiddleware(listTreeScansSchema),
+  (req, res, next) => {
+    void treeScansController.listTreeScans(req, res, next);
+  },
 );
 
 /**
@@ -31,13 +33,14 @@ router.get(
  * ADMIN + MANAGER + INSPECTOR SELF
  */
 router.get(
-	"/:id",
-	authMiddleware,
-	roleMiddleware(["ADMIN", "MANAGER", "INSPECTOR"]),
-	validateMiddleware(treeScanIdSchema),
-	(req, res, next) => {
-		void treeScansController.getTreeScanById(req, res, next);
-	},
+  "/:id",
+  authMiddleware,
+  projectScopeMiddleware,
+  roleMiddleware(["ADMIN", "MANAGER", "INSPECTOR"]),
+  validateMiddleware(treeScanIdSchema),
+  (req, res, next) => {
+    void treeScansController.getTreeScanById(req, res, next);
+  },
 );
 
 /**
@@ -45,13 +48,14 @@ router.get(
  * INSPECTOR ONLY
  */
 router.post(
-	"/",
-	authMiddleware,
-	roleMiddleware(["INSPECTOR"]),
-	validateMiddleware(createTreeScanSchema),
-	(req, res, next) => {
-		void treeScansController.createTreeScan(req, res, next);
-	},
+  "/",
+  authMiddleware,
+  projectScopeMiddleware,
+  roleMiddleware(["INSPECTOR"]),
+  validateMiddleware(createTreeScanSchema),
+  (req, res, next) => {
+    void treeScansController.createTreeScan(req, res, next);
+  },
 );
 
 /**
@@ -59,13 +63,14 @@ router.post(
  * ADMIN ONLY
  */
 router.put(
-	"/:id",
-	authMiddleware,
-	roleMiddleware(["ADMIN"]),
-	validateMiddleware(updateTreeScanSchema),
-	(req, res, next) => {
-		void treeScansController.updateTreeScan(req, res, next);
-	},
+  "/:id",
+  authMiddleware,
+  projectScopeMiddleware,
+  roleMiddleware(["ADMIN"]),
+  validateMiddleware(updateTreeScanSchema),
+  (req, res, next) => {
+    void treeScansController.updateTreeScan(req, res, next);
+  },
 );
 
 /**
@@ -73,13 +78,14 @@ router.put(
  * ADMIN ONLY
  */
 router.delete(
-	"/:id",
-	authMiddleware,
-	roleMiddleware(["ADMIN"]),
-	validateMiddleware(treeScanIdSchema),
-	(req, res, next) => {
-		void treeScansController.deleteTreeScan(req, res, next);
-	},
+  "/:id",
+  authMiddleware,
+  projectScopeMiddleware,
+  roleMiddleware(["ADMIN"]),
+  validateMiddleware(treeScanIdSchema),
+  (req, res, next) => {
+    void treeScansController.deleteTreeScan(req, res, next);
+  },
 );
 
 /**
@@ -87,12 +93,13 @@ router.delete(
  * ADMIN + MANAGER
  */
 router.post(
-	"/recycle/:fobId",
-	authMiddleware,
-	roleMiddleware(["ADMIN", "MANAGER"]),
-	(req, res, next) => {
-		void treeScansController.recycleFob(req, res, next);
-	},
+  "/recycle/:fobId",
+  authMiddleware,
+  projectScopeMiddleware,
+  roleMiddleware(["ADMIN", "MANAGER"]),
+  (req, res, next) => {
+    void treeScansController.recycleFob(req, res, next);
+  },
 );
 
 export default router;
