@@ -365,3 +365,21 @@ This document should be updated when we implement:
 - role lookup from Prisma role model
 - project-scoped authorization rules
 - auth API request/response examples
+
+---
+
+## Database Schema & Multi-Tenancy Additions (PREAUTH03)
+
+Specification v1.3 Sections 2.1, 7.5, and 7.6 define the multi-tenancy relationship linking projects to owning and shared organisations:
+
+### 1. `projects.owner_organisation_id` (Spec v1.3 Table 12)
+- Added `ownerOrganisationId Int? @map("owner_organisation_id")` optional foreign key to `prisma/models/project.prisma`.
+- Points to `organisations.id` via `ownerOrganisation` relation.
+- Enables `POST /auth/select-project` to verify if a project belongs to an `OrganisationAdmin`'s organisation (Spec v1.3 Section 5.1).
+
+### 2. `project_organisations` Join Table (Spec v1.3 Table 13)
+- Created `ProjectOrganisation` model in `prisma/models/project_organisations.prisma`.
+- Key fields: `projectId Int @map("project_id")`, `organisationId Int @map("organisation_id")`.
+- Primary Key: `@@id([projectId, organisationId])`.
+- Enables cross-organisation project sharing.
+

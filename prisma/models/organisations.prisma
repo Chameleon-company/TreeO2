@@ -18,6 +18,8 @@ model Organisation {
   adminLocation   Location? @relation(fields: [adminLocationId], references: [id])
   
   userOrganisations UserOrganisation[]
+  ownedProjects   Project[]  @relation("ProjectOwnerOrganisation")
+  projectOrganisations ProjectOrganisation[]
 
   @@map("organisations")
 }
