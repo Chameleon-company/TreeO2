@@ -1,0 +1,21 @@
+enum AccessType {
+  shared
+  owner
+  partner
+}
+
+model ProjectOrganisation {
+  projectId      Int      @map("project_id")
+  organisationId Int      @map("organisation_id")
+  accessType     AccessType   @default(shared) @map("access_type")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, organisationId])
+  @@map("project_organisation")
+
+  @@index([projectId])
+  @@index([organisationId])
+}
