@@ -47,12 +47,12 @@ const localizationController = new LocalizationController();
  *         description: Forbidden
  */
 router.get(
-  "/",
-  authMiddleware,
-  roleMiddleware(["FARMER", "INSPECTOR", "MANAGER", "ADMIN", "DEVELOPER"]),
-  (req, res, next) => {
-    void localizationController.listLocalizedStrings(req, res).catch(next);
-  },
+	"/",
+	authMiddleware,
+	roleMiddleware(["FARMER", "INSPECTOR", "MANAGER", "ADMIN", "DEVELOPER"]),
+	(req, res, next) => {
+		void localizationController.listLocalizedStrings(req, res).catch(next);
+	},
 );
 
 /**
@@ -91,12 +91,12 @@ router.get(
  *         description: Forbidden
  */
 router.post(
-  "/",
-  authMiddleware,
-  roleMiddleware(["ADMIN"]),
-  (req, res, next) => {
-    void localizationController.createLocalizedString(req, res).catch(next);
-  },
+	"/",
+	authMiddleware,
+	roleMiddleware(["ADMIN"]),
+	(req, res, next) => {
+		void localizationController.createLocalizedString(req, res).catch(next);
+	},
 );
 
 /**
@@ -127,12 +127,12 @@ router.post(
  *         description: Resource not found
  */
 router.put(
-  "/:id",
-  authMiddleware,
-  roleMiddleware(["ADMIN"]),
-  (req, res, next) => {
-    void localizationController.updateLocalizedString(req, res).catch(next);
-  },
+	"/:id",
+	authMiddleware,
+	roleMiddleware(["ADMIN"]),
+	(req, res, next) => {
+		void localizationController.updateLocalizedString(req, res).catch(next);
+	},
 );
 
 /**
@@ -161,12 +161,12 @@ router.put(
  *         description: Resource not found
  */
 router.delete(
-  "/:id",
-  authMiddleware,
-  roleMiddleware(["ADMIN"]),
-  (req, res, next) => {
-    void localizationController.deleteLocalizedString(req, res).catch(next);
-  },
+	"/:id",
+	authMiddleware,
+	roleMiddleware(["ADMIN"]),
+	(req, res, next) => {
+		void localizationController.deleteLocalizedString(req, res).catch(next);
+	},
 );
 
 export default router;

@@ -264,9 +264,7 @@ Do not merge PRs with undocumented endpoints.
 
 ## 10. Database
 
-TODO by Database Team
-
-
+The database is managed by Prisma ORM, and uses a migration-based schema management. All changes to the schema are, and must be tracked with a migration file. Use `npm run prisma:migrate:dev` to migrate to the latest migration file for an up-to-date schema, or to generate a migration file for the current, untracked changes in the schema.
 
 ---
 
@@ -289,19 +287,43 @@ Never log sensitive data like passwords or tokens.
 
 ### 12.1 Branching Strategy
 
-We follow a structured Git workflow with username-prefixed branches:
+<details>
+<summary>
+For general work outside the task planner:
+</summary>
+
+We use branches named with username-prefixed and descriptor:
 
 Branch | Purpose
---
-
-main | Stable shared branch
-<username>/feature/<name> | New features
-<username>/fix/<name> | Bug fixes
-<username>/chore/<name> | Maintenance tasks
+-- | --
+master | Stable shared branch
+`<username>/feature/<name>` | New features
+`<username>/fix/<name>` | Bug fixes
+`<username>/chore/<name>` | Maintenance tasks
 
 Examples:
+
+```
 tina/feature/user-authentication  
 tina/fix/login-error  
+```
+</details>
+
+<details open>
+<summary>
+For work within the task planner:
+</summary>
+
+We use branches named with username-prefixed, and task ID included in the descriptor:
+`<username/<ID>-<descriptor>`
+
+Examples:
+
+```
+tina/API01-add-project-endpoints
+tine/CLD03-pipeline-for-aws
+```
+</details>
 
 Rules:
 - Always prefix branch names with your username

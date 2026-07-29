@@ -20,14 +20,14 @@ app.use(securityAuditMiddleware);
 
 // Rate limiting
 app.use(
-  rateLimit({
-    windowMs: env.RATE_LIMIT_WINDOW_MS,
-    max: env.RATE_LIMIT_MAX,
-    message: {
-      success: false,
-      message: "Too many requests, please try again later.",
-    },
-  }),
+	rateLimit({
+		windowMs: env.RATE_LIMIT_WINDOW_MS,
+		max: env.RATE_LIMIT_MAX,
+		message: {
+			success: false,
+			message: "Too many requests, please try again later.",
+		},
+	}),
 );
 
 // Parsing
