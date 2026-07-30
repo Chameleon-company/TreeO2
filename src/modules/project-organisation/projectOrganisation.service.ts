@@ -1,7 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { ERROR_CODES } from "../../utils/errorCodes";
-import { type AccessType, Prisma } from "@prisma/client";
+import { type AccessType } from "@prisma/client";
 
 const ensureProjectExists = async (projectId: number) => {
 	const project = await prisma.project.findUnique({
@@ -56,13 +56,9 @@ const getEntry = async (projectId: number, organisationId: number) => {
 
 class ProjectOrganisationService {
 	async getAllProjectOrganisations() {
-		try {
-			return await prisma.projectOrganisation.findMany({
-				orderBy: { createdAt: "desc" },
-			});
-		} catch {
-			throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
-		}
+		return await prisma.projectOrganisation.findMany({
+			orderBy: { createdAt: "desc" },
+		});
 	}
 
 	async createProjectOrganisation(
@@ -77,49 +73,33 @@ class ProjectOrganisationService {
 		// owner access types are created within project create and with the project's ownerOrganisationId
 		ensureNoOwnerAccessType(accessType);
 
-		try {
-			const created = await prisma.projectOrganisation.create({
-				data: {
-					projectId: projectId,
-					organisationId: organisationId,
-					accessType: accessType,
-				},
-			});
+		const created = await prisma.projectOrganisation.create({
+			data: {
+				projectId: projectId,
+				organisationId: organisationId,
+				accessType: accessType,
+			},
+		});
 
-			return created;
-		} catch (error) {
-			if (
-				error instanceof Prisma.PrismaClientKnownRequestError &&
-				error.code === "P2002"
-			) {
-				// errorHanlder.ts will handle P2002 Prisma error
-				throw error;
-			}
-
-			throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
-		}
+		return created;
 	}
 
 	async deleteProjectOrganisation(projectId: number, organisationId: number) {
 		const entry = await getEntry(projectId, organisationId);
 		ensureNoOwnerAccessType(entry.accessType);
 
-		try {
-			await prisma.projectOrganisation.delete({
-				where: {
-					projectId_organisationId: {
-						projectId: projectId,
-						organisationId: organisationId,
-					},
+		await prisma.projectOrganisation.delete({
+			where: {
+				projectId_organisationId: {
+					projectId: projectId,
+					organisationId: organisationId,
 				},
-			});
+			},
+		});
 
-			// TODO: revoke affected users refresh tokens, see T2-2026 API13
+		// TODO: revoke affected users refresh tokens, see T2-2026 API13
 
-			return { message: "Project organisation sharing removed successfully" };
-		} catch (error) {
-			throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
-		}
+		return { message: "Project organisation sharing removed successfully" };
 	}
 }
 
