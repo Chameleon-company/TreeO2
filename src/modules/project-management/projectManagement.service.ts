@@ -6,6 +6,7 @@ import { ERROR_CODES } from "../../utils/errorCodes";
 // Input type for creating a new project with required and optional fields.
 type CreateProjectInput = {
 	name: string;
+	ownerOrganisationId: number;
 	description?: string | null;
 	countryId: number;
 	adminLocationId: number;
@@ -13,6 +14,7 @@ type CreateProjectInput = {
 };
 
 // Input type for updating an existing project with optional fields for partial changes.
+// T2-2026 API02: ownerOrganisationId is not a field that is allowed for updates (not specified by documentation)
 type UpdateProjectInput = {
 	name?: string;
 	description?: string | null;
@@ -33,6 +35,7 @@ const isNonEmptyString = (value: unknown): value is string =>
 const assertCreatePayload = (data: CreateProjectInput) => {
 	if (
 		!isNonEmptyString(data.name) ||
+		!isPositiveInt(data.ownerOrganisationId) ||
 		!isPositiveInt(data.countryId) ||
 		!isPositiveInt(data.adminLocationId)
 	) {
@@ -116,6 +119,18 @@ const ensureLocationExists = async (locationId: number) => {
 	return location;
 };
 
+// T2-2026 API02: verifies that organisationId (from ownerOrganisationId) exists
+const ensureOrganisationExists = async (organisationId: number) => {
+	const org = await prisma.organisation.findUnique({
+		where: { id: organisationId },
+		select: { id: true },
+	});
+
+	if (!org) {
+		throw new AppError(404, "Organisation not found", ERROR_CODES.DATA_001);
+	}
+};
+
 // Ensures the selected admin location belongs to the selected country.
 const ensureLocationBelongsToCountry = async (
 	locationId: number,
@@ -180,19 +195,33 @@ export class ProjectManagementService {
 
 		try {
 			await ensureCountryExists(data.countryId);
+			await ensureOrganisationExists(data.ownerOrganisationId);
 			await ensureLocationBelongsToCountry(
 				data.adminLocationId,
 				data.countryId,
 			);
 
-			const createdProject = await prisma.project.create({
-				data: {
-					name: data.name.trim(),
-					description: data.description?.trim() || null,
-					countryId: data.countryId,
-					adminLocationId: data.adminLocationId,
-					isActive: data.isActive ?? true,
-				},
+			const createdProject = await prisma.$transaction(async (tx) => {
+				const project = await tx.project.create({
+					data: {
+						name: data.name.trim(),
+						ownerOrganisationId: data.ownerOrganisationId,
+						description: data.description?.trim() || null,
+						countryId: data.countryId,
+						adminLocationId: data.adminLocationId,
+						isActive: data.isActive ?? true,
+					},
+				});
+
+				await tx.projectOrganisation.create({
+					data: {
+						projectId: project.id,
+						organisationId: project.ownerOrganisationId,
+						accessType: "owner",
+					},
+				});
+
+				return project;
 			});
 
 			return createdProject;
