@@ -3,6 +3,7 @@ import { Router } from "express";
 import { validateMiddleware } from "../../middleware/validate.middleware";
 import { projectOrganisationController } from "./projectOrganisation.controller";
 import { ProjectOrganisationReq } from "./projectOrganisation.schema";
+import "./projectOrganisation.docs";
 
 const router = Router();
 
