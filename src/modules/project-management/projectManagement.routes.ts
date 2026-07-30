@@ -91,23 +91,30 @@ router.get(
  *             type: object
  *             required:
  *               - name
+ *               - ownerOrganisationId
  *               - countryId
  *               - adminLocationId
  *             properties:
  *               name:
  *                 type: string
+ *               ownerOrganisationId:
+ *                 type: integer
+ *                 minimum: 1
  *               description:
  *                 type: string
  *                 nullable: true
  *               countryId:
  *                 type: integer
+ *                 minimum: 1
  *               adminLocationId:
  *                 type: integer
+ *                 minimum: 1
  *               isActive:
  *                 type: boolean
  *           example:
  *             name: Reforestation Project
  *             description: Tree planting initiative
+ *             ownerOrganisationId: 1
  *             countryId: 1
  *             adminLocationId: 10
  *             isActive: true
