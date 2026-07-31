@@ -109,6 +109,7 @@ src/modules/
 ├── localization
 ├── partners
 ├── project-management
+├── project-organisation
 ├── project-tree-types
 ├── reports
 ├── scan-batches
@@ -864,6 +865,7 @@ Retrieve all projects ordered by newest first.
   "data": [
     {
       "id": 1,
+      "ownerOrganisationId": 1,
       "name": "Reforestation Project",
       "description": "Tree planting initiative",
       "countryId": 1,
@@ -895,6 +897,7 @@ Retrieve a single project by ID.
   "success": true,
   "data": {
     "id": 1,
+    "ownerOrganisationId": 1,
     "name": "Reforestation Project",
     "description": "Tree planting initiative",
     "countryId": 1,
@@ -913,11 +916,12 @@ Retrieve a single project by ID.
 
 #### POST /projects
 
-Create a new project.
+Create a new project. Also creates a project-organisation link to determine "owner" access type.
 
 ##### Request Body
 ```json
 {
+  "ownerOrganisationId": 1,
   "name": "Reforestation Project",
   "description": "Tree planting initiative",
   "countryId": 1,
@@ -927,6 +931,7 @@ Create a new project.
 ```
 
 ##### Required Fields
+- `ownerOrganisationId`
 - `name`
 - `countryId`
 - `adminLocationId`
@@ -1133,7 +1138,171 @@ The Project Management API follows the TreeO2 backend engineering standard:
 
 ---
 
-## 12. Localization API
+## 12. Project Organisation API
+
+This module manages project-organisation sharing relationships. It allows organisations to be linked to projects with configurable access types.
+
+**Module Path:** `src/modules/project-organisation/`
+
+### Files
+- `projectOrganisation.routes.ts`
+- `projectOrganisation.controller.ts`
+- `projectOrganisation.service.ts`
+- `projectOrganisation.schema.ts`
+- `projectOrganisation.docs.ts`
+
+### 12.1 Purpose
+
+The Project Organisation API manages the relationship between projects and organisations. It enables:
+- Linking an organisation to a project with a specific access type
+- Retrieving all project-organisation relationships
+- Removing a project-organisation sharing link
+
+Access types:
+- `owner` — primary organisation that created the project (set during project creation, not managed by this API)
+- `shared` — read and write access (default)
+- `partner` — partner-level access
+
+### 12.2 Architecture Flow
+
+```text
+Route → Controller → Service → Prisma ORM → PostgreSQL → Response
+```
+
+**Routes** (`projectOrganisation.routes.ts`)
+- Define endpoints
+- Apply `authMiddleware` and `validateMiddleware`
+- Contain Swagger documentation (imported from `projectOrganisation.docs.ts`)
+
+**Controller**
+- Receive request data
+- Parse params and body using Zod schemas
+- Call service methods
+- Return HTTP responses
+
+**Service**
+- Validate project and organisation existence
+- Enforce business rules (cannot create/delete `owner` access type)
+- Execute database queries
+- Throw structured errors
+
+### 12.3 Security
+
+All endpoints are protected using Bearer Token authentication.
+
+Middleware used:
+- `authMiddleware`
+
+> **Note:** Permission-based middleware is not yet implemented. See T2-2026 API13.
+
+### 12.4 Access Control Matrix
+
+> **Note:** Permission-based middleware is not yet implemented. See T2-2026 API13. This section might not exist in the future.
+
+### 12.5 Endpoints
+
+#### GET /project-organisations
+
+Retrieve all project-organisation relationships ordered by newest first.
+
+##### Response
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "projectId": 1,
+      "organisationId": 2,
+      "accessType": "shared",
+      "createdAt": "2024-01-15T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+##### Status Codes
+- `200` Success
+- `401` Authentication required
+- `500` System error
+
+#### POST /project-organisations
+
+Create a project-organisation sharing link.
+
+##### Request Body
+```json
+{
+  "projectId": 1,
+  "organisationId": 2,
+  "accessType": "shared"
+}
+```
+
+##### Fields
+| Name | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| projectId | integer | Yes | — | Must be a valid project ID |
+| organisationId | integer | Yes | — | Must be a valid organisation ID |
+| accessType | enum(shared, owner, partner) | No | shared | Cannot be `owner` |
+
+##### Response
+```json
+{
+  "success": true,
+  "data": {
+    "projectId": 1,
+    "organisationId": 2,
+    "accessType": "shared",
+    "createdAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+##### Status Codes
+- `201` Created
+- `401` Authentication required
+- `404` Project or organisation not found
+- `409` Duplicate project-organisation relationship
+- `422` Access type cannot be `owner`
+- `500` System error
+
+#### DELETE /project-organisations/:projectId/:organisationId
+
+Remove a project-organisation sharing link.
+
+##### Path Parameters
+| Name | Type | Required |
+|---|---|---|
+| projectId | integer | Yes |
+| organisationId | integer | Yes |
+
+##### Response
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Project organisation sharing removed successfully"
+  }
+}
+```
+
+##### Status Codes
+- `200` Success
+- `401` Authentication required
+- `404` Project-organisation sharing link not found
+- `422` Cannot remove `owner` access type
+- `500` System error
+
+### 12.6 Business Rules
+
+- `owner` access type cannot be created or deleted through this API. It is set during project creation via `ownerOrganisationId`. Deletion of `owner` access type happens through cascade on FK deletion.
+- Both project and organisation must exist before a relationship can be created.
+- Duplicate project-organisation relationships are prevented by a unique constraint on `(project_id, organisation_id)`.
+- On deletion, affected users' refresh tokens are revoked (pending T2-2026 API13).
+
+---
+
+## 13. Localization API
 
 This module manages localized string resources used across the TreeO2 platform. It provides read and administrative write operations for multilingual content with context filtering, language fallback support, and role-based access control.
 
@@ -1145,12 +1314,12 @@ This module manages localized string resources used across the TreeO2 platform. 
 - `localization.service.ts`
 - `index.ts`
 
-### 12.1 Purpose
+### 13.1 Purpose
 
 The Localization API is responsible for creating, retrieving, updating, and deleting localized strings in the system.
 
 
-### 12.2 Architecture Flow
+### 13.2 Architecture Flow
 
 Every request in this module follows a simple class-based flow:
 
@@ -1454,7 +1623,7 @@ The Localization API follows the TreeO2 backend engineering standard:
 - Automated tests
 - Scalable structure for multilingual expansion
 
-## 13. Project Tree Types API
+## 14. Project Tree Types API
 
 This section documents the `project-tree-types` module that has now been implemented and tested.
 
@@ -1902,7 +2071,7 @@ The `project-tree-types` module is now fully wired into the backend with:
 
 This module now provides the project-to-tree-type assignment layer needed before downstream modules such as `tree-scans` can validate whether a scanned tree type is allowed for a given project.
 
-## 14. User-Project Assignment API
+## 15. User-Project Assignment API
 
 This module manages the assignment relationship between users and projects in the TreeO2 platform. It allows authorised users to view user-project assignments, assign users to projects, and remove users from projects.
 
@@ -2186,7 +2355,7 @@ The User-Project Assignment API follows the TreeO2 backend engineering standard:
 - Scalable structure for future project-user access rules
 ---
 
-## 15. Partners API
+## 16. Partners API
 
 This module manages partner organisations in the TreeO2 platform. It provides full CRUD operations with validation and role-based access control.
 
@@ -2557,7 +2726,7 @@ The Partners API follows the TreeO2 backend engineering standard:
 
 ---
 
-## 16. Tree Scans API
+## 17. Tree Scans API
 
 This module manages tree scan records collected across the TreeO2 platform. It provides tree scan creation, retrieval, correction, archiving, FOB recycling support, validation, role-based access control, project-scoped access control, and relationship checks against projects, users, tree species, and scan batches.
 
@@ -3101,7 +3270,7 @@ The Tree Scans API follows the TreeO2 backend engineering standard:
 - Scalable backend structure
 ---
 
-## 17. Adopters API
+## 18. Adopters API
 
 This module manages adopter records used within the TreeO2 platform. It provides CRUD operations with validation, authentication, role-based access control, pagination support, and automated test coverage.
 
@@ -3539,7 +3708,7 @@ The Adopters API follows the TreeO2 backend engineering standard:
 ---
 
 
-## 18. Adoptions API
+## 19. Adoptions API
 
 This module manages adoption records in the TreeO2 platform. It provides full CRUD operations for recording, retrieving, updating, and deleting tree adoption records.
 
@@ -3932,7 +4101,7 @@ The Adoptions API follows the TreeO2 backend engineering standard:
 
 ---
 
-## 19. Scan Batches API
+## 20. Scan Batches API
 
 This module manages scan batch upload and retrieval operations across the TreeO2 platform. It provides scan batch creation, pagination, project-scoped access control, validation, deletion protection, Swagger documentation, and automated testing coverage.
 
