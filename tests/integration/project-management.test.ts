@@ -17,6 +17,7 @@ describe("Project Management Integration Tests", () => {
 	let countryId: number;
 	let adminLocationId: number;
 	let projectId: number;
+	let orgId: number;
 
 	beforeAll(async () => {
 		const country = await prisma.country.create({
@@ -43,8 +44,17 @@ describe("Project Management Integration Tests", () => {
 	beforeEach(async () => {
 		await prisma.project.deleteMany();
 
+		const org = await prisma.organisation.create({
+			data: {
+				name: "Test organisation",
+			},
+		});
+
+		orgId = org.id;
+
 		const project = await prisma.project.create({
 			data: {
+				ownerOrganisationId: org.id,
 				name: "Reforestation Project",
 				description: "Tree planting initiative",
 				countryId,
@@ -186,6 +196,7 @@ describe("Project Management Integration Tests", () => {
 				.post("/projects")
 				.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
 				.send({
+					ownerOrganisationId: orgId,
 					name: "New Reforestation Project",
 					description: "Tree planting initiative",
 					countryId,
@@ -229,6 +240,7 @@ describe("Project Management Integration Tests", () => {
 				.post("/projects")
 				.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
 				.send({
+					ownerOrganisationId: orgId,
 					name: "Invalid Country Project",
 					countryId: 999999,
 					adminLocationId,
