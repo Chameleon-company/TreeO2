@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { v4 as uuidv4 } from "uuid";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { customError } from "../../utils/errorCodes";
@@ -313,6 +314,7 @@ export class TreeScansService {
 					photoId: data.photoId,
 					batchId: data.batchId,
 					deviceId: data.deviceId,
+					clientScanId: uuidv4(),
 					validationNotes: data.validationNotes,
 				},
 				include: TREE_SCAN_INCLUDE,
