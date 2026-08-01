@@ -22,6 +22,7 @@ jest.mock("../../src/lib/prisma", () => {
 			delete: jest.fn(),
 		},
 		treeScan: {
+			findMany: jest.fn(),
 			createMany: jest.fn(),
 		},
 		user: {
@@ -69,6 +70,7 @@ describe("ScanBatchesService", () => {
 	const validCreateInput = {
 		inspector_id: inspectorUser.id,
 		project_id: 1,
+		device_id: "MOB-001",
 		uploaded_at: new Date("2024-05-20T10:35:00.000Z"),
 		scans: [
 			{
@@ -84,7 +86,8 @@ describe("ScanBatchesService", () => {
 				latitude: -8.5569,
 				longitude: 125.5603,
 				photo_id: "550e8400-e29b-41d4-a716-446655440000",
-				device_id: "MOB-001",
+				client_scan_id: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+				scan_timestamp: new Date("2024-05-20T10:30:00.000Z"),
 			},
 		],
 	};
@@ -162,6 +165,8 @@ describe("ScanBatchesService", () => {
 			projectId: 1,
 			treeTypeId: 1,
 		});
+
+		mockPrisma.treeScan.findMany.mockResolvedValue([]);
 
 		mockPrisma.scanBatch.create.mockResolvedValue({
 			id: 1,
@@ -397,6 +402,7 @@ describe("ScanBatchesService", () => {
 				data: {
 					inspectorId: inspectorUser.id,
 					projectId: 1,
+					deviceId: "MOB-001",
 					uploadedAt: validCreateInput.uploaded_at,
 				},
 			});
@@ -411,12 +417,88 @@ describe("ScanBatchesService", () => {
 						speciesId: 1,
 						estimatedPlantedYear: 2024,
 						estimatedPlantedMonth: 5,
+						deviceId: "MOB-001",
+						clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
 						batchId: 1,
 					}),
 				],
+				skipDuplicates: true,
 			});
 
-			expect(result).toEqual(scanBatchRecord);
+			expect(result).toEqual({
+				batch: scanBatchRecord,
+				summary: {
+					created: 1,
+					skipped: 0,
+					skippedClientScanIds: [],
+				},
+			});
+		});
+
+		// Tests idempotent no-op when every submitted scan already exists
+		it("should skip batch creation when all scans already exist", async () => {
+			mockPrisma.treeScan.findMany.mockResolvedValue([
+				{ clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c" },
+			]);
+
+			const result = await createScanBatch(validCreateInput);
+
+			expect(mockPrisma.scanBatch.create).not.toHaveBeenCalled();
+			expect(mockPrisma.treeScan.createMany).not.toHaveBeenCalled();
+
+			expect(result).toEqual({
+				batch: null,
+				summary: {
+					created: 0,
+					skipped: 1,
+					skippedClientScanIds: ["7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c"],
+				},
+			});
+		});
+
+		// Tests that only new scans are inserted when a batch mixes new and duplicate scans
+		it("should insert only new scans when some already exist", async () => {
+			const secondScan = {
+				...validCreateInput.scans[0],
+				fob_id: "SWAGGER-002",
+				client_scan_id: "1c2d3e4f-5a6b-7c8d-9e0f-1a2b3c4d5e6f",
+			};
+
+			const mixedInput = {
+				...validCreateInput,
+				scans: [validCreateInput.scans[0], secondScan],
+			};
+
+			// Validation loop runs once per scan, so mock inspector + two farmers.
+			mockPrisma.user.findUnique.mockReset();
+			mockPrisma.user.findUnique
+				.mockResolvedValueOnce(inspectorRecord)
+				.mockResolvedValueOnce(farmerRecord)
+				.mockResolvedValueOnce(farmerRecord);
+
+			// Only the first scan already exists; the second is new.
+			mockPrisma.treeScan.findMany.mockResolvedValue([
+				{ clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c" },
+			]);
+			mockPrisma.treeScan.createMany.mockResolvedValue({ count: 1 });
+
+			const result = await createScanBatch(mixedInput);
+
+			expect(mockPrisma.treeScan.createMany).toHaveBeenCalledWith({
+				data: [
+					expect.objectContaining({
+						fobId: "SWAGGER-002",
+						clientScanId: "1c2d3e4f-5a6b-7c8d-9e0f-1a2b3c4d5e6f",
+					}),
+				],
+				skipDuplicates: true,
+			});
+
+			expect(result.summary).toEqual({
+				created: 1,
+				skipped: 1,
+				skippedClientScanIds: ["7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c"],
+			});
 		});
 
 		// Tests default upload timestamp when uploaded_at is omitted

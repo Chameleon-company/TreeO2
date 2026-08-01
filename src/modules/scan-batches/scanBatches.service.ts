@@ -332,17 +332,59 @@ export const createScanBatch = async (data: CreateScanBatchServiceInput) => {
 		}
 	}
 
+	const clientScanIds = data.scans.map((scan) => scan.client_scan_id);
+
 	return prisma.$transaction(async (tx) => {
+		// Idempotency: find scans already stored for this device so a retry
+		// (e.g. after a network timeout or reconnect) never creates duplicate
+		// scan records. Matches the DB unique key
+		// (project_id, inspector_id, device_id, client_scan_id).
+		const existingScans = await tx.treeScan.findMany({
+			where: {
+				projectId: data.project_id,
+				inspectorId: data.inspector_id,
+				deviceId: data.device_id,
+				clientScanId: { in: clientScanIds },
+			},
+			select: { clientScanId: true },
+		});
+
+		const existingClientScanIds = new Set(
+			existingScans.map((scan) => scan.clientScanId),
+		);
+
+		const newScans = data.scans.filter(
+			(scan) => !existingClientScanIds.has(scan.client_scan_id),
+		);
+
+		// Every submitted scan already exists: skip creating a new (empty)
+		// batch header and report the upload as an idempotent no-op. Detecting
+		// a duplicate *batch* header needs a client_batch_id, which is parked
+		// pending product-owner sign-off (V1.2 10.5/10.6).
+		if (newScans.length === 0) {
+			return {
+				batch: null,
+				summary: {
+					created: 0,
+					skipped: data.scans.length,
+					skippedClientScanIds: [...existingClientScanIds],
+				},
+			};
+		}
+
 		const scanBatch = await tx.scanBatch.create({
 			data: {
 				inspectorId: data.inspector_id,
 				projectId: data.project_id,
+				deviceId: data.device_id,
 				uploadedAt: data.uploaded_at ?? new Date(),
 			},
 		});
 
-		await tx.treeScan.createMany({
-			data: data.scans.map((scan) => ({
+		// skipDuplicates guards against a concurrent retry inserting the same
+		// (device, client_scan_id) between the lookup above and this insert.
+		const inserted = await tx.treeScan.createMany({
+			data: newScans.map((scan) => ({
 				fobId: scan.fob_id,
 				projectId: data.project_id,
 				farmerId: scan.farmer_id,
@@ -357,12 +399,15 @@ export const createScanBatch = async (data: CreateScanBatchServiceInput) => {
 				latitude: scan.latitude ?? null,
 				longitude: scan.longitude ?? null,
 				photoId: scan.photo_id ?? null,
-				deviceId: scan.device_id ?? null,
+				deviceId: data.device_id,
+				clientScanId: scan.client_scan_id,
+				scanTimestamp: scan.scan_timestamp ?? null,
 				batchId: scanBatch.id,
 			})),
+			skipDuplicates: true,
 		});
 
-		return tx.scanBatch.findUnique({
+		const batch = await tx.scanBatch.findUnique({
 			where: {
 				id: scanBatch.id,
 			},
@@ -383,6 +428,15 @@ export const createScanBatch = async (data: CreateScanBatchServiceInput) => {
 				treeScans: true,
 			},
 		});
+
+		return {
+			batch,
+			summary: {
+				created: inserted.count,
+				skipped: data.scans.length - inserted.count,
+				skippedClientScanIds: [...existingClientScanIds],
+			},
+		};
 	});
 };
 

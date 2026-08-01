@@ -70,15 +70,30 @@ export const createScanBatchController = async (
 	try {
 		const validatedData = createScanBatchSchema.parse(req.body);
 
-		const scanBatch = await createScanBatch({
+		const { batch, summary } = await createScanBatch({
 			...validatedData,
 			inspector_id: getCurrentUser(req).id,
 		});
 
+		// All submitted scans already existed: idempotent no-op, nothing created.
+		if (!batch) {
+			res.status(200).json({
+				success: true,
+				message: SCAN_BATCHES_MESSAGES.ALL_DUPLICATES,
+				data: null,
+				summary,
+			});
+			return;
+		}
+
 		res.status(201).json({
 			success: true,
-			message: SCAN_BATCHES_MESSAGES.CREATED,
-			data: scanBatch,
+			message:
+				summary.skipped > 0
+					? SCAN_BATCHES_MESSAGES.CREATED_WITH_DUPLICATES
+					: SCAN_BATCHES_MESSAGES.CREATED,
+			data: batch,
+			summary,
 		});
 	} catch (error) {
 		next(error);

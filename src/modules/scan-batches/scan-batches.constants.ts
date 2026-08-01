@@ -41,6 +41,16 @@ export const SCAN_BATCHES_MESSAGES = {
 
 	DELETE_BLOCKED_HAS_SCANS:
 		"Scan batch cannot be deleted because it has related tree scans",
+
+	DEVICE_ID_REQUIRED: "device_id is required to upload a scan batch",
+	INVALID_CLIENT_SCAN_ID: "client_scan_id must be a valid UUID",
+	INVALID_SCAN_TIMESTAMP: "scan_timestamp cannot be in the future",
+	DUPLICATE_CLIENT_SCAN_IDS:
+		"Duplicate client_scan_id values are not allowed within the same upload",
+	ALL_DUPLICATES:
+		"All submitted scans already exist. No new scans were created.",
+	CREATED_WITH_DUPLICATES:
+		"Scan batch uploaded. Some scans already existed and were skipped.",
 } as const;
 
 export const SCAN_BATCHES_ERRORS = {
@@ -57,6 +67,8 @@ export const SCAN_BATCHES_ERRORS = {
 	SPECIES_NOT_IN_PROJECT: "SPECIES_NOT_IN_PROJECT",
 	INVALID_DATE: "INVALID_DATE",
 	INVALID_MEASUREMENT: "INVALID_MEASUREMENT",
+	DEVICE_ID_REQUIRED: "DEVICE_ID_REQUIRED",
+	DUPLICATE_CLIENT_SCAN_IDS: "DUPLICATE_CLIENT_SCAN_IDS",
 } as const;
 
 export const SCAN_BATCHES_DEFAULTS = {

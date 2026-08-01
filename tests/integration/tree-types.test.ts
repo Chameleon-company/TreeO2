@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { randomUUID } from "crypto";
 import request from "supertest";
 import { prisma } from "../../src/lib/prisma";
 import app from "../../src/app";
@@ -117,6 +118,7 @@ describe("Tree Types API", () => {
 				speciesId,
 				estimatedPlantedYear: 2024,
 				estimatedPlantedMonth: 5,
+				clientScanId: randomUUID(),
 			},
 		});
 
