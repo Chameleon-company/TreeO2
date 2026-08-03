@@ -173,8 +173,15 @@ describe("Scan Batches Integration Tests", () => {
 
 		adminLocationId = location.id;
 
+		const org = await prisma.organisation.create({
+			data: {
+				name: "Test organisation",
+			},
+		});
+
 		const project = await prisma.project.create({
 			data: {
+				ownerOrganisationId: org.id,
 				name: "Scan Batch Test Project",
 				description: "Project used for scan batch tests",
 				countryId,
@@ -187,6 +194,7 @@ describe("Scan Batches Integration Tests", () => {
 
 		const inactiveProject = await prisma.project.create({
 			data: {
+				ownerOrganisationId: org.id,
 				name: "Scan Batch Test Inactive Project",
 				description: "Inactive project used for scan batch tests",
 				countryId,

@@ -169,8 +169,15 @@ describe("Tree Scans Integration Tests", () => {
 
 		adminLocationId = location.id;
 
+		const org = await prisma.organisation.create({
+			data: {
+				name: "Test organisation",
+			},
+		});
+
 		const project = await prisma.project.create({
 			data: {
+				ownerOrganisationId: org.id,
 				name: "Tree Scan Test Project",
 				description: "Project used for tree scan tests",
 				countryId,
@@ -183,6 +190,7 @@ describe("Tree Scans Integration Tests", () => {
 
 		const inactiveProject = await prisma.project.create({
 			data: {
+				ownerOrganisationId: org.id,
 				name: "Tree Scan Test Inactive Project",
 				description: "Inactive project used for tree scan tests",
 				countryId,

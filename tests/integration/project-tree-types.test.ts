@@ -35,8 +35,14 @@ describe("Project Tree Types API", () => {
 	const treeTypeIds: number[] = [];
 
 	const createProject = async (name?: string) => {
+		const org = await prisma.organisation.create({
+			data: {
+				name: "Test organisation",
+			},
+		});
 		const project = await prisma.project.create({
 			data: {
+				ownerOrganisationId: org.id,
 				name: name ?? nextUnique("project"),
 			},
 		});

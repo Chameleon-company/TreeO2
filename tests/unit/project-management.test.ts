@@ -28,7 +28,16 @@ jest.mock("@prisma/client", () => {
 		scanBatch: {
 			count: jest.fn(),
 		},
+		organisation: {
+			findUnique: jest.fn(),
+		},
+		projectOrganisation: {
+			create: jest.fn(),
+		},
+		$transaction: jest.fn(),
 	};
+
+	mockPrisma.$transaction = jest.fn((callback) => callback(mockPrisma));
 
 	class PrismaClientKnownRequestError extends Error {
 		code: string;
@@ -126,6 +135,7 @@ describe("ProjectManagementService", () => {
 		it("should create a project successfully with valid input", async () => {
 			const createdProject = {
 				id: 1,
+				ownerOrganisationId: 1,
 				name: "Reforestation Project",
 				description: "Tree planting initiative",
 				countryId: 1,
@@ -133,11 +143,13 @@ describe("ProjectManagementService", () => {
 				isActive: true,
 			};
 
+			mockPrisma.organisation.findUnique.mockResolvedValue({ id: 1 });
 			mockPrisma.country.findUnique.mockResolvedValue({ id: 1 });
 			mockPrisma.location.findUnique.mockResolvedValue({ id: 1, countryId: 1 });
 			mockPrisma.project.create.mockResolvedValue(createdProject);
 
 			const result = await service.createProject({
+				ownerOrganisationId: 1,
 				name: "Reforestation Project",
 				description: "Tree planting initiative",
 				countryId: 1,
@@ -157,6 +169,7 @@ describe("ProjectManagementService", () => {
 
 			expect(mockPrisma.project.create).toHaveBeenCalledWith({
 				data: {
+					ownerOrganisationId: 1,
 					name: "Reforestation Project",
 					description: "Tree planting initiative",
 					countryId: 1,
@@ -168,9 +181,10 @@ describe("ProjectManagementService", () => {
 			expect(result).toEqual(createdProject);
 		});
 
-		it("should trim name and description and default isActive to true", async () => {
+		it("should call to create project-organisation link with 'owner' access type", async () => {
 			const createdProject = {
 				id: 1,
+				ownerOrganisationId: 1,
 				name: "Reforestation Project",
 				description: "Tree planting initiative",
 				countryId: 1,
@@ -178,11 +192,51 @@ describe("ProjectManagementService", () => {
 				isActive: true,
 			};
 
+			mockPrisma.organisation.findUnique.mockResolvedValue({ id: 1 });
+			mockPrisma.country.findUnique.mockResolvedValue({ id: 1 });
+			mockPrisma.location.findUnique.mockResolvedValue({ id: 1, countryId: 1 });
+			mockPrisma.project.create.mockResolvedValue(createdProject);
+
+			const result = await service.createProject({
+				ownerOrganisationId: 1,
+				name: "Reforestation Project",
+				description: "Tree planting initiative",
+				countryId: 1,
+				adminLocationId: 1,
+				isActive: true,
+			});
+
+			expect(result).toEqual(createdProject);
+
+			expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+
+			expect(mockPrisma.projectOrganisation.create).toHaveBeenCalledWith({
+				data: {
+					organisationId: 1,
+					projectId: result.id,
+					accessType: "owner",
+				},
+			});
+		});
+
+		it("should trim name and description and default isActive to true", async () => {
+			const createdProject = {
+				id: 1,
+				ownerOrganisationId: 1,
+				name: "Reforestation Project",
+				description: "Tree planting initiative",
+				countryId: 1,
+				adminLocationId: 1,
+				isActive: true,
+			};
+
+			mockPrisma.organisation.findUnique.mockResolvedValue({ id: 1 });
 			mockPrisma.country.findUnique.mockResolvedValue({ id: 1 });
 			mockPrisma.location.findUnique.mockResolvedValue({ id: 1, countryId: 1 });
 			mockPrisma.project.create.mockResolvedValue(createdProject);
 
 			await service.createProject({
+				ownerOrganisationId: 1,
 				name: "  Reforestation Project  ",
 				description: "  Tree planting initiative  ",
 				countryId: 1,
@@ -191,6 +245,7 @@ describe("ProjectManagementService", () => {
 
 			expect(mockPrisma.project.create).toHaveBeenCalledWith({
 				data: {
+					ownerOrganisationId: 1,
 					name: "Reforestation Project",
 					description: "Tree planting initiative",
 					countryId: 1,
@@ -203,6 +258,7 @@ describe("ProjectManagementService", () => {
 		it("should throw VAL_003 when required fields are missing", async () => {
 			await expect(
 				service.createProject({
+					ownerOrganisationId: 1,
 					name: "",
 					countryId: 1,
 					adminLocationId: 1,
@@ -213,11 +269,31 @@ describe("ProjectManagementService", () => {
 			});
 		});
 
-		it("should throw DATA_001 when country does not exist", async () => {
-			mockPrisma.country.findUnique.mockResolvedValue(null);
+		it("should throw DATA_001 when organisation does not exist ", async () => {
+			mockPrisma.country.findUnique.mockResolvedValue({ id: 1 });
+			mockPrisma.organisation.findUnique.mockResolvedValue(null);
 
 			await expect(
 				service.createProject({
+					ownerOrganisationId: 1,
+					name: "Reforestation Project",
+					countryId: 1,
+					adminLocationId: 1,
+				}),
+			).rejects.toMatchObject({
+				statusCode: 404,
+				code: ERROR_CODES.DATA_001,
+				message: "Organisation not found",
+			});
+		});
+
+		it("should throw DATA_001 when country does not exist", async () => {
+			mockPrisma.country.findUnique.mockResolvedValue(null);
+			mockPrisma.organisation.findUnique.mockResolvedValue({ id: 1 });
+
+			await expect(
+				service.createProject({
+					ownerOrganisationId: 1,
 					name: "Reforestation Project",
 					countryId: 1,
 					adminLocationId: 1,
@@ -232,9 +308,11 @@ describe("ProjectManagementService", () => {
 		it("should throw VAL_001 when location does not belong to selected country", async () => {
 			mockPrisma.country.findUnique.mockResolvedValue({ id: 1 });
 			mockPrisma.location.findUnique.mockResolvedValue({ id: 1, countryId: 2 });
+			mockPrisma.organisation.findUnique.mockResolvedValue({ id: 1 });
 
 			await expect(
 				service.createProject({
+					ownerOrganisationId: 1,
 					name: "Reforestation Project",
 					countryId: 1,
 					adminLocationId: 1,
@@ -250,6 +328,7 @@ describe("ProjectManagementService", () => {
 		it("should throw DATA_002 when duplicate error occurs", async () => {
 			const { Prisma } = jest.requireMock("@prisma/client");
 
+			mockPrisma.organisation.findUnique.mockResolvedValue({ id: 1 });
 			mockPrisma.country.findUnique.mockResolvedValue({ id: 1 });
 			mockPrisma.location.findUnique.mockResolvedValue({ id: 1, countryId: 1 });
 			mockPrisma.project.create.mockRejectedValue(
@@ -260,6 +339,7 @@ describe("ProjectManagementService", () => {
 
 			await expect(
 				service.createProject({
+					ownerOrganisationId: 1,
 					name: "Reforestation Project",
 					countryId: 1,
 					adminLocationId: 1,
@@ -276,6 +356,7 @@ describe("ProjectManagementService", () => {
 		it("should update a project successfully with valid input", async () => {
 			const existingProject = {
 				id: 1,
+				ownerOrganisationId: 1,
 				name: "Reforestation Project",
 				description: "Tree planting initiative",
 				countryId: 1,
@@ -333,6 +414,7 @@ describe("ProjectManagementService", () => {
 		it("should throw VAL_001 when updated location does not belong to selected country", async () => {
 			const existingProject = {
 				id: 1,
+				ownerOrganisationId: 1,
 				name: "Reforestation Project",
 				countryId: 1,
 				adminLocationId: 1,

@@ -77,8 +77,15 @@ describe("User Project Assignment Integration Tests", () => {
 			where: { name: { startsWith: "Assignment Test Project" } },
 		});
 
+		const org = await prisma.organisation.create({
+			data: {
+				name: "Test organisation",
+			},
+		});
+
 		const project = await prisma.project.create({
 			data: {
+				ownerOrganisationId: org.id,
 				name: "Assignment Test Project",
 				description: "Project used for assignment endpoint tests",
 				countryId,

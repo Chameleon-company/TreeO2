@@ -14,10 +14,12 @@ model Organisation {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  country         Country?  @relation(fields: [countryId], references: [id])
-  adminLocation   Location? @relation(fields: [adminLocationId], references: [id])
-  
-  userOrganisations UserOrganisation[]
+  country       Country?  @relation(fields: [countryId], references: [id])
+  adminLocation Location? @relation(fields: [adminLocationId], references: [id])
+
+  userOrganisations   UserOrganisation[]
+  projectOrganisation ProjectOrganisation[]
+  ownedProjects       Project[]
 
   @@map("organisations")
 }
