@@ -41,7 +41,18 @@ Defines the API endpoints for the module and connects them to controller methods
 Responsibilities:
 - Define route paths (e.g. GET /health, POST /users)
 - Attach controller methods
-- Include Swagger annotations for API documentation
+- Import the module Swagger documentation file (<module>.docs.ts)
+
+---
+
+### <module>.docs.ts
+Contains Swagger documentation for the module endpoints.
+
+Responsibilities:
+- Document API endpoints
+- Define request parameters and request bodies
+- Define response schemas and status codes
+- Keep API documentation separate from route implementation logic
 
 ---
 
@@ -124,7 +135,7 @@ Each module follows the same internal structure:
 ├── <module>.routes.ts
 ├── <module>.controller.ts
 ├── <module>.service.ts
-└── index.ts
+└──index.ts
 
 Total:
 - 14 API modules
@@ -143,7 +154,8 @@ Whenever a new API is created:
   - `<module>.service.ts`
   - `index.ts`
 - Wire the routes in `app.ts`
-- Add Swagger documentation for all endpoints
+- Add Swagger documentation for all endpoints using `<module>.docs.ts`
+- Import the documentation file inside `<module>.routes.ts`
 - Update this file to include the new module
 
 ---
