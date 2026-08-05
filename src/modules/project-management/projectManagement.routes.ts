@@ -6,7 +6,6 @@ import "./projectManagement.docs";
 
 const router = Router();
 
-
 // Route to retrieve all projects.
 router.get(
 	"/",
@@ -26,7 +25,6 @@ router.get(
 		void projectManagementController.getProjectById(req, res, next);
 	},
 );
-
 
 // Route to create a new project.
 router.post(

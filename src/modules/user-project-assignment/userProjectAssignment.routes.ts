@@ -6,7 +6,6 @@ import "./userProjectAssignment.docs";
 
 const router = Router();
 
-
 router.get(
 	"/",
 	authMiddleware,
