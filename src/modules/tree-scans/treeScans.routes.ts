@@ -11,7 +11,6 @@ import {
 	updateTreeScanSchema,
 } from "./treeScans.schemas";
 
-
 const router = Router();
 
 router.get(

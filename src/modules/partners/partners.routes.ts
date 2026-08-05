@@ -6,7 +6,6 @@ import "./partners.docs";
 
 const router = Router();
 
-
 // Returns the full list of partners. Accessible by Admin and Manager.
 router.get(
 	"/",
