@@ -5,6 +5,7 @@ const EMAIL_MAX_LENGTH = 300;
 const GOVERNMENT_ID_MAX_LENGTH = 80;
 const STREET_ADDRESS_MAX_LENGTH = 500;
 const LOGO_ID_MAX_LENGTH = 100;
+const MAX_PAGE_SIZE = 100;
 
 const requiredName = z
   .string()
@@ -46,6 +47,13 @@ const optionalForeignKey = z.coerce.number().int().positive().optional();
 
 const organisationIdParams = z.object({
   id: z.coerce.number().int().positive(),
+});
+
+export const listOrganisationsSchema = z.object({
+  query: z.object({
+    page: z.coerce.number().int().positive().optional(),
+    limit: z.coerce.number().int().positive().max(MAX_PAGE_SIZE).optional(),
+  }),
 });
 
 export const organisationIdSchema = z.object({
@@ -91,5 +99,4 @@ export const updateOrganisationSchema = z.object({
 });
 
 export type CreateOrganisationInput = z.infer<typeof createOrganisationSchema>["body"];
-  
 export type UpdateOrganisationInput = z.infer<typeof updateOrganisationSchema>["body"];
