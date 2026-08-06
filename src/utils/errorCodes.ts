@@ -47,3 +47,21 @@ export const ERROR_CODES = {
 	GEO_002: "Invalid, empty, or unsupported boundary geometry",
 	GEO_003: "Eligible boundary is not associated with the primary farm boundary",
 } as const;
+
+export type ErrorCode = keyof typeof ERROR_CODES;
+
+export type CustomError = {
+	[Code in ErrorCode]: {
+		code: Code;
+		message: (typeof ERROR_CODES)[Code];
+	};
+}[ErrorCode];
+
+export function customError<Code extends ErrorCode>(
+	code: Code,
+): { code: Code; message: (typeof ERROR_CODES)[Code] } {
+	return {
+		code: code,
+		message: ERROR_CODES[code],
+	};
+}
