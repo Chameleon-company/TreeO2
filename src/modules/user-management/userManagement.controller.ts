@@ -5,6 +5,7 @@ import {
 	CreateUserInput,
 } from "./userManagement.service";
 import { AppError } from "../../middleware/errorHandler";
+import { customError } from "../../utils/errorCodes";
 
 type AuthenticatedRequest = Request & {
 	user?: unknown;
@@ -12,7 +13,7 @@ type AuthenticatedRequest = Request & {
 
 function getAuthUser(req: AuthenticatedRequest): AuthUser {
 	if (!req.user || typeof req.user !== "object") {
-		throw new AppError(401, "AUTH_001", "Unauthorized");
+		throw new AppError(401, customError("AUTH_001"));
 	}
 
 	return req.user as unknown as AuthUser;

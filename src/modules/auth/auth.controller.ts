@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { AppError } from "../../middleware/errorHandler";
-import { ERROR_CODES } from "../../utils/errorCodes";
+import { customError } from "../../utils/errorCodes";
 import { AuthService } from "./auth.service";
 import type {
 	ForgotPasswordRequestBody,
@@ -81,7 +81,7 @@ export class AuthController {
 
 	private requireUser(req: Request): JwtPayload {
 		if (!req.user) {
-			throw new AppError(401, ERROR_CODES.AUTH_003, "AUTH_003");
+			throw new AppError(401, customError("AUTH_003"));
 		}
 
 		return req.user;

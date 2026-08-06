@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
-import { ERROR_CODES } from "../../utils/errorCodes";
+import { customError } from "../../utils/errorCodes";
 
 // These types define what data is expected when creating or updating a partner.
 // CreatePartnerInput requires a name, UpdatePartnerInput makes it optional for partial updates.
@@ -26,7 +26,7 @@ const isNonEmptyString = (value: unknown): value is string =>
 // Makes sure the name field is present and not just empty spaces.
 const assertCreatePayload = (data: CreatePartnerInput) => {
 	if (!isNonEmptyString(data.name)) {
-		throw new AppError(400, "Partner name is required", ERROR_CODES.VAL_003);
+		throw new AppError(400, customError("VAL_003"), "Partner name is required");
 	}
 };
 
@@ -36,16 +36,16 @@ const assertUpdatePayload = (data: UpdatePartnerInput) => {
 	if (Object.keys(data).length === 0) {
 		throw new AppError(
 			400,
+			customError("VAL_003"),
 			"No fields provided for update",
-			ERROR_CODES.VAL_003,
 		);
 	}
 
 	if (data.name !== undefined && !isNonEmptyString(data.name)) {
 		throw new AppError(
 			400,
+			customError("VAL_002"),
 			"Partner name must not be empty",
-			ERROR_CODES.VAL_002,
 		);
 	}
 };
@@ -58,7 +58,7 @@ const ensurePartnerExists = async (id: number) => {
 	});
 
 	if (!partner) {
-		throw new AppError(404, "Partner not found", ERROR_CODES.DATA_001);
+		throw new AppError(404, customError("DATA_001"), "Partner not found");
 	}
 
 	return partner;
@@ -74,7 +74,7 @@ export class PartnersService {
 				orderBy: { createdAt: "desc" },
 			});
 		} catch {
-			throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
+			throw new AppError(500, customError("SYS_002"));
 		}
 	}
 
@@ -82,7 +82,7 @@ export class PartnersService {
 	// Returns 400 if the ID is not a valid number, 404 if the partner does not exist.
 	async getPartnerById(id: number) {
 		if (!isPositiveInt(id)) {
-			throw new AppError(400, "Invalid partner id", ERROR_CODES.VAL_002);
+			throw new AppError(400, customError("VAL_002"), "Invalid partner id");
 		}
 
 		try {
@@ -91,7 +91,7 @@ export class PartnersService {
 			if (error instanceof AppError) {
 				throw error;
 			}
-			throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
+			throw new AppError(500, customError("SYS_002"));
 		}
 	}
 
@@ -118,10 +118,10 @@ export class PartnersService {
 				error instanceof Prisma.PrismaClientKnownRequestError &&
 				error.code === "P2002"
 			) {
-				throw new AppError(409, ERROR_CODES.DATA_002, ERROR_CODES.DATA_002);
+				throw new AppError(409, customError("DATA_002"));
 			}
 
-			throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
+			throw new AppError(500, customError("VAL_002"));
 		}
 	}
 
@@ -129,7 +129,7 @@ export class PartnersService {
 	// Only the fields provided in the request body will be changed.
 	async updatePartner(id: number, data: UpdatePartnerInput) {
 		if (!isPositiveInt(id)) {
-			throw new AppError(400, "Invalid partner id", ERROR_CODES.VAL_002);
+			throw new AppError(400, customError("VAL_002"), "Invalid partner id");
 		}
 
 		assertUpdatePayload(data);
@@ -155,10 +155,10 @@ export class PartnersService {
 				error instanceof Prisma.PrismaClientKnownRequestError &&
 				error.code === "P2002"
 			) {
-				throw new AppError(409, ERROR_CODES.DATA_002, ERROR_CODES.DATA_002);
+				throw new AppError(409, customError("DATA_002"));
 			}
 
-			throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
+			throw new AppError(500, customError("SYS_002"));
 		}
 	}
 
@@ -166,7 +166,7 @@ export class PartnersService {
 	// Confirms the partner exists first before removing it from the database.
 	async deletePartner(id: number) {
 		if (!isPositiveInt(id)) {
-			throw new AppError(400, "Invalid partner id", ERROR_CODES.VAL_002);
+			throw new AppError(400, customError("VAL_002"), "Invalid partner id");
 		}
 
 		try {
@@ -182,7 +182,7 @@ export class PartnersService {
 				throw error;
 			}
 
-			throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
+			throw new AppError(500, customError("SYS_002"));
 		}
 	}
 }

@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
-import { ERROR_CODES } from "../../utils/errorCodes";
+import { customError } from "../../utils/errorCodes";
 import { TREE_SCAN_INCLUDE, TREE_SCAN_MESSAGES } from "./treeScans.constants";
 import type {
 	CreateTreeScanInput,
@@ -24,16 +24,16 @@ const ensureProjectExists = async (projectId: number) => {
 	if (!project) {
 		throw new AppError(
 			404,
+			customError("DATA_001"),
 			TREE_SCAN_MESSAGES.PROJECT_NOT_FOUND,
-			ERROR_CODES.DATA_001,
 		);
 	}
 
 	if (!project.isActive) {
 		throw new AppError(
 			400,
+			customError("VAL_002"),
 			TREE_SCAN_MESSAGES.PROJECT_INACTIVE,
-			ERROR_CODES.VAL_002,
 		);
 	}
 
@@ -48,11 +48,11 @@ const ensureUserExists = async (userId: number, message: string) => {
 	});
 
 	if (!user) {
-		throw new AppError(404, message, ERROR_CODES.DATA_001);
+		throw new AppError(404, customError("DATA_001"), message);
 	}
 
 	if (!user.accountActive) {
-		throw new AppError(400, "User account is inactive", ERROR_CODES.VAL_002);
+		throw new AppError(400, customError("VAL_002"), "User account is inactive");
 	}
 
 	return user;
@@ -74,7 +74,7 @@ const ensureUserAssignedToProject = async (
 	});
 
 	if (!assignment) {
-		throw new AppError(403, message, ERROR_CODES.AUTH_007);
+		throw new AppError(403, customError("AUTH_007"), message);
 	}
 };
 
@@ -91,8 +91,8 @@ const ensureSpeciesAssignedToProject = async (
 	if (!species) {
 		throw new AppError(
 			404,
+			customError("DATA_001"),
 			TREE_SCAN_MESSAGES.SPECIES_NOT_FOUND,
-			ERROR_CODES.DATA_001,
 		);
 	}
 
@@ -108,8 +108,8 @@ const ensureSpeciesAssignedToProject = async (
 	if (!projectTreeType) {
 		throw new AppError(
 			400,
+			customError("VAL_002"),
 			TREE_SCAN_MESSAGES.SPECIES_NOT_ASSIGNED,
-			ERROR_CODES.VAL_002,
 		);
 	}
 };
@@ -124,8 +124,8 @@ const ensureScanExists = async (id: number) => {
 	if (!scan) {
 		throw new AppError(
 			404,
+			customError("DATA_001"),
 			TREE_SCAN_MESSAGES.SCAN_NOT_FOUND,
-			ERROR_CODES.DATA_001,
 		);
 	}
 
@@ -187,7 +187,7 @@ const assertCanAccessScan = async (
 		return;
 	}
 
-	throw new AppError(403, "Insufficient permissions", ERROR_CODES.AUTH_004);
+	throw new AppError(403, customError("AUTH_004"), "Insufficient permissions");
 };
 
 const assertCanUpdateScan = (user: AuthUser) => {
@@ -195,7 +195,7 @@ const assertCanUpdateScan = (user: AuthUser) => {
 		return;
 	}
 
-	throw new AppError(403, "Insufficient permissions", ERROR_CODES.AUTH_004);
+	throw new AppError(403, customError("AUTH_004"), "Insufficient permissions");
 };
 
 // Service layer for managing tree scan operations
@@ -244,7 +244,7 @@ export class TreeScansService {
 				},
 			};
 		} catch {
-			throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
+			throw new AppError(500, customError("SYS_002"));
 		}
 	}
 
@@ -260,7 +260,7 @@ export class TreeScansService {
 			if (error instanceof AppError) {
 				throw error;
 			}
-			throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
+			throw new AppError(500, customError("SYS_002"));
 		}
 	}
 
@@ -326,10 +326,10 @@ export class TreeScansService {
 				error instanceof Prisma.PrismaClientKnownRequestError &&
 				error.code === "P2003"
 			) {
-				throw new AppError(409, ERROR_CODES.DATA_001, ERROR_CODES.DATA_001);
+				throw new AppError(409, customError("DATA_001"));
 			}
 
-			throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
+			throw new AppError(500, customError("SYS_002"));
 		}
 	}
 
@@ -408,7 +408,7 @@ export class TreeScansService {
 			if (error instanceof AppError) {
 				throw error;
 			}
-			throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
+			throw new AppError(500, customError("SYS_002"));
 		}
 	}
 
@@ -429,7 +429,7 @@ export class TreeScansService {
 			if (error instanceof AppError) {
 				throw error;
 			}
-			throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
+			throw new AppError(500, customError("SYS_002"));
 		}
 	}
 
@@ -438,8 +438,8 @@ export class TreeScansService {
 		if (!fobId.trim()) {
 			throw new AppError(
 				400,
+				customError("VAL_003"),
 				TREE_SCAN_MESSAGES.FOB_ID_REQUIRED,
-				ERROR_CODES.VAL_003,
 			);
 		}
 
@@ -472,7 +472,7 @@ export class TreeScansService {
 				archivedCount: result.count,
 			};
 		} catch {
-			throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
+			throw new AppError(500, customError("SYS_002"));
 		}
 	}
 }
