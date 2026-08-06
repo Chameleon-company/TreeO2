@@ -52,13 +52,17 @@ export interface IdentityOrganisationMembership {
 	organisationRole: OrganisationRoleName;
 }
 
-// Identity JWT payload: proves who the user is, not what they can do on any specific project
-export interface IdentityJwtPayload {
+// Identity JWT claims that exist before signing (jti/iat/exp are added at signing time)
+export interface IdentityJwtInfo {
 	sub: string;
 	userId: number;
 	systemRole?: SystemRoleName;
 	organisations: IdentityOrganisationMembership[];
 	scope: "identity";
+}
+
+// Identity JWT payload: proves who the user is, not what they can do on any specific project
+export interface IdentityJwtPayload extends IdentityJwtInfo {
 	jti: string;
 	iat: number;
 	exp: number;
