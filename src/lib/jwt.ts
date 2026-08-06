@@ -1,10 +1,13 @@
 import jwt, { type Secret, type SignOptions } from "jsonwebtoken";
 import { randomUUID } from "crypto";
+import { z } from "zod";
 import { env } from "../config/env";
-import type {
-	JwtPayload,
-	IdentityJwtPayload,
-	IdentityJwtInfo,
+import {
+	SYSTEM_ROLE_NAMES,
+	ORGANISATION_ROLE_NAMES,
+	type JwtPayload,
+	type IdentityJwtPayload,
+	type IdentityJwtInfo,
 } from "../modules/auth/auth.types";
 
 export const signJwt = (payload: JwtPayload): string =>
@@ -27,15 +30,29 @@ export const signIdentityJwt = (payload: IdentityJwtInfo): string =>
 		algorithm: "HS256",
 	});
 
-// Verifies a token and asserts it's an Identity-scoped JWT; throws if signature/expiry invalid or scope mismatched
+const identityJwtPayloadSchema = z.object({
+	sub: z.string(),
+	userId: z.number(),
+	systemRole: z.enum(SYSTEM_ROLE_NAMES).optional(),
+	organisations: z.array(
+		z.object({
+			organisationId: z.number(),
+			organisationRole: z.enum(ORGANISATION_ROLE_NAMES),
+		}),
+	),
+	scope: z.literal("identity"),
+	jti: z.string(),
+	iat: z.number(),
+	exp: z.number(),
+});
+
+// Verifies a token and validates it's a well-formed Identity-scoped JWT via Zod;
+// throws ZodError (handled centrally by errorHandler.ts) if the decoded payload
+// doesn't match the expected shape/scope
 export const verifyIdentityJwt = (token: string): IdentityJwtPayload => {
 	const decoded = jwt.verify(token, env.JWT_SECRET as Secret, {
 		algorithms: ["HS256"],
-	}) as IdentityJwtPayload;
+	});
 
-	if (decoded.scope !== "identity") {
-		throw new Error("Invalid token scope: expected identity token");
-	}
-
-	return decoded;
+	return identityJwtPayloadSchema.parse(decoded);
 };
