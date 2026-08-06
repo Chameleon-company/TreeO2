@@ -4,6 +4,7 @@ import { env } from "../config/env";
 import type {
 	JwtPayload,
 	IdentityJwtPayload,
+	IdentityJwtInfo,
 } from "../modules/auth/auth.types";
 
 export const signJwt = (payload: JwtPayload): string =>
@@ -20,9 +21,7 @@ export const verifyJwt = (token: string): JwtPayload =>
 const IDENTITY_TOKEN_EXPIRY = "15m";
 
 // Signs a short-lived Identity JWT; jti is generated here, iat/exp are added automatically by jwt.sign()
-export const signIdentityJwt = (
-	payload: Omit<IdentityJwtPayload, "jti" | "iat" | "exp">,
-): string =>
+export const signIdentityJwt = (payload: IdentityJwtInfo): string =>
 	jwt.sign({ ...payload, jti: randomUUID() }, env.JWT_SECRET as Secret, {
 		expiresIn: IDENTITY_TOKEN_EXPIRY,
 		algorithm: "HS256",
