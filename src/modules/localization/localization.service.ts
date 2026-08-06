@@ -1,7 +1,7 @@
 import { LocalizedString } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
-import { ERROR_CODES } from "../../utils/errorCodes";
+import { customError } from "../../utils/errorCodes";
 import {
 	DEFAULT_LOCALIZATION_CULTURE_CODE,
 	type LocalizationContext,
@@ -36,7 +36,7 @@ export class LocalizationService {
 		});
 
 		if (!culture) {
-			throw new AppError(400, ERROR_CODES.VAL_002, "VAL_002");
+			throw new AppError(400, customError("VAL_002"));
 		}
 	}
 
@@ -121,7 +121,7 @@ export class LocalizationService {
 		const existing = await prisma.localizedString.findUnique({ where: { id } });
 
 		if (!existing) {
-			throw new AppError(404, ERROR_CODES.DATA_001, "DATA_001");
+			throw new AppError(404, customError("DATA_001"));
 		}
 
 		if (payload.cultureCode) {
@@ -138,7 +138,7 @@ export class LocalizationService {
 		const existing = await prisma.localizedString.findUnique({ where: { id } });
 
 		if (!existing) {
-			throw new AppError(404, ERROR_CODES.DATA_001, "DATA_001");
+			throw new AppError(404, customError("DATA_001"));
 		}
 
 		await prisma.localizedString.delete({ where: { id } });

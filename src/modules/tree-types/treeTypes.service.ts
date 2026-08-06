@@ -6,6 +6,7 @@ import type {
 	CreateTreeTypeInput,
 	UpdateTreeTypeInput,
 } from "./treeTypes.schemas";
+import { customError } from "../../utils/errorCodes";
 
 interface TreeTypeResponse {
 	id: number;
@@ -35,7 +36,11 @@ export class TreeTypesService {
 		const treeType = await prisma.treeType.findUnique({ where: { id } });
 
 		if (!treeType) {
-			throw new AppError(404, TREE_TYPE_NOT_FOUND_MESSAGE, "DATA_001");
+			throw new AppError(
+				404,
+				customError("DATA_001"),
+				TREE_TYPE_NOT_FOUND_MESSAGE,
+			);
 		}
 
 		return this.toResponse(treeType);
@@ -81,7 +86,11 @@ export class TreeTypesService {
 		});
 
 		if (!existingTreeType) {
-			throw new AppError(404, TREE_TYPE_NOT_FOUND_MESSAGE, "DATA_001");
+			throw new AppError(
+				404,
+				customError("DATA_001"),
+				TREE_TYPE_NOT_FOUND_MESSAGE,
+			);
 		}
 
 		if (payload.key) {
@@ -123,7 +132,11 @@ export class TreeTypesService {
 				});
 
 				if (!existingTreeType) {
-					throw new AppError(404, TREE_TYPE_NOT_FOUND_MESSAGE, "DATA_001");
+					throw new AppError(
+						404,
+						customError("DATA_001"),
+						TREE_TYPE_NOT_FOUND_MESSAGE,
+					);
 				}
 
 				const [projectTreeTypeReferences, treeScanReferences] =
@@ -135,8 +148,8 @@ export class TreeTypesService {
 				if (projectTreeTypeReferences > 0 || treeScanReferences > 0) {
 					throw new AppError(
 						409,
+						customError("DATA_002"),
 						TREE_TYPE_DELETE_REFERENCED_MESSAGE,
-						"DATA_002",
 					);
 				}
 
@@ -174,7 +187,11 @@ export class TreeTypesService {
 		});
 
 		if (existingTreeType) {
-			throw new AppError(409, TREE_TYPE_DUPLICATE_KEY_MESSAGE, "DATA_002");
+			throw new AppError(
+				409,
+				customError("DATA_002"),
+				TREE_TYPE_DUPLICATE_KEY_MESSAGE,
+			);
 		}
 	}
 
@@ -194,20 +211,20 @@ export class TreeTypesService {
 
 		if (error instanceof Prisma.PrismaClientKnownRequestError) {
 			if (error.code === "P2002") {
-				throw new AppError(409, duplicateKeyMessage, "DATA_002");
+				throw new AppError(409, customError("DATA_002"), duplicateKeyMessage);
 			}
 
 			if (error.code === "P2003") {
-				throw new AppError(409, foreignKeyMessage, "DATA_002");
+				throw new AppError(409, customError("DATA_002"), foreignKeyMessage);
 			}
 		}
 
 		if (errorCode === "P2002" || errorCode === "23505") {
-			throw new AppError(409, duplicateKeyMessage, "DATA_002");
+			throw new AppError(409, customError("DATA_002"), duplicateKeyMessage);
 		}
 
 		if (errorCode === "P2003" || errorCode === "23503") {
-			throw new AppError(409, foreignKeyMessage, "DATA_002");
+			throw new AppError(409, customError("DATA_002"), foreignKeyMessage);
 		}
 
 		throw error;

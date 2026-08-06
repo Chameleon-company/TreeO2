@@ -1,6 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
-import { ERROR_CODES } from "../../utils/errorCodes";
+import { customError } from "../../utils/errorCodes";
 
 interface CreateAdopterInput {
 	name: string;
@@ -18,7 +18,7 @@ interface UpdateAdopterInput {
 
 const assertValidId = (id: number) => {
 	if (!Number.isInteger(id) || id <= 0) {
-		throw new AppError(400, ERROR_CODES.VAL_002, ERROR_CODES.VAL_002);
+		throw new AppError(400, customError("VAL_002"));
 	}
 };
 
@@ -31,8 +31,8 @@ const assertValidPagination = (page: number, limit: number) => {
 	) {
 		throw new AppError(
 			400,
+			customError("VAL_002"),
 			"Invalid pagination parameters",
-			ERROR_CODES.VAL_002,
 		);
 	}
 };
@@ -40,20 +40,20 @@ const assertValidPagination = (page: number, limit: number) => {
 const assertValidEmail = (email?: string) => {
 	if (email !== undefined) {
 		if (typeof email !== "string") {
-			throw new AppError(400, "Invalid email", ERROR_CODES.VAL_002);
+			throw new AppError(400, customError("VAL_002"), "Invalid email");
 		}
 
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 		if (!emailRegex.test(email)) {
-			throw new AppError(400, "Invalid email format", ERROR_CODES.VAL_002);
+			throw new AppError(400, customError("VAL_004"));
 		}
 	}
 };
 
 const assertCreatePayload = (data: CreateAdopterInput) => {
 	if (!data.name?.trim()) {
-		throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
+		throw new AppError(400, customError("VAL_003"));
 	}
 
 	assertValidEmail(data.email);
@@ -63,13 +63,13 @@ const assertUpdatePayload = (data: UpdateAdopterInput) => {
 	if (Object.keys(data).length === 0) {
 		throw new AppError(
 			400,
+			customError("VAL_003"),
 			"No fields provided for update",
-			ERROR_CODES.VAL_003,
 		);
 	}
 
 	if (data.name !== undefined && !data.name.trim()) {
-		throw new AppError(400, "Invalid name", ERROR_CODES.VAL_002);
+		throw new AppError(400, customError("VAL_002"), "Invalid name");
 	}
 
 	assertValidEmail(data.email);
@@ -123,7 +123,7 @@ export class AdoptersService {
 		});
 
 		if (!adopter) {
-			throw new AppError(404, "Adopter not found", ERROR_CODES.DATA_001);
+			throw new AppError(404, customError("DATA_001"), "Adopter not found");
 		}
 
 		return adopter;

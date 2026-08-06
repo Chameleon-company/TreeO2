@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { treeScansService } from "./treeScans.service";
 import { AppError } from "../../middleware/errorHandler";
-import { ERROR_CODES } from "../../utils/errorCodes";
+import { customError } from "../../utils/errorCodes";
 import type {
 	CreateTreeScanInput,
 	ListTreeScansQuery,
@@ -13,7 +13,7 @@ const getAuthUser = (req: Request) => {
 	const role = req.user?.role;
 
 	if (!Number.isInteger(id) || !role) {
-		throw new AppError(401, ERROR_CODES.AUTH_003, ERROR_CODES.AUTH_003);
+		throw new AppError(401, customError("AUTH_003"));
 	}
 
 	return {
