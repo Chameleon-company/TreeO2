@@ -1,4 +1,4 @@
-import { ERROR_CODES } from "../../src/utils/errorCodes";
+import { customError } from "../../src/utils/errorCodes";
 import { projectOrganisationService } from "../../src/modules/project-organisation/projectOrganisation.service";
 import {
 	ProjectOrganisationReqBody,
@@ -380,13 +380,15 @@ describe("ProjectOrganisationService", () => {
 		it("should throw VAL_002 when accessType is owner", async () => {
 			mockPrisma.project.findUnique.mockResolvedValue({ id: 1 });
 			mockPrisma.organisation.findUnique.mockResolvedValue({ id: 2 });
+			const err = customError("VAL_002");
 
 			await expect(
 				projectOrganisationService.createProjectOrganisation(1, 2, "owner"),
 			).rejects.toMatchObject({
 				statusCode: 422,
-				code: ERROR_CODES.VAL_002,
-				message: "Access type can't be owner",
+				code: err.code,
+				message: err.message,
+				detail: "Access type can't be owner",
 			});
 
 			expect(mockPrisma.projectOrganisation.create).not.toHaveBeenCalled();
@@ -395,13 +397,15 @@ describe("ProjectOrganisationService", () => {
 		it("should throw DATA_001 when project does not exist", async () => {
 			mockPrisma.project.findUnique.mockResolvedValue(null);
 			mockPrisma.organisation.findUnique.mockResolvedValue({ id: 2 });
+			const err = customError("DATA_001");
 
 			await expect(
 				projectOrganisationService.createProjectOrganisation(999, 2, "shared"),
 			).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Project not found",
+				code: err.code,
+				message: err.message,
+				detail: "Project not found",
 			});
 
 			expect(mockPrisma.projectOrganisation.create).not.toHaveBeenCalled();
@@ -411,12 +415,14 @@ describe("ProjectOrganisationService", () => {
 			mockPrisma.project.findUnique.mockResolvedValue({ id: 1 });
 			mockPrisma.organisation.findUnique.mockResolvedValue(null);
 
+			const err = customError("DATA_001");
 			await expect(
 				projectOrganisationService.createProjectOrganisation(1, 999, "shared"),
 			).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Organisation not found",
+				code: err.code,
+				message: err.message,
+				detail: "Organisation not found",
 			});
 
 			expect(mockPrisma.projectOrganisation.create).not.toHaveBeenCalled();
@@ -490,12 +496,15 @@ describe("ProjectOrganisationService", () => {
 		it("should throw DATA_001 when entry does not exist", async () => {
 			mockPrisma.projectOrganisation.findUnique.mockResolvedValue(null);
 
+			const err = customError("DATA_001");
+
 			await expect(
 				projectOrganisationService.deleteProjectOrganisation(1, 2),
 			).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Project-organisation sharing link not found",
+				code: err.code,
+				message: err.message,
+				detail: "Project-organisation sharing link not found",
 			});
 		});
 
@@ -509,12 +518,15 @@ describe("ProjectOrganisationService", () => {
 			mockPrisma.projectOrganisation.findUnique.mockResolvedValue(ownerEntry);
 			mockPrisma.projectOrganisation.delete.mockResolvedValue(ownerEntry);
 
+			const err = customError("VAL_002");
+
 			await expect(
 				projectOrganisationService.deleteProjectOrganisation(1, 2),
 			).rejects.toMatchObject({
 				statusCode: 422,
-				code: ERROR_CODES.VAL_002,
-				message: "Access type can't be owner",
+				code: err.code,
+				message: err.message,
+				detail: "Access type can't be owner",
 			});
 
 			expect(mockPrisma.projectOrganisation.delete).not.toHaveBeenCalled();

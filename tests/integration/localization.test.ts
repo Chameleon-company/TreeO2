@@ -2,6 +2,7 @@ import { afterAll, afterEach, describe, expect, it } from "@jest/globals";
 import "dotenv/config";
 import request from "supertest";
 import { PrismaClient } from "@prisma/client";
+import { customError } from "../../src/utils/errorCodes";
 
 process.env.NODE_ENV = "development";
 
@@ -85,10 +86,11 @@ describe("Localization API", () => {
 
 	it("returns 401 when auth header is missing", async () => {
 		const response = await request(app).get("/localized-strings");
-
+		const err = customError("AUTH_003");
 		expect(response.status).toBe(401);
 		expect(response.body.success).toBe(false);
-		expect(response.body.message).toBe("AUTH_003: Authentication required");
+		expect(response.body.error.code).toBe(err.code);
+		expect(response.body.error.message).toBe(err.message);
 	});
 
 	it("returns 403 for POST when role is not allowed", async () => {
@@ -101,10 +103,11 @@ describe("Localization API", () => {
 				value: "Forbidden",
 				context: "ADMIN",
 			});
-
+		const err = customError("AUTH_004");
 		expect(response.status).toBe(403);
 		expect(response.body.success).toBe(false);
-		expect(response.body.message).toBe("AUTH_004: Insufficient permissions");
+		expect(response.body.error.code).toBe(err.code);
+		expect(response.body.error.message).toBe(err.message);
 	});
 
 	it("handles GET /localized-strings with real database and filters", async () => {
@@ -224,11 +227,12 @@ describe("Localization API", () => {
 				stringKey: `${testKeyPrefix}invalid.${Date.now()}`,
 				context: "ADMIN",
 			});
-
+		const err = customError("VAL_001");
 		expect(response.status).toBe(400);
 		expect(response.body.success).toBe(false);
-		expect(response.body.message).toBe("VAL_001: Validation failed");
-		expect(response.body.errors.value).toBeDefined();
+		expect(response.body.error.code).toBe(err.code);
+		expect(response.body.error.message).toBe(err.message);
+		expect(response.body.error.detail.value).toBeDefined();
 	});
 
 	it("returns 400 for POST when culture does not exist", async () => {
@@ -241,10 +245,11 @@ describe("Localization API", () => {
 				value: "Login",
 				context: "ADMIN",
 			});
-
+		const err = customError("VAL_002");
 		expect(response.status).toBe(400);
 		expect(response.body.success).toBe(false);
-		expect(response.body.message).toBe("VAL_002: Invalid request body");
+		expect(response.body.error.code).toBe(err.code);
+		expect(response.body.error.message).toBe(err.message);
 	});
 
 	it("returns 409 for duplicate localized strings with current error mapping", async () => {
@@ -269,10 +274,11 @@ describe("Localization API", () => {
 				value: "Duplicate",
 				context: "ADMIN",
 			});
-
+		const err = customError("DATA_002");
 		expect(response.status).toBe(409);
 		expect(response.body.success).toBe(false);
-		expect(response.body.message).toBe("DATA_002: Duplicate entry");
+		expect(response.body.error.code).toBe(err.code);
+		expect(response.body.error.message).toBe(err.message);
 	});
 
 	it("handles PUT /localized-strings/:id", async () => {
@@ -302,10 +308,11 @@ describe("Localization API", () => {
 			.put("/localized-strings/not-a-number")
 			.set(authHeader(TOKENS.ADMIN))
 			.send({ value: "Sign in" });
-
+		const err = customError("VAL_001");
 		expect(response.status).toBe(400);
 		expect(response.body.success).toBe(false);
-		expect(response.body.message).toBe("VAL_001: Validation failed");
+		expect(response.body.error.code).toBe(err.code);
+		expect(response.body.error.message).toBe(err.message);
 	});
 
 	it("returns 400 for PUT with empty payload", async () => {
@@ -313,10 +320,11 @@ describe("Localization API", () => {
 			.put("/localized-strings/1")
 			.set(authHeader(TOKENS.ADMIN))
 			.send({});
-
+		const err = customError("VAL_001");
 		expect(response.status).toBe(400);
 		expect(response.body.success).toBe(false);
-		expect(response.body.message).toBe("VAL_001: Validation failed");
+		expect(response.body.error.code).toBe(err.code);
+		expect(response.body.error.message).toBe(err.message);
 	});
 
 	it("returns 404 for PUT when target does not exist", async () => {
@@ -324,10 +332,11 @@ describe("Localization API", () => {
 			.put("/localized-strings/999999")
 			.set(authHeader(TOKENS.ADMIN))
 			.send({ value: "Sign in" });
-
+		const err = customError("DATA_001");
 		expect(response.status).toBe(404);
 		expect(response.body.success).toBe(false);
-		expect(response.body.message).toBe("DATA_001: Resource not found");
+		expect(response.body.error.code).toBe(err.code);
+		expect(response.body.error.message).toBe(err.message);
 	});
 
 	it("returns 400 for PUT when new culture does not exist", async () => {
@@ -345,10 +354,11 @@ describe("Localization API", () => {
 			.put(`/localized-strings/${created.id}`)
 			.set(authHeader(TOKENS.ADMIN))
 			.send({ cultureCode: "zz-ZZ" });
-
+		const err = customError("VAL_002");
 		expect(response.status).toBe(400);
 		expect(response.body.success).toBe(false);
-		expect(response.body.message).toBe("VAL_002: Invalid request body");
+		expect(response.body.error.code).toBe(err.code);
+		expect(response.body.error.message).toBe(err.message);
 	});
 
 	it("handles DELETE /localized-strings/:id", async () => {
@@ -380,19 +390,21 @@ describe("Localization API", () => {
 		const response = await request(app)
 			.delete("/localized-strings/999999")
 			.set(authHeader(TOKENS.ADMIN));
-
+		const err = customError("DATA_001");
 		expect(response.status).toBe(404);
 		expect(response.body.success).toBe(false);
-		expect(response.body.message).toBe("DATA_001: Resource not found");
+		expect(response.body.error.code).toBe(err.code);
+		expect(response.body.error.message).toBe(err.message);
 	});
 
 	it("returns 404 for unknown localization endpoint", async () => {
 		const response = await request(app)
 			.get("/localized-strings/unknown/path")
 			.set(authHeader(TOKENS.MANAGER));
-
+		const err = customError("DATA_001");
 		expect(response.status).toBe(404);
 		expect(response.body.success).toBe(false);
-		expect(response.body.message).toBe("DATA_001: Resource not found");
+		expect(response.body.error.code).toBe(err.code);
+		expect(response.body.error.message).toBe(err.message);
 	});
 });
