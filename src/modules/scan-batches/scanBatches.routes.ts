@@ -10,7 +10,6 @@ import {
 } from "./scanBatches.controller";
 
 import { SCAN_BATCHES_AUTH_ROLES } from "./scan-batches.constants";
-
 import "./scan-batches.docs";
 
 const router = Router();

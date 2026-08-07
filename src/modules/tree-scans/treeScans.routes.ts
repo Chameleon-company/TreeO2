@@ -3,6 +3,7 @@ import { treeScansController } from "./treeScans.controller";
 import { authMiddleware } from "../../middleware/auth.middleware";
 import { roleMiddleware } from "../../middleware/role.middleware";
 import { validateMiddleware } from "../../middleware/validate.middleware";
+import "./treeScans.docs";
 import {
 	createTreeScanSchema,
 	listTreeScansSchema,
@@ -12,10 +13,6 @@ import {
 
 const router = Router();
 
-/**
- * LIST TREE SCANS
- * ADMIN + MANAGER
- */
 router.get(
 	"/",
 	authMiddleware,
@@ -26,10 +23,6 @@ router.get(
 	},
 );
 
-/**
- * GET TREE SCAN BY ID
- * ADMIN + MANAGER + INSPECTOR SELF
- */
 router.get(
 	"/:id",
 	authMiddleware,
@@ -40,10 +33,6 @@ router.get(
 	},
 );
 
-/**
- * CREATE TREE SCAN
- * INSPECTOR ONLY
- */
 router.post(
 	"/",
 	authMiddleware,
@@ -54,10 +43,6 @@ router.post(
 	},
 );
 
-/**
- * UPDATE TREE SCAN
- * ADMIN ONLY
- */
 router.put(
 	"/:id",
 	authMiddleware,
@@ -68,10 +53,6 @@ router.put(
 	},
 );
 
-/**
- * ARCHIVE TREE SCAN
- * ADMIN ONLY
- */
 router.delete(
 	"/:id",
 	authMiddleware,
@@ -82,10 +63,6 @@ router.delete(
 	},
 );
 
-/**
- * RECYCLE FOB SCANS
- * ADMIN + MANAGER
- */
 router.post(
 	"/recycle/:fobId",
 	authMiddleware,
