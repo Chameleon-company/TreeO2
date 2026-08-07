@@ -3,6 +3,11 @@ import { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
 import { logger } from "../config/logger";
 import { customError, CustomError, ErrorCode } from "../utils/errorCodes";
+import {
+	JsonWebTokenError,
+	NotBeforeError,
+	TokenExpiredError,
+} from "jsonwebtoken";
 
 export class AppError extends Error {
 	statusCode: number;
@@ -102,6 +107,34 @@ export const errorHandler = (
 			error: {
 				code: error.code,
 				message: error.message,
+			},
+		});
+		return;
+	}
+
+	// JWT auth error
+	if (err instanceof TokenExpiredError) {
+		const error = customError("AUTH_002");
+		res.status(401).json({
+			success: false,
+			error: {
+				code: error.code,
+				message: error.message,
+				detail: err.message,
+			},
+		});
+		return;
+	}
+
+	// JWT auth error
+	if (err instanceof JsonWebTokenError || err instanceof NotBeforeError) {
+		const error = customError("AUTH_005");
+		res.status(401).json({
+			success: false,
+			error: {
+				code: error.code,
+				message: error.message,
+				detail: err.message,
 			},
 		});
 		return;
