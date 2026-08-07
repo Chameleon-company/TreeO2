@@ -1,4 +1,4 @@
-import { ERROR_CODES } from "../../src/utils/errorCodes";
+import { customError } from "../../src/utils/errorCodes";
 import { PartnersService } from "../../src/modules/partners/partners.service";
 
 jest.mock("@prisma/client", () => {
@@ -63,9 +63,12 @@ describe("PartnersService", () => {
 		it("should throw SYS_002 when fetching partners fails", async () => {
 			mockPrisma.partner.findMany.mockRejectedValue(new Error("DB failure"));
 
+			const err = customError("SYS_002");
+
 			await expect(service.getAllPartners()).rejects.toMatchObject({
 				statusCode: 500,
-				code: ERROR_CODES.SYS_002,
+				code: err.code,
+				message: err.message,
 			});
 		});
 	});
@@ -90,19 +93,24 @@ describe("PartnersService", () => {
 		});
 
 		it("should throw VAL_002 when partner id is invalid", async () => {
+			const err = customError("VAL_002");
 			await expect(service.getPartnerById(0)).rejects.toMatchObject({
 				statusCode: 400,
-				code: ERROR_CODES.VAL_002,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
 		it("should throw DATA_001 when partner is not found", async () => {
 			mockPrisma.partner.findUnique.mockResolvedValue(null);
 
+			const err = customError("DATA_001");
+
 			await expect(service.getPartnerById(1)).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Partner not found",
+				code: err.code,
+				message: err.message,
+				detail: "Partner not found",
 			});
 		});
 	});
@@ -145,9 +153,11 @@ describe("PartnersService", () => {
 		});
 
 		it("should throw VAL_003 when name is empty", async () => {
+			const err = customError("VAL_003");
 			await expect(service.createPartner({ name: "" })).rejects.toMatchObject({
 				statusCode: 400,
-				code: ERROR_CODES.VAL_003,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
@@ -160,11 +170,14 @@ describe("PartnersService", () => {
 				}),
 			);
 
+			const err = customError("DATA_002");
+
 			await expect(
 				service.createPartner({ name: "TreeO2-Xpand Foundation" }),
 			).rejects.toMatchObject({
 				statusCode: 409,
-				code: ERROR_CODES.DATA_002,
+				code: err.code,
+				message: err.message,
 			});
 		});
 	});
@@ -198,30 +211,39 @@ describe("PartnersService", () => {
 		});
 
 		it("should throw VAL_003 when update payload is empty", async () => {
+			const err = customError("VAL_003");
+
 			await expect(service.updatePartner(1, {})).rejects.toMatchObject({
 				statusCode: 400,
-				code: ERROR_CODES.VAL_003,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
 		it("should throw VAL_002 when partner id is invalid", async () => {
+			const err = customError("VAL_002");
+
 			await expect(
 				service.updatePartner(0, { name: "Test" }),
 			).rejects.toMatchObject({
 				statusCode: 400,
-				code: ERROR_CODES.VAL_002,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
 		it("should throw DATA_001 when partner is not found", async () => {
 			mockPrisma.partner.findUnique.mockResolvedValue(null);
 
+			const err = customError("DATA_001");
+
 			await expect(
 				service.updatePartner(1, { name: "Updated Name" }),
 			).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Partner not found",
+				code: err.code,
+				message: err.message,
+				detail: "Partner not found",
 			});
 		});
 	});
@@ -247,19 +269,25 @@ describe("PartnersService", () => {
 		});
 
 		it("should throw VAL_002 when partner id is invalid", async () => {
+			const err = customError("VAL_002");
+
 			await expect(service.deletePartner(0)).rejects.toMatchObject({
 				statusCode: 400,
-				code: ERROR_CODES.VAL_002,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
 		it("should throw DATA_001 when partner is not found", async () => {
 			mockPrisma.partner.findUnique.mockResolvedValue(null);
 
+			const err = customError("DATA_001");
+
 			await expect(service.deletePartner(1)).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Partner not found",
+				code: err.code,
+				message: err.message,
+				detail: "Partner not found",
 			});
 		});
 	});

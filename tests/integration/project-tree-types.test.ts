@@ -349,7 +349,7 @@ describe("Project Tree Types API", () => {
 				});
 
 			expect(response.status).toBe(404);
-			expect(response.body.message).toBe("Project not found");
+			expect(response.body.error.detail).toBe("Project not found");
 		});
 
 		it("should return 404 when the tree type does not exist", async () => {
@@ -364,7 +364,7 @@ describe("Project Tree Types API", () => {
 				});
 
 			expect(response.status).toBe(404);
-			expect(response.body.message).toBe("Tree type not found");
+			expect(response.body.error.detail).toBe("Tree type not found");
 		});
 
 		it("should return 409 when the mapping already exists", async () => {
@@ -381,7 +381,7 @@ describe("Project Tree Types API", () => {
 				});
 
 			expect(response.status).toBe(409);
-			expect(response.body.message).toBe(
+			expect(response.body.error.detail).toBe(
 				"This tree type is already assigned to the project",
 			);
 		});
@@ -448,7 +448,9 @@ describe("Project Tree Types API", () => {
 				.set(adminAuthHeader);
 
 			expect(response.status).toBe(404);
-			expect(response.body.message).toBe("Project tree type mapping not found");
+			expect(response.body.error.detail).toBe(
+				"Project tree type mapping not found",
+			);
 		});
 	});
 });

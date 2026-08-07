@@ -303,7 +303,7 @@ describe("Tree Types API", () => {
 				.set(managerAuthHeader);
 
 			expect(response.status).toBe(404);
-			expect(response.body.message).toBe("Tree type not found");
+			expect(response.body.error.detail).toBe("Tree type not found");
 		});
 	});
 
@@ -503,7 +503,7 @@ describe("Tree Types API", () => {
 				});
 
 			expect(response.status).toBe(409);
-			expect(response.body.message).toBe("Tree type key already exists");
+			expect(response.body.error.detail).toBe("Tree type key already exists");
 		});
 	});
 
@@ -625,7 +625,7 @@ describe("Tree Types API", () => {
 				});
 
 			expect(response.status).toBe(404);
-			expect(response.body.message).toBe("Tree type not found");
+			expect(response.body.error.detail).toBe("Tree type not found");
 		});
 
 		it("should return 409 for a duplicate key", async () => {
@@ -644,7 +644,7 @@ describe("Tree Types API", () => {
 				});
 
 			expect(response.status).toBe(409);
-			expect(response.body.message).toBe("Tree type key already exists");
+			expect(response.body.error.detail).toBe("Tree type key already exists");
 		});
 	});
 
@@ -701,7 +701,7 @@ describe("Tree Types API", () => {
 				.set(adminAuthHeader);
 
 			expect(response.status).toBe(404);
-			expect(response.body.message).toBe("Tree type not found");
+			expect(response.body.error.detail).toBe("Tree type not found");
 		});
 
 		it("should return 409 when referenced by project-tree-types", async () => {
@@ -720,7 +720,7 @@ describe("Tree Types API", () => {
 				.set(adminAuthHeader);
 
 			expect(response.status).toBe(409);
-			expect(response.body.message).toBe(
+			expect(response.body.error.detail).toBe(
 				"Tree type cannot be deleted because it is referenced by other records",
 			);
 		});
@@ -736,7 +736,7 @@ describe("Tree Types API", () => {
 				.set(adminAuthHeader);
 
 			expect(response.status).toBe(409);
-			expect(response.body.message).toBe(
+			expect(response.body.error.detail).toBe(
 				"Tree type cannot be deleted because it is referenced by other records",
 			);
 		});

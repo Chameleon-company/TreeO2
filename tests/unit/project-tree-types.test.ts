@@ -208,7 +208,7 @@ describe("ProjectTreeTypesService", () => {
 				service.addProjectTreeType({ project_id: 1, tree_type_id: 3 }),
 			).rejects.toMatchObject({
 				statusCode: 404,
-				message: "Project not found",
+				detail: "Project not found",
 			});
 		});
 
@@ -220,7 +220,7 @@ describe("ProjectTreeTypesService", () => {
 				service.addProjectTreeType({ project_id: 1, tree_type_id: 3 }),
 			).rejects.toMatchObject({
 				statusCode: 404,
-				message: "Tree type not found",
+				detail: "Tree type not found",
 			});
 		});
 
@@ -236,7 +236,7 @@ describe("ProjectTreeTypesService", () => {
 				service.addProjectTreeType({ project_id: 1, tree_type_id: 3 }),
 			).rejects.toMatchObject({
 				statusCode: 409,
-				message: "This tree type is already assigned to the project",
+				detail: "This tree type is already assigned to the project",
 			});
 		});
 
@@ -250,7 +250,7 @@ describe("ProjectTreeTypesService", () => {
 				service.addProjectTreeType({ project_id: 1, tree_type_id: 3 }),
 			).rejects.toMatchObject({
 				statusCode: 409,
-				message: "This tree type is already assigned to the project",
+				detail: "This tree type is already assigned to the project",
 			});
 		});
 	});
@@ -291,7 +291,7 @@ describe("ProjectTreeTypesService", () => {
 
 			await expect(service.removeProjectTreeType(1, 3)).rejects.toMatchObject({
 				statusCode: 404,
-				message: "Project tree type mapping not found",
+				detail: "Project tree type mapping not found",
 			});
 		});
 	});

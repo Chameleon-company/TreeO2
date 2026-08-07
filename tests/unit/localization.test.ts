@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 import { AppError } from "../../src/middleware/errorHandler";
 import { LocalizationService } from "../../src/modules/localization/localization.service";
-import { ERROR_CODES } from "../../src/utils/errorCodes";
+import { customError } from "../../src/utils/errorCodes";
 import { prisma } from "../../src/lib/prisma";
 
 jest.mock("../../src/lib/prisma", () => ({
@@ -213,7 +213,7 @@ describe("LocalizationService", () => {
 
 		await expect(
 			service.updateLocalizedString(13, { cultureCode: "zz-ZZ" }),
-		).rejects.toEqual(new AppError(400, ERROR_CODES.VAL_002, "VAL_002"));
+		).rejects.toEqual(new AppError(400, customError("VAL_002")));
 
 		expect(localizedStringModel.update).not.toHaveBeenCalled();
 	});
@@ -223,7 +223,7 @@ describe("LocalizationService", () => {
 
 		await expect(
 			service.updateLocalizedString(99, { value: "Hello" }),
-		).rejects.toEqual(new AppError(404, ERROR_CODES.DATA_001, "DATA_001"));
+		).rejects.toEqual(new AppError(404, customError("DATA_001")));
 
 		expect(localizedStringModel.update).not.toHaveBeenCalled();
 	});
@@ -239,7 +239,7 @@ describe("LocalizationService", () => {
 		cultureModel.findUnique.mockResolvedValueOnce(null);
 
 		await expect(service.createLocalizedString(payload)).rejects.toEqual(
-			new AppError(400, ERROR_CODES.VAL_002, "VAL_002"),
+			new AppError(400, customError("VAL_002")),
 		);
 
 		expect(localizedStringModel.create).not.toHaveBeenCalled();
@@ -269,7 +269,7 @@ describe("LocalizationService", () => {
 		localizedStringModel.findUnique.mockResolvedValueOnce(null);
 
 		await expect(service.deleteLocalizedString(101)).rejects.toEqual(
-			new AppError(404, ERROR_CODES.DATA_001, "DATA_001"),
+			new AppError(404, customError("DATA_001")),
 		);
 
 		expect(localizedStringModel.delete).not.toHaveBeenCalled();

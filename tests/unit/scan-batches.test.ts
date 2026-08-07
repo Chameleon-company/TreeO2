@@ -8,9 +8,9 @@ import {
 import {
 	SCAN_BATCHES_AUTH_ROLES,
 	SCAN_BATCHES_DB_ROLES,
-	SCAN_BATCHES_ERRORS,
 	SCAN_BATCHES_MESSAGES,
 } from "../../src/modules/scan-batches/scan-batches.constants";
+import { customError } from "../../src/utils/errorCodes";
 
 jest.mock("../../src/lib/prisma", () => {
 	const mockPrisma: any = {
@@ -333,10 +333,12 @@ describe("ScanBatchesService", () => {
 				inspectorId: 999,
 			});
 
+			const err = customError("AUTH_004");
 			await expect(getScanBatchById(1, inspectorUser)).rejects.toMatchObject({
 				statusCode: 403,
-				message: SCAN_BATCHES_MESSAGES.UNAUTHORIZED_ACCESS,
-				code: SCAN_BATCHES_ERRORS.FORBIDDEN,
+				detail: SCAN_BATCHES_MESSAGES.UNAUTHORIZED_ACCESS,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
@@ -365,10 +367,12 @@ describe("ScanBatchesService", () => {
 			mockPrisma.scanBatch.findUnique.mockResolvedValue(scanBatchRecord);
 			mockPrisma.userProject.findFirst.mockResolvedValue(null);
 
+			const err = customError("AUTH_004");
 			await expect(getScanBatchById(1, managerUser)).rejects.toMatchObject({
 				statusCode: 403,
-				message: SCAN_BATCHES_MESSAGES.UNAUTHORIZED_ACCESS,
-				code: SCAN_BATCHES_ERRORS.FORBIDDEN,
+				detail: SCAN_BATCHES_MESSAGES.UNAUTHORIZED_ACCESS,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
@@ -376,10 +380,12 @@ describe("ScanBatchesService", () => {
 		it("should throw not found when scan batch does not exist", async () => {
 			mockPrisma.scanBatch.findUnique.mockResolvedValue(null);
 
+			const err = customError("DATA_001");
 			await expect(getScanBatchById(999, adminUser)).rejects.toMatchObject({
 				statusCode: 404,
-				message: SCAN_BATCHES_MESSAGES.NOT_FOUND,
-				code: SCAN_BATCHES_ERRORS.NOT_FOUND,
+				detail: SCAN_BATCHES_MESSAGES.NOT_FOUND,
+				code: err.code,
+				message: err.message,
 			});
 		});
 	});
@@ -440,10 +446,12 @@ describe("ScanBatchesService", () => {
 			mockPrisma.user.findUnique.mockReset();
 			mockPrisma.user.findUnique.mockResolvedValueOnce(null);
 
+			const err = customError("DATA_001");
 			await expect(createScanBatch(validCreateInput)).rejects.toMatchObject({
 				statusCode: 404,
-				message: SCAN_BATCHES_MESSAGES.INSPECTOR_NOT_FOUND,
-				code: SCAN_BATCHES_ERRORS.NOT_FOUND,
+				detail: SCAN_BATCHES_MESSAGES.INSPECTOR_NOT_FOUND,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
@@ -458,10 +466,12 @@ describe("ScanBatchesService", () => {
 				},
 			});
 
+			const err = customError("AUTH_004");
 			await expect(createScanBatch(validCreateInput)).rejects.toMatchObject({
 				statusCode: 403,
-				message: SCAN_BATCHES_MESSAGES.INVALID_INSPECTOR_ROLE,
-				code: SCAN_BATCHES_ERRORS.INVALID_ROLE,
+				detail: SCAN_BATCHES_MESSAGES.INVALID_INSPECTOR_ROLE,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
@@ -473,10 +483,12 @@ describe("ScanBatchesService", () => {
 				accountActive: false,
 			});
 
+			const err = customError("AUTH_003");
 			await expect(createScanBatch(validCreateInput)).rejects.toMatchObject({
 				statusCode: 403,
-				message: "Inspector account is inactive or cannot sign in",
-				code: SCAN_BATCHES_ERRORS.FORBIDDEN,
+				detail: "Inspector account is inactive or cannot sign in",
+				code: err.code,
+				message: err.message,
 			});
 		});
 
@@ -488,10 +500,12 @@ describe("ScanBatchesService", () => {
 				canSignIn: false,
 			});
 
+			const err = customError("AUTH_003");
 			await expect(createScanBatch(validCreateInput)).rejects.toMatchObject({
 				statusCode: 403,
-				message: "Inspector account is inactive or cannot sign in",
-				code: SCAN_BATCHES_ERRORS.FORBIDDEN,
+				detail: "Inspector account is inactive or cannot sign in",
+				code: err.code,
+				message: err.message,
 			});
 		});
 
@@ -499,10 +513,12 @@ describe("ScanBatchesService", () => {
 		it("should throw not found when project does not exist", async () => {
 			mockPrisma.project.findUnique.mockResolvedValue(null);
 
+			const err = customError("DATA_001");
 			await expect(createScanBatch(validCreateInput)).rejects.toMatchObject({
 				statusCode: 404,
-				message: SCAN_BATCHES_MESSAGES.PROJECT_NOT_FOUND,
-				code: SCAN_BATCHES_ERRORS.NOT_FOUND,
+				detail: SCAN_BATCHES_MESSAGES.PROJECT_NOT_FOUND,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
@@ -516,10 +532,12 @@ describe("ScanBatchesService", () => {
 			mockPrisma.userProject.findFirst.mockReset();
 			mockPrisma.userProject.findFirst.mockResolvedValueOnce(null);
 
+			const err = customError("DATA_001");
 			await expect(createScanBatch(validCreateInput)).rejects.toMatchObject({
 				statusCode: 403,
-				message: SCAN_BATCHES_MESSAGES.INSPECTOR_NOT_ASSIGNED,
-				code: SCAN_BATCHES_ERRORS.NOT_ASSIGNED,
+				detail: SCAN_BATCHES_MESSAGES.INSPECTOR_NOT_ASSIGNED,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
@@ -536,10 +554,12 @@ describe("ScanBatchesService", () => {
 				projectId: 1,
 			});
 
+			const err = customError("DATA_001");
 			await expect(createScanBatch(validCreateInput)).rejects.toMatchObject({
 				statusCode: 404,
-				message: SCAN_BATCHES_MESSAGES.FARMER_NOT_FOUND,
-				code: SCAN_BATCHES_ERRORS.NOT_FOUND,
+				detail: SCAN_BATCHES_MESSAGES.FARMER_NOT_FOUND,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
@@ -556,10 +576,12 @@ describe("ScanBatchesService", () => {
 					},
 				});
 
+			const err = customError("DATA_001");
 			await expect(createScanBatch(validCreateInput)).rejects.toMatchObject({
 				statusCode: 403,
-				message: SCAN_BATCHES_MESSAGES.INVALID_FARMER_ROLE,
-				code: SCAN_BATCHES_ERRORS.INVALID_ROLE,
+				detail: SCAN_BATCHES_MESSAGES.INVALID_FARMER_ROLE,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
@@ -572,21 +594,24 @@ describe("ScanBatchesService", () => {
 				})
 				.mockResolvedValueOnce(null);
 
+			const err = customError("DATA_001");
 			await expect(createScanBatch(validCreateInput)).rejects.toMatchObject({
 				statusCode: 403,
-				message: SCAN_BATCHES_MESSAGES.FARMER_NOT_ASSIGNED,
-				code: SCAN_BATCHES_ERRORS.NOT_ASSIGNED,
+				detail: SCAN_BATCHES_MESSAGES.FARMER_NOT_ASSIGNED,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
 		// Tests missing species validation
 		it("should throw not found when species does not exist", async () => {
 			mockPrisma.treeType.findUnique.mockResolvedValue(null);
-
+			const err = customError("DATA_001");
 			await expect(createScanBatch(validCreateInput)).rejects.toMatchObject({
 				statusCode: 404,
-				message: SCAN_BATCHES_MESSAGES.SPECIES_NOT_FOUND,
-				code: SCAN_BATCHES_ERRORS.NOT_FOUND,
+				detail: SCAN_BATCHES_MESSAGES.SPECIES_NOT_FOUND,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
@@ -594,15 +619,18 @@ describe("ScanBatchesService", () => {
 		it("should throw forbidden when species is not assigned to project", async () => {
 			mockPrisma.projectTreeType.findFirst.mockResolvedValue(null);
 
+			const err = customError("DATA_001");
 			await expect(createScanBatch(validCreateInput)).rejects.toMatchObject({
 				statusCode: 403,
-				message: SCAN_BATCHES_MESSAGES.SPECIES_NOT_IN_PROJECT,
-				code: SCAN_BATCHES_ERRORS.SPECIES_NOT_IN_PROJECT,
+				detail: SCAN_BATCHES_MESSAGES.SPECIES_NOT_IN_PROJECT,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
 		// Tests height measurement upper-limit validation
 		it("should throw invalid measurement when height exceeds limit", async () => {
+			const err = customError("VAL_006");
 			await expect(
 				createScanBatch({
 					...validCreateInput,
@@ -615,13 +643,15 @@ describe("ScanBatchesService", () => {
 				}),
 			).rejects.toMatchObject({
 				statusCode: 422,
-				message: SCAN_BATCHES_MESSAGES.INVALID_MEASUREMENT,
-				code: SCAN_BATCHES_ERRORS.INVALID_MEASUREMENT,
+				detail: SCAN_BATCHES_MESSAGES.INVALID_MEASUREMENT,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
 		// Tests diameter measurement upper-limit validation
 		it("should throw invalid measurement when diameter exceeds limit", async () => {
+			const err = customError("VAL_006");
 			await expect(
 				createScanBatch({
 					...validCreateInput,
@@ -634,13 +664,15 @@ describe("ScanBatchesService", () => {
 				}),
 			).rejects.toMatchObject({
 				statusCode: 422,
-				message: SCAN_BATCHES_MESSAGES.INVALID_MEASUREMENT,
-				code: SCAN_BATCHES_ERRORS.INVALID_MEASUREMENT,
+				detail: SCAN_BATCHES_MESSAGES.INVALID_MEASUREMENT,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
 		// Tests circumference measurement upper-limit validation
 		it("should throw invalid measurement when circumference exceeds limit", async () => {
+			const err = customError("VAL_006");
 			await expect(
 				createScanBatch({
 					...validCreateInput,
@@ -653,8 +685,9 @@ describe("ScanBatchesService", () => {
 				}),
 			).rejects.toMatchObject({
 				statusCode: 422,
-				message: SCAN_BATCHES_MESSAGES.INVALID_MEASUREMENT,
-				code: SCAN_BATCHES_ERRORS.INVALID_MEASUREMENT,
+				detail: SCAN_BATCHES_MESSAGES.INVALID_MEASUREMENT,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
@@ -678,10 +711,12 @@ describe("ScanBatchesService", () => {
 				.mockResolvedValueOnce(farmerRecord)
 				.mockResolvedValueOnce(null);
 
+			const err = customError("DATA_001");
 			await expect(createScanBatch(multiScanInput)).rejects.toMatchObject({
 				statusCode: 404,
-				message: SCAN_BATCHES_MESSAGES.FARMER_NOT_FOUND,
-				code: SCAN_BATCHES_ERRORS.NOT_FOUND,
+				detail: SCAN_BATCHES_MESSAGES.FARMER_NOT_FOUND,
+				code: err.code,
+				message: err.message,
 			});
 		});
 	});
@@ -716,10 +751,12 @@ describe("ScanBatchesService", () => {
 		it("should throw not found when scan batch does not exist", async () => {
 			mockPrisma.scanBatch.findUnique.mockResolvedValue(null);
 
+			const err = customError("DATA_001");
 			await expect(deleteScanBatch(999)).rejects.toMatchObject({
 				statusCode: 404,
-				message: SCAN_BATCHES_MESSAGES.NOT_FOUND,
-				code: SCAN_BATCHES_ERRORS.NOT_FOUND,
+				detail: SCAN_BATCHES_MESSAGES.NOT_FOUND,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
@@ -732,10 +769,13 @@ describe("ScanBatchesService", () => {
 				},
 			});
 
+			const err = customError("DATA_004");
+
 			await expect(deleteScanBatch(1)).rejects.toMatchObject({
 				statusCode: 409,
-				message: SCAN_BATCHES_MESSAGES.DELETE_BLOCKED_HAS_SCANS,
-				code: SCAN_BATCHES_ERRORS.DELETE_BLOCKED,
+				detail: SCAN_BATCHES_MESSAGES.DELETE_BLOCKED_HAS_SCANS,
+				code: err.code,
+				message: err.message,
 			});
 
 			expect(mockPrisma.scanBatch.delete).not.toHaveBeenCalled();
