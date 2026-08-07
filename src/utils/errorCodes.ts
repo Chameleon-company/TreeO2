@@ -1,4 +1,4 @@
-export const ERROR_CODES = {
+const ERROR_CODES = {
 	// Authentication
 	AUTH_001: "Invalid credentials",
 	AUTH_002: "Token expired",
