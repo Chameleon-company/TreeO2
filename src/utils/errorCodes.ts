@@ -1,3 +1,5 @@
+// Additional custom error codes can be added in this object, as long as the error is general (not specific to an endpoint or module).
+// it must follow the same `CATEGORY_NNN: "human readable message"` format
 const ERROR_CODES = {
 	// Authentication
 	AUTH_001: "Invalid credentials",

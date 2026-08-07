@@ -176,13 +176,13 @@ Use `unknown` for caught errors, not `any`:
 
 ## 7. Error Handling
 
-Use `AppError` for all known errors. Always use the constants from `types/errorCodes.ts` — never hardcode error strings:
+Use `AppError` for all known errors. Always use the custom errors from `utils/errorCodes.ts` — never hardcode error strings:
 
 ```ts
-import { ERROR_CODES } from './types/errorCodes';
+import { customError } from './utils/errorCodes';
 
-throw new AppError(404, ERROR_CODES.DATA_001);
-throw new AppError(403, ERROR_CODES.AUTH_004);
+throw new AppError(404, customError("AUTH_001"));
+throw new AppError(403, customError("DATA_001"), "project_id not found"); // optionally, provide additional error details
 ```
 
 Error code format: `CATEGORY_NNN: human readable message`
@@ -193,6 +193,8 @@ Error code format: `CATEGORY_NNN: human readable message`
 | `VAL_` | Validation failures |
 | `DATA_` | Not found, conflicts |
 | `SYS_` | Unexpected system errors |
+
+Additional custom error codes (in `ERROR_CODES` object) can be added as long as the error is general (not specific to an endpoint or module).
 
 Services throw, repositories return `null`. Only controllers call `res.json()`. The error handler middleware takes care of error responses.
 
@@ -205,7 +207,7 @@ Never swallow errors silently:
 // Yes
 } catch (err: unknown) {
   logger.error('Something failed', { err });
-  throw new AppError(500, 'SYS_001: Internal server error');
+  throw new AppError(500, customError("SYS_001"));
 }
 ```
 
