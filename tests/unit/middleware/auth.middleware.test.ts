@@ -98,19 +98,43 @@ describe("authMiddleware - Comprehensive Unit Tests", () => {
 	});
 
 	describe("Development Bypass Tokens (AUTH_DEV_MODE=true)", () => {
-		const originalNodeEnv = process.env.NODE_ENV;
+		let originalNodeEnv: string;
+		let originalDevMode: boolean;
+		// Dynamically require env so we can mutate the evaluated singleton
+		// eslint-disable-next-line @typescript-eslint/no-var-requires
+		const { env } = require("../../../src/config/env");
 
 		beforeEach(() => {
-			process.env.NODE_ENV = "development";
-			process.env.AUTH_DEV_MODE = "true";
+			originalNodeEnv = env.NODE_ENV;
+			originalDevMode = env.AUTH_DEV_MODE;
+			env.NODE_ENV = "development";
+			env.AUTH_DEV_MODE = true;
 		});
 
 		afterEach(() => {
-			process.env.NODE_ENV = originalNodeEnv || "test";
+			env.NODE_ENV = originalNodeEnv;
+			env.AUTH_DEV_MODE = originalDevMode;
+		});
+
+		it("should reject dev-bypass tokens with 401 AUTH_005 when NODE_ENV is not development", () => {
+			env.NODE_ENV = "production"; // Explicitly test production rejection
+			req.headers = {
+				authorization: `Bearer ${process.env.AUTH_DEV_ADMIN_TOKEN}`,
+			};
+
+			authMiddleware(req as Request, res as Response, next);
+
+			expect(next).toHaveBeenCalledTimes(1);
+			const [err] = next.mock.calls[0];
+			expect(err).toMatchObject({
+				statusCode: 401,
+			});
 		});
 
 		it("should assign spec-compliant Identity payload for dev-admin-token", () => {
-			req.headers = { authorization: `Bearer ${process.env.AUTH_DEV_ADMIN_TOKEN}` };
+			req.headers = {
+				authorization: `Bearer ${process.env.AUTH_DEV_ADMIN_TOKEN}`,
+			};
 
 			authMiddleware(req as Request, res as Response, next);
 
@@ -125,7 +149,9 @@ describe("authMiddleware - Comprehensive Unit Tests", () => {
 		});
 
 		it("should assign spec-compliant Project payload for dev-manager-token", () => {
-			req.headers = { authorization: `Bearer ${process.env.AUTH_DEV_MANAGER_TOKEN}` };
+			req.headers = {
+				authorization: `Bearer ${process.env.AUTH_DEV_MANAGER_TOKEN}`,
+			};
 
 			authMiddleware(req as Request, res as Response, next);
 
@@ -136,7 +162,9 @@ describe("authMiddleware - Comprehensive Unit Tests", () => {
 		});
 
 		it("should assign spec-compliant Project payload for dev-inspector-token", () => {
-			req.headers = { authorization: `Bearer ${process.env.AUTH_DEV_INSPECTOR_TOKEN}` };
+			req.headers = {
+				authorization: `Bearer ${process.env.AUTH_DEV_INSPECTOR_TOKEN}`,
+			};
 
 			authMiddleware(req as Request, res as Response, next);
 
@@ -146,7 +174,9 @@ describe("authMiddleware - Comprehensive Unit Tests", () => {
 		});
 
 		it("should assign spec-compliant Project payload for dev-farmer-token", () => {
-			req.headers = { authorization: `Bearer ${process.env.AUTH_DEV_FARMER_TOKEN}` };
+			req.headers = {
+				authorization: `Bearer ${process.env.AUTH_DEV_FARMER_TOKEN}`,
+			};
 
 			authMiddleware(req as Request, res as Response, next);
 
@@ -156,7 +186,9 @@ describe("authMiddleware - Comprehensive Unit Tests", () => {
 		});
 
 		it("should assign spec-compliant Project payload for dev-developer-token", () => {
-			req.headers = { authorization: `Bearer ${process.env.AUTH_DEV_DEVELOPER_TOKEN}` };
+			req.headers = {
+				authorization: `Bearer ${process.env.AUTH_DEV_DEVELOPER_TOKEN}`,
+			};
 
 			authMiddleware(req as Request, res as Response, next);
 
@@ -166,7 +198,9 @@ describe("authMiddleware - Comprehensive Unit Tests", () => {
 		});
 
 		it("should assign spec-compliant OrganisationAdmin payload for dev-org-admin-token", () => {
-			req.headers = { authorization: `Bearer ${process.env.AUTH_DEV_ORG_ADMIN_TOKEN}` };
+			req.headers = {
+				authorization: `Bearer ${process.env.AUTH_DEV_ORG_ADMIN_TOKEN}`,
+			};
 
 			authMiddleware(req as Request, res as Response, next);
 

@@ -152,6 +152,7 @@ Contains:
   - `ProjectJwtPayload` (`scope: 'project'`): Used for project-scoped operational endpoints, carrying `projectId`, `organisationId`, `organisationRole`, and `projectRoles[]`.
 - Removed unspec'd `email` claim to strictly align with Section 14 sample JWT claims.
 - Retained optional `role?: RoleName` property for temporary backwards compatibility during migration.
+- **Legacy Backward Compatibility:** `LegacyJwtPayloadSchema` is temporarily retained because the `user-management`, `adopters`, and `projects` modules are currently being developed on separate branches against the older v1.2 token model. These modules depend on pulling `req.user.role` (for global checks) and `req.user.projectIds` directly from a single token. They will be refactored to use the new `IdentityJwtPayload` / `ProjectJwtPayload` models during the POSTAUTH phase.
 
 ### `src/modules/auth/auth.docs.ts`
 

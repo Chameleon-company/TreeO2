@@ -46,6 +46,8 @@ export type ProjectJwtPayload = z.infer<typeof ProjectJwtPayloadSchema>;
 /**
  * Legacy schema retained for backwards compatibility with active branches (e.g. user-management, adopters, projects)
  * during systematic migration to capability-driven auth (Task T2 2026 - AUTH05)
+ *
+ * @deprecated This schema will be removed in POSTAUTH. Use IdentityJwtPayloadSchema or ProjectJwtPayloadSchema instead.
  */
 export const LegacyJwtPayloadSchema = z.object({
 	id: z.number().optional(),
