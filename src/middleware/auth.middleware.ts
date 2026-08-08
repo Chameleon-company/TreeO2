@@ -25,7 +25,6 @@ export const authMiddleware = (
 		if (env.AUTH_DEV_ADMIN_TOKEN) {
 			devTokenUsers.set(env.AUTH_DEV_ADMIN_TOKEN, {
 				sub: "1",
-				email: "dev-admin@treeo2.local",
 				role: "ADMIN",
 			});
 		}
@@ -33,7 +32,6 @@ export const authMiddleware = (
 		if (env.AUTH_DEV_FARMER_TOKEN) {
 			devTokenUsers.set(env.AUTH_DEV_FARMER_TOKEN, {
 				sub: "2",
-				email: "dev-farmer@treeo2.local",
 				role: "FARMER",
 			});
 		}
@@ -41,7 +39,6 @@ export const authMiddleware = (
 		if (env.AUTH_DEV_MANAGER_TOKEN) {
 			devTokenUsers.set(env.AUTH_DEV_MANAGER_TOKEN, {
 				sub: "3",
-				email: "dev-manager@treeo2.local",
 				role: "MANAGER",
 			});
 		}
@@ -49,7 +46,6 @@ export const authMiddleware = (
 		if (env.AUTH_DEV_INSPECTOR_TOKEN) {
 			devTokenUsers.set(env.AUTH_DEV_INSPECTOR_TOKEN, {
 				sub: "4",
-				email: "dev-inspector@treeo2.local",
 				role: "INSPECTOR",
 			});
 		}
@@ -57,7 +53,6 @@ export const authMiddleware = (
 		if (env.AUTH_DEV_DEVELOPER_TOKEN) {
 			devTokenUsers.set(env.AUTH_DEV_DEVELOPER_TOKEN, {
 				sub: "5",
-				email: "dev-developer@treeo2.local",
 				role: "DEVELOPER",
 			});
 		}
