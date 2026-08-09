@@ -26,12 +26,18 @@ export class AuthController {
 		await this.authService.forgotPassword(
 			req.body as ForgotPasswordRequestBody,
 		);
-		res.status(501).json({ success: false, message: "Not implemented" });
+		res.status(200).json({
+			success: true,
+			message: "If that email exists, a reset link has been sent",
+		});
 	}
 
 	async resetPassword(req: Request, res: Response): Promise<void> {
 		await this.authService.resetPassword(req.body as ResetPasswordRequestBody);
-		res.status(501).json({ success: false, message: "Not implemented" });
+		res.status(200).json({
+			success: true,
+			message: "Password has been reset",
+		});
 	}
 
 	async me(req: Request, res: Response): Promise<void> {

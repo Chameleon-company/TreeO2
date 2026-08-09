@@ -34,14 +34,12 @@ What exists now:
 What is **not** implemented yet:
 - real login
 - real logout/session invalidation
-- forgot-password flow
-- reset-password flow
 - current-user lookup
-- Prisma-backed user and role queries
+- Prisma-backed user and role queries (beyond forgot/reset password)
 - password verification
 - JWT issuance in live auth flow
 
-All unfinished auth service methods currently return `501 Not Implemented` safely.
+`forgot-password` and `reset-password` are implemented (Task AUTH09) — a single-use token is generated on request, hashed and stored on the user record, and consumed on reset. Refresh-token revocation on reset is deferred to Task AUTH08 (see `// TODO` in `auth.service.ts`). The remaining unfinished auth service methods (`login`, `logout`, `me`) still return `501 Not Implemented` safely.
 
 Temporary development support:
 - a development-only auth mode is available through `auth.middleware.ts`
@@ -118,8 +116,10 @@ Future responsibility:
 - credential verification
 - JWT creation
 - user lookup
-- password reset flow
 - current-user retrieval
+
+Implemented (Task AUTH09):
+- password reset flow (`forgotPassword`, `resetPassword`) — see the Forgot Password / Reset Password sections below
 
 ### `src/modules/auth/auth.repository.ts`
 
@@ -128,10 +128,12 @@ Contains:
 - Prisma access point for auth queries
 
 Future responsibility:
-- find user by email/id
 - fetch roles
-- update password hash
-- store/reset tokens if needed
+
+Implemented (Task AUTH09):
+- find user by email (`findUserByEmail`)
+- store/consume reset tokens (`setResetToken`, `findUserByValidResetTokenHash`)
+- update password hash (`updatePasswordAndClearResetToken`)
 
 ### `src/modules/auth/auth.schemas.ts`
 
@@ -262,20 +264,24 @@ Flow:
 `POST /auth/forgot-password`
 
 Flow:
-1. request body is validated
-2. controller calls service
-3. service throws `501`
-4. global error handler returns response
+1. request body is validated (`email`)
+2. service looks up the user by email
+3. if no user is found, the endpoint still returns a generic success response (prevents account enumeration)
+4. if found, a random single-use token is generated; only its SHA-256 hash is persisted on `users.reset_token`, with a 30-minute expiry in `users.reset_token_expires`
+5. the raw token is currently logged, not emailed — no email provider is wired up yet (see `// TODO` in `auth.service.ts`)
+6. controller returns `200` with a generic message
 
 ### Reset Password
 
 `POST /auth/reset-password`
 
 Flow:
-1. request body is validated
-2. controller calls service
-3. service throws `501`
-4. global error handler returns response
+1. request body is validated (`token`, `password`)
+2. service hashes the submitted token and looks up a user with a matching, unexpired `reset_token`
+3. no match → `400 AUTH_005` (invalid/expired token)
+4. match → new password is bcrypt-hashed and saved, and `reset_token`/`reset_token_expires` are cleared (single-use)
+5. refresh-token revocation on reset is deferred to Task AUTH08 (see `// TODO` in `auth.service.ts`)
+6. controller returns `200` with a generic message
 
 ### Me
 
