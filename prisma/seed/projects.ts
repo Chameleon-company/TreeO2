@@ -1,3 +1,6 @@
+// Needs the organisation, a location, and both tree type ids. A project can't
+// exist without an owning organisation now that ownerOrganisationId is
+// required on the table.
 import { prisma } from "./client";
 
 export const seedProject = async (

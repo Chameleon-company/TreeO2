@@ -1,18 +1,14 @@
 import { prisma } from "./client";
 import type { RoleMap } from "./roles";
 
-// Insertion order below determines each User row's autoincrement id, and that id
-// is what matters: auth.middleware.ts's AUTH_DEV_MODE bypass hardcodes sub "1".."5"
-// to ADMIN, FARMER, MANAGER, INSPECTOR, DEVELOPER, and controllers (e.g.
-// treeScans.controller.ts) use req.user.sub directly as a real FK - so these
-// ids must exist. Autoincrement drifts the moment anything else touches this
-// table (a test run, a signup), so ids are pinned explicitly and the sequence
-// is resynced after. If 1-5 are ever taken by unrelated rows, this fails loudly
-// (unique constraint) instead of drifting silently. This Doesn't fix the
-// middleware's hardcoded-sub design, just makes seeding resilient to it.
+// Needs role ids from roles.ts and a location from geography.ts.
+//
+// Ids below are pinned on purpose, not left to insertion order.:
+// AUTH_DEV_MODE skips authentication, not the foreign key writes that still
+// use these ids afterward. For more information, including why, refer to the README in this directory: prisma/seed/README.md
 // TODO (AUTH05, T2 2026): once the dev bypass looks users up by email instead
-// of trusting a hardcoded sub, drop the explicit ids/setval below - plain
-// upsert() is enough once id no longer has to match a hardcoded value.
+// of trusting a hardcoded sub, this can go back to a plain upsert with no
+// pinned ids.
 export const seedUsers = async (
 	roles: RoleMap,
 	countryId: number,

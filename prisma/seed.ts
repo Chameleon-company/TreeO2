@@ -1,3 +1,5 @@
+// Each step below needs ids from the one before it, so the order is fixed.
+// See prisma/seed/README.md for the full breakdown of why.
 import { prisma } from "./seed/client";
 import { seedRoles } from "./seed/roles";
 import { seedCountryAndLocations } from "./seed/geography";

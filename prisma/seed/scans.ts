@@ -1,3 +1,6 @@
+// Needs the project, the farmer and inspector user ids, and the tree type
+// ids. Also needs the manager id, since one of the two scans below is
+// corrected and the correction is attributed to them.
 import { prisma } from "./client";
 
 export const seedScans = async (

@@ -1,3 +1,5 @@
+// Needs a country and a location id from geography.ts, an organisation has to
+// belong to somewhere.
 import { prisma } from "./client";
 
 export const seedOrganisation = async (

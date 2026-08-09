@@ -1,3 +1,6 @@
+// Needs a scan to already exist. The adoption points at a real fobId from one
+// of the seeded scans instead of a made up string, so it's actually traceable
+// to a tree rather than being an orphaned reference.
 import { prisma } from "./client";
 
 export const seedPartnersAdoptersAdoptions = async (): Promise<void> => {

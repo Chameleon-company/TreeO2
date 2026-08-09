@@ -1,3 +1,6 @@
+// Doesn't depend on anything else here. This is usually one of the first
+// things seeded since almost every other table ends up pointing at a country
+// or a location.
 import { prisma } from "./client";
 
 export const seedCountryAndLocations = async (): Promise<{

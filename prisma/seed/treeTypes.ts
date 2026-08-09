@@ -1,3 +1,4 @@
+// Doesn't depend on anything, tree types are just reference data.
 import { prisma } from "./client";
 
 export const seedTreeTypes = async (): Promise<{

@@ -1,3 +1,5 @@
+// Doesn't depend on anything else in here. It's seeded last just because it's
+// unrelated to the rest of the data, not because anything requires it to be.
 import { prisma } from "./client";
 
 export const seedLocalization = async (): Promise<void> => {
