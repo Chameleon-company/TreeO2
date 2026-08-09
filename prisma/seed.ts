@@ -3,10 +3,17 @@
 import { prisma } from "./seed/client";
 import { seedRoles } from "./seed/roles";
 import { seedCountryAndLocations } from "./seed/geography";
-import { seedOrganisation } from "./seed/organisations";
+import {
+	seedOrganisation,
+	seedPartnerOrganisation,
+} from "./seed/organisations";
 import { seedUsers } from "./seed/users";
 import { seedTreeTypes } from "./seed/treeTypes";
-import { seedProject } from "./seed/projects";
+import {
+	seedProject,
+	seedSecondProject,
+	seedProjectSharing,
+} from "./seed/projects";
 import { seedScans } from "./seed/scans";
 import { seedPartnersAdoptersAdoptions } from "./seed/partnersAdoptions";
 import { seedLocalization } from "./seed/localization";
@@ -16,6 +23,10 @@ const main = async (): Promise<void> => {
 	const { countryId, municipalityId, adminPostId } =
 		await seedCountryAndLocations();
 	const organisationId = await seedOrganisation(countryId, municipalityId);
+	const partnerOrganisationId = await seedPartnerOrganisation(
+		countryId,
+		municipalityId,
+	);
 	const users = await seedUsers(roles, countryId, municipalityId);
 	const { sandalwoodId, teakId } = await seedTreeTypes();
 	const projectId = await seedProject(
@@ -25,6 +36,8 @@ const main = async (): Promise<void> => {
 		sandalwoodId,
 		teakId,
 	);
+	await seedSecondProject(organisationId, countryId, adminPostId, teakId);
+	await seedProjectSharing(projectId, partnerOrganisationId);
 	await seedScans(
 		projectId,
 		users.FARMER,
