@@ -10,7 +10,12 @@ jest.mock("../../src/lib/bcrypt", () => ({
 }));
 
 jest.mock("../../src/config/logger", () => ({
-	logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() },
+	logger: {
+		info: jest.fn(),
+		error: jest.fn(),
+		warn: jest.fn(),
+		debug: jest.fn(),
+	},
 }));
 
 describe("AuthService", () => {
@@ -48,7 +53,8 @@ describe("AuthService", () => {
 			await service.forgotPassword({ email: "user@example.com" });
 
 			expect(mockRepo.setResetToken).toHaveBeenCalledTimes(1);
-			const [userId, tokenHash, expiresAt] = mockRepo.setResetToken.mock.calls[0];
+			const [userId, tokenHash, expiresAt] =
+				mockRepo.setResetToken.mock.calls[0];
 			expect(userId).toBe(42);
 			expect(tokenHash).toMatch(/^[0-9a-f]{64}$/);
 			expect((expiresAt as Date).getTime()).toBeGreaterThan(Date.now());
@@ -56,7 +62,9 @@ describe("AuthService", () => {
 			// the stored hash must match the raw token that was logged
 			const loggedMeta = (logger.info as jest.Mock).mock.calls[0][1];
 			const rawToken = loggedMeta.resetToken as string;
-			expect(createHash("sha256").update(rawToken).digest("hex")).toBe(tokenHash);
+			expect(createHash("sha256").update(rawToken).digest("hex")).toBe(
+				tokenHash,
+			);
 		});
 	});
 
@@ -65,7 +73,10 @@ describe("AuthService", () => {
 			mockRepo.findUserByValidResetTokenHash.mockResolvedValue(null);
 
 			await expect(
-				service.resetPassword({ token: "bad-token", password: "newpassword123" }),
+				service.resetPassword({
+					token: "bad-token",
+					password: "newpassword123",
+				}),
 			).rejects.toMatchObject({ statusCode: 400, code: "AUTH_005" });
 
 			expect(mockRepo.updatePasswordAndClearResetToken).not.toHaveBeenCalled();
@@ -77,7 +88,10 @@ describe("AuthService", () => {
 			} as unknown as User);
 			(hashPassword as jest.Mock).mockResolvedValue("hashed-password");
 
-			await service.resetPassword({ token: "good-token", password: "newpassword123" });
+			await service.resetPassword({
+				token: "good-token",
+				password: "newpassword123",
+			});
 
 			expect(hashPassword).toHaveBeenCalledWith("newpassword123");
 			expect(mockRepo.updatePasswordAndClearResetToken).toHaveBeenCalledWith(
