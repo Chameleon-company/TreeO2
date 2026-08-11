@@ -18,6 +18,16 @@ const envSchema = z.object({
 		.default("development"),
 
 	PORT: z.coerce.number().default(3000),
+	
+	CORS_ORIGIN: z
+		.string()
+		.default("http://localhost:3000")
+		.transform((value) =>
+			value
+				.split(",")
+				.map((origin) => origin.trim())
+				.filter(Boolean),
+		),
 
 	DB_HOST: z.string().default("localhost"),
 	DB_PORT: z.coerce.number().default(5432),
