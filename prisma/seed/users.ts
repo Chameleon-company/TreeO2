@@ -3,9 +3,10 @@ import type { RoleMap } from "./roles";
 
 // Needs role ids from roles.ts and a location from geography.ts.
 //
-// Ids below are pinned on purpose, not left to insertion order.:
-// AUTH_DEV_MODE skips authentication, not the foreign key writes that still
-// use these ids afterward. For more information, including why, refer to the README in this directory: prisma/seed/README.md
+// Ids below are pinned on purpose, not left to insertion order. AUTH_DEV_MODE
+// skips authentication, not the foreign key writes that still use these ids
+// afterward. For more information, including why, refer to the README in
+// this directory: prisma/seed/README.md
 // TODO (AUTH05, T2 2026): once the dev bypass looks users up by email instead
 // of trusting a hardcoded sub, this can go back to a plain upsert with no
 // pinned ids.

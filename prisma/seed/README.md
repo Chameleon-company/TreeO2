@@ -9,17 +9,11 @@ idempotent.
 Each file depends on ids created by the ones before it, so `seed.ts` calls them in
 a fixed order:
 
-1. `roles.ts` and `geography.ts` first. Almost everything else needs a role id or
-   a location id.
-2. `organisations.ts`, needs a country and location from geography. Seeds two
-   organisations, the main owner and a partner used later to demonstrate
-   project sharing.
+1. `roles.ts` and `geography.ts` first, almost everything else needs a role id or a location id.
+2. `organisations.ts`, needs a country and location from geography. Seeds two organisations, the main owner and a partner used later to demonstrate project sharing.
 3. `users.ts`, needs role ids and a location.
-4. `treeTypes.ts`, doesn't depend on anything, just grouped near the project since
-   that's the only place it gets used.
-5. `projects.ts`, needs the organisations, geography, and the tree types. Seeds
-   two projects owned by the same organisation, then links the partner
-   organisation to the first one as a shared collaborator rather than an owner.
+4. `treeTypes.ts`, doesn't depend on anything, just grouped near the project since that's the only place it gets used.
+5. `projects.ts`, needs the organisations, geography, and the tree types. Seeds two projects owned by the same organisation, then links the partner organisation to the first one as a shared collaborator rather than an owner.
 6. `scans.ts`, needs the project, the users, and the tree types.
 7. `partnersAdoptions.ts`, needs a scan so the adoption can point at a real fobId.
 8. `localization.ts` last, doesn't depend on anything else here.
