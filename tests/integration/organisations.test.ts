@@ -21,14 +21,14 @@ describe("Organisations API Integration Tests", () => {
 			.set("Content-Type", "application/json")
 			.send({
 				name: "Integration Test Organisation",
-				contact_email: uniqueEmail(),
+				contactEmail: uniqueEmail(),
 				description: "Created by integration tests",
 			});
 
 		expect(res.status).toBe(201);
 		expect(res.body.success).toBe(true);
 		expect(res.body).toHaveProperty("data.id");
-		expect(res.body.data.account_active).toBe(true);
+		expect(res.body.data.accountActive).toBe(true);
 	});
 
 	it("POST /organisations - should return 400 when name is missing", async () => {
@@ -36,7 +36,7 @@ describe("Organisations API Integration Tests", () => {
 			.post("/organisations")
 			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
 			.set("Content-Type", "application/json")
-			.send({ contact_email: uniqueEmail() });
+			.send({ contactEmail: uniqueEmail() });
 
 		expect(res.status).toBe(400);
 	});
@@ -46,9 +46,27 @@ describe("Organisations API Integration Tests", () => {
 			.post("/organisations")
 			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
 			.set("Content-Type", "application/json")
-			.send({ name: "Invalid Email Org", contact_email: "not-an-email" });
+			.send({ name: "Invalid Email Org", contactEmail: "not-an-email" });
 
 		expect(res.status).toBe(400);
+	});
+
+	it("POST /organisations - should return 409 for a duplicate contact email", async () => {
+		const email = uniqueEmail();
+
+		await request(app)
+			.post("/organisations")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+			.set("Content-Type", "application/json")
+			.send({ name: "First Organisation", contactEmail: email });
+
+		const res = await request(app)
+			.post("/organisations")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+			.set("Content-Type", "application/json")
+			.send({ name: "Second Organisation", contactEmail: email });
+
+		expect(res.status).toBe(409);
 	});
 
 	it("POST /organisations - should return 401 when no token is supplied", async () => {
@@ -72,6 +90,24 @@ describe("Organisations API Integration Tests", () => {
 		expect(res.body.pagination).toHaveProperty("totalPages");
 	});
 
+	it("GET /organisations - should apply default pagination values", async () => {
+		const res = await request(app)
+			.get("/organisations")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
+
+		expect(res.status).toBe(200);
+		expect(res.body.pagination.page).toBe(1);
+		expect(res.body.pagination.limit).toBe(10);
+	});
+
+	it("GET /organisations - should return 400 for an invalid page value", async () => {
+		const res = await request(app)
+			.get("/organisations?page=0")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
+
+		expect(res.status).toBe(400);
+	});
+
 	it("GET /organisations - MANAGER should be able to access the list", async () => {
 		const res = await request(app)
 			.get("/organisations")
@@ -85,7 +121,7 @@ describe("Organisations API Integration Tests", () => {
 			.post("/organisations")
 			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
 			.set("Content-Type", "application/json")
-			.send({ name: "Fetch Me Organisation", contact_email: uniqueEmail() });
+			.send({ name: "Fetch Me Organisation", contactEmail: uniqueEmail() });
 
 		const res = await request(app)
 			.get(`/organisations/${created.body.data.id}`)
@@ -108,7 +144,7 @@ describe("Organisations API Integration Tests", () => {
 			.post("/organisations")
 			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
 			.set("Content-Type", "application/json")
-			.send({ name: "Before Update", contact_email: uniqueEmail() });
+			.send({ name: "Before Update", contactEmail: uniqueEmail() });
 
 		const res = await request(app)
 			.put(`/organisations/${created.body.data.id}`)
@@ -125,7 +161,7 @@ describe("Organisations API Integration Tests", () => {
 			.post("/organisations")
 			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
 			.set("Content-Type", "application/json")
-			.send({ name: "Empty Update Org", contact_email: uniqueEmail() });
+			.send({ name: "Empty Update Org", contactEmail: uniqueEmail() });
 
 		const res = await request(app)
 			.put(`/organisations/${created.body.data.id}`)
@@ -151,21 +187,21 @@ describe("Organisations API Integration Tests", () => {
 			.post("/organisations")
 			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
 			.set("Content-Type", "application/json")
-			.send({ name: "Deactivate Me", contact_email: uniqueEmail() });
+			.send({ name: "Deactivate Me", contactEmail: uniqueEmail() });
 
 		const res = await request(app)
 			.delete(`/organisations/${created.body.data.id}`)
 			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
 
 		expect(res.status).toBe(200);
-		expect(res.body.data.account_active).toBe(false);
+		expect(res.body.data.accountActive).toBe(false);
 
 		const fetched = await request(app)
 			.get(`/organisations/${created.body.data.id}`)
 			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
 
 		expect(fetched.status).toBe(200);
-		expect(fetched.body.data.account_active).toBe(false);
+		expect(fetched.body.data.accountActive).toBe(false);
 	});
 
 	it("DELETE /organisations/:id - should return 404 when not found", async () => {

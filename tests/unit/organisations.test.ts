@@ -15,6 +15,9 @@ jest.mock("../../src/lib/prisma", () => ({
 		userOrganisation: {
 			count: jest.fn(),
 		},
+		project: {
+			count: jest.fn(),
+		},
 	},
 }));
 
@@ -27,6 +30,10 @@ const mockedOrganisation = prisma.organisation as {
 };
 
 const mockedUserOrganisation = prisma.userOrganisation as {
+	count: jest.MockedFunction<any>;
+};
+
+const mockedProject = prisma.project as {
 	count: jest.MockedFunction<any>;
 };
 
@@ -105,24 +112,22 @@ describe("OrganisationsService - Unit Tests", () => {
 
 			const result = await organisationsService.createOrganisation({
 				name: "xpand Foundation",
-				contact_email: "contact@xpand.net.au",
+				contactEmail: "contact@xpand.net.au",
 			});
 
 			expect(result.id).toBe(1);
-			expect(result.contact_email).toBe("contact@xpand.net.au");
+			expect(result.contactEmail).toBe("contact@xpand.net.au");
 			expect(mockedOrganisation.create).toHaveBeenCalledTimes(1);
 		});
 
-		it("should map optional fields to null when not provided", async () => {
+		it("should pass the validated payload straight to prisma", async () => {
 			mockedOrganisation.create.mockResolvedValue(buildOrganisation());
 
 			await organisationsService.createOrganisation({ name: "Only Name" });
 
-			expect(mockedOrganisation.create).toHaveBeenCalledWith(
-				expect.objectContaining({
-					data: expect.objectContaining({ governmentId: null }),
-				}),
-			);
+			expect(mockedOrganisation.create).toHaveBeenCalledWith({
+				data: { name: "Only Name" },
+			});
 		});
 	});
 
@@ -151,16 +156,17 @@ describe("OrganisationsService - Unit Tests", () => {
 	});
 
 	describe("deactivateOrganisation", () => {
-		it("should deactivate organisation when it has no active users", async () => {
+		it("should deactivate organisation when it has no active users or projects", async () => {
 			mockedOrganisation.findUnique.mockResolvedValue(buildOrganisation());
 			mockedUserOrganisation.count.mockResolvedValue(0);
+			mockedProject.count.mockResolvedValue(0);
 			mockedOrganisation.update.mockResolvedValue(
 				buildOrganisation({ accountActive: false }),
 			);
 
 			const result = await organisationsService.deactivateOrganisation(1);
 
-			expect(result.account_active).toBe(false);
+			expect(result.accountActive).toBe(false);
 			expect(mockedOrganisation.update).toHaveBeenCalledWith({
 				where: { id: 1 },
 				data: { accountActive: false },
@@ -170,6 +176,18 @@ describe("OrganisationsService - Unit Tests", () => {
 		it("should throw 409 when organisation has active users", async () => {
 			mockedOrganisation.findUnique.mockResolvedValue(buildOrganisation());
 			mockedUserOrganisation.count.mockResolvedValue(2);
+			mockedProject.count.mockResolvedValue(0);
+
+			await expect(
+				organisationsService.deactivateOrganisation(1),
+			).rejects.toThrow(AppError);
+			expect(mockedOrganisation.update).not.toHaveBeenCalled();
+		});
+
+		it("should throw 409 when organisation has active projects", async () => {
+			mockedOrganisation.findUnique.mockResolvedValue(buildOrganisation());
+			mockedUserOrganisation.count.mockResolvedValue(0);
+			mockedProject.count.mockResolvedValue(3);
 
 			await expect(
 				organisationsService.deactivateOrganisation(1),

@@ -6,6 +6,8 @@ const GOVERNMENT_ID_MAX_LENGTH = 80;
 const STREET_ADDRESS_MAX_LENGTH = 500;
 const LOGO_ID_MAX_LENGTH = 100;
 const MAX_PAGE_SIZE = 100;
+const DEFAULT_PAGE = 1;
+const DEFAULT_PAGE_SIZE = 10;
 
 const requiredName = z
 	.string()
@@ -51,8 +53,13 @@ const organisationIdParams = z.object({
 
 export const listOrganisationsSchema = z.object({
 	query: z.object({
-		page: z.coerce.number().int().positive().optional(),
-		limit: z.coerce.number().int().positive().max(MAX_PAGE_SIZE).optional(),
+		page: z.coerce.number().int().positive().default(DEFAULT_PAGE),
+		limit: z.coerce
+			.number()
+			.int()
+			.positive()
+			.max(MAX_PAGE_SIZE)
+			.default(DEFAULT_PAGE_SIZE),
 	}),
 });
 
@@ -67,12 +74,12 @@ export const deleteOrganisationSchema = z.object({
 export const createOrganisationSchema = z.object({
 	body: z.object({
 		name: requiredName,
-		contact_email: optionalEmail,
-		government_id: optionalGovernmentId,
-		country_id: optionalForeignKey,
-		admin_location_id: optionalForeignKey,
-		street_address: optionalStreetAddress,
-		logo_id: optionalLogoId,
+		contactEmail: optionalEmail,
+		governmentId: optionalGovernmentId,
+		countryId: optionalForeignKey,
+		adminLocationId: optionalForeignKey,
+		streetAddress: optionalStreetAddress,
+		logoId: optionalLogoId,
 		description: optionalText,
 		notes: optionalText,
 	}),
@@ -83,24 +90,17 @@ export const updateOrganisationSchema = z.object({
 	body: z
 		.object({
 			name: requiredName.optional(),
-			contact_email: optionalEmail,
-			government_id: optionalGovernmentId,
-			country_id: optionalForeignKey,
-			admin_location_id: optionalForeignKey,
-			street_address: optionalStreetAddress,
-			logo_id: optionalLogoId,
+			contactEmail: optionalEmail,
+			governmentId: optionalGovernmentId,
+			countryId: optionalForeignKey,
+			adminLocationId: optionalForeignKey,
+			streetAddress: optionalStreetAddress,
+			logoId: optionalLogoId,
 			description: optionalText,
 			notes: optionalText,
-			account_active: z.boolean().optional(),
+			accountActive: z.boolean().optional(),
 		})
 		.refine((value) => Object.keys(value).length > 0, {
 			message: "At least one field is required",
 		}),
 });
-
-export type CreateOrganisationInput = z.infer<
-	typeof createOrganisationSchema
->["body"];
-export type UpdateOrganisationInput = z.infer<
-	typeof updateOrganisationSchema
->["body"];

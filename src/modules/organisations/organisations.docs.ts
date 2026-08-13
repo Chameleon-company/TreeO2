@@ -14,27 +14,27 @@
  *         name:
  *           type: string
  *           example: xpand Foundation
- *         contact_email:
+ *         contactEmail:
  *           type: string
  *           nullable: true
  *           example: contact@xpand.net.au
- *         government_id:
+ *         governmentId:
  *           type: string
  *           nullable: true
  *           example: TL-2026-0042
- *         country_id:
+ *         countryId:
  *           type: integer
  *           nullable: true
  *           example: 1
- *         admin_location_id:
+ *         adminLocationId:
  *           type: integer
  *           nullable: true
  *           example: 3
- *         street_address:
+ *         streetAddress:
  *           type: string
  *           nullable: true
  *           example: 12 Rua de Dili
- *         logo_id:
+ *         logoId:
  *           type: string
  *           nullable: true
  *           example: logo-xpand-001
@@ -46,19 +46,19 @@
  *           type: string
  *           nullable: true
  *           example: Primary partner for the Rai Matak program
- *         account_active:
+ *         accountActive:
  *           type: boolean
  *           example: true
- *         date_joined:
+ *         dateJoined:
  *           type: string
  *           format: date-time
  *           nullable: true
  *           example: 2026-01-15T00:00:00.000Z
- *         created_at:
+ *         createdAt:
  *           type: string
  *           format: date-time
  *           example: 2026-01-28T10:00:00.000Z
- *         updated_at:
+ *         updatedAt:
  *           type: string
  *           format: date-time
  *           example: 2026-01-28T10:00:00.000Z
@@ -70,22 +70,22 @@
  *         name:
  *           type: string
  *           example: xpand Foundation
- *         contact_email:
+ *         contactEmail:
  *           type: string
  *           example: contact@xpand.net.au
- *         government_id:
+ *         governmentId:
  *           type: string
  *           example: TL-2026-0042
- *         country_id:
+ *         countryId:
  *           type: integer
  *           example: 1
- *         admin_location_id:
+ *         adminLocationId:
  *           type: integer
  *           example: 3
- *         street_address:
+ *         streetAddress:
  *           type: string
  *           example: 12 Rua de Dili
- *         logo_id:
+ *         logoId:
  *           type: string
  *           example: logo-xpand-001
  *         description:
@@ -100,13 +100,13 @@
  *         name:
  *           type: string
  *           example: xpand Foundation Timor-Leste
- *         contact_email:
+ *         contactEmail:
  *           type: string
  *           example: updated@xpand.net.au
  *         description:
  *           type: string
  *           example: Updated organisation description
- *         account_active:
+ *         accountActive:
  *           type: boolean
  *           example: true
  */
@@ -184,7 +184,7 @@
  *             $ref: '#/components/schemas/CreateOrganisationInput'
  *           example:
  *             name: xpand Foundation
- *             contact_email: contact@xpand.net.au
+ *             contactEmail: contact@xpand.net.au
  *             description: Community-led forestry organisation
  *     responses:
  *       201:
@@ -238,7 +238,7 @@
  * /organisations/{id}:
  *   delete:
  *     summary: Deactivate organisation
- *     description: Deactivates an organisation by setting account_active to false. Records are never hard deleted, in line with the retention rules in the technical specification. Fails if the organisation still has active users.
+ *     description: Deactivates an organisation by setting accountActive to false. Records are never hard deleted, in line with the retention rules in the technical specification. Fails if the organisation still has active users or active projects.
  *     tags: [Organisations]
  *     security:
  *       - bearerAuth: []
@@ -256,7 +256,7 @@
  *       404:
  *         description: Organisation not found
  *       409:
- *         description: Organisation has active users and cannot be deactivated
+ *         description: Organisation has active users or projects and cannot be deactivated
  */
 
 export {};

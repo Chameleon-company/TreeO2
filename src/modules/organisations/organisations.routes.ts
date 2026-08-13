@@ -10,6 +10,12 @@ import {
 	organisationIdSchema,
 	updateOrganisationSchema,
 } from "./organisations.schemas";
+import type {
+	CreateOrganisationRequest,
+	ListOrganisationsRequest,
+	OrganisationIdRequest,
+	UpdateOrganisationRequest,
+} from "./organisations.types";
 
 const router = Router();
 
@@ -18,7 +24,9 @@ router.get(
 	authMiddleware,
 	validateMiddleware(listOrganisationsSchema),
 	(req, res, next) => {
-		void organisationsController.listOrganisations(req, res).catch(next);
+		void organisationsController
+			.listOrganisations(req as unknown as ListOrganisationsRequest, res)
+			.catch(next);
 	},
 );
 
@@ -27,7 +35,9 @@ router.get(
 	authMiddleware,
 	validateMiddleware(organisationIdSchema),
 	(req, res, next) => {
-		void organisationsController.getOrganisationById(req, res).catch(next);
+		void organisationsController
+			.getOrganisationById(req as unknown as OrganisationIdRequest, res)
+			.catch(next);
 	},
 );
 
@@ -36,7 +46,9 @@ router.post(
 	authMiddleware,
 	validateMiddleware(createOrganisationSchema),
 	(req, res, next) => {
-		void organisationsController.createOrganisation(req, res).catch(next);
+		void organisationsController
+			.createOrganisation(req as unknown as CreateOrganisationRequest, res)
+			.catch(next);
 	},
 );
 
@@ -45,7 +57,9 @@ router.put(
 	authMiddleware,
 	validateMiddleware(updateOrganisationSchema),
 	(req, res, next) => {
-		void organisationsController.updateOrganisation(req, res).catch(next);
+		void organisationsController
+			.updateOrganisation(req as unknown as UpdateOrganisationRequest, res)
+			.catch(next);
 	},
 );
 
@@ -54,7 +68,9 @@ router.delete(
 	authMiddleware,
 	validateMiddleware(deleteOrganisationSchema),
 	(req, res, next) => {
-		void organisationsController.deleteOrganisation(req, res).catch(next);
+		void organisationsController
+			.deleteOrganisation(req as unknown as OrganisationIdRequest, res)
+			.catch(next);
 	},
 );
 

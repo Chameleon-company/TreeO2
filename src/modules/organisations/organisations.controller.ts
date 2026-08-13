@@ -1,10 +1,18 @@
-import type { Request, Response } from "express";
+import type { Response } from "express";
 import { organisationsService } from "./organisations.service";
+import type {
+	CreateOrganisationRequest,
+	ListOrganisationsRequest,
+	OrganisationIdRequest,
+	UpdateOrganisationRequest,
+} from "./organisations.types";
 
 export class OrganisationsController {
-	async listOrganisations(req: Request, res: Response): Promise<void> {
-		const page = Number(req.query.page) || 1;
-		const limit = Number(req.query.limit) || 10;
+	async listOrganisations(
+		req: ListOrganisationsRequest,
+		res: Response,
+	): Promise<void> {
+		const { page, limit } = req.query;
 
 		const result = await organisationsService.listOrganisations(page, limit);
 
@@ -15,37 +23,47 @@ export class OrganisationsController {
 		});
 	}
 
-	async getOrganisationById(req: Request, res: Response): Promise<void> {
-		const id = Number(req.params.id);
-
-		const organisation = await organisationsService.getOrganisationById(id);
+	async getOrganisationById(
+		req: OrganisationIdRequest,
+		res: Response,
+	): Promise<void> {
+		const organisation = await organisationsService.getOrganisationById(
+			req.params.id,
+		);
 
 		res.status(200).json({ success: true, data: organisation });
 	}
 
-	async createOrganisation(req: Request, res: Response): Promise<void> {
+	async createOrganisation(
+		req: CreateOrganisationRequest,
+		res: Response,
+	): Promise<void> {
 		const organisation = await organisationsService.createOrganisation(
-			req.body as Parameters<typeof organisationsService.createOrganisation>[0],
+			req.body,
 		);
 
 		res.status(201).json({ success: true, data: organisation });
 	}
 
-	async updateOrganisation(req: Request, res: Response): Promise<void> {
-		const id = Number(req.params.id);
-
+	async updateOrganisation(
+		req: UpdateOrganisationRequest,
+		res: Response,
+	): Promise<void> {
 		const organisation = await organisationsService.updateOrganisation(
-			id,
-			req.body as Parameters<typeof organisationsService.updateOrganisation>[1],
+			req.params.id,
+			req.body,
 		);
 
 		res.status(200).json({ success: true, data: organisation });
 	}
 
-	async deleteOrganisation(req: Request, res: Response): Promise<void> {
-		const id = Number(req.params.id);
-
-		const organisation = await organisationsService.deactivateOrganisation(id);
+	async deleteOrganisation(
+		req: OrganisationIdRequest,
+		res: Response,
+	): Promise<void> {
+		const organisation = await organisationsService.deactivateOrganisation(
+			req.params.id,
+		);
 
 		res.status(200).json({ success: true, data: organisation });
 	}
