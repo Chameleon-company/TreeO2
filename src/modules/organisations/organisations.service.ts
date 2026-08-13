@@ -2,16 +2,15 @@ import type { Organisation } from "@prisma/client";
 import { logger } from "../../config/logger";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
-import { ERROR_CODES } from "../../utils/errorCodes";
+import { customError } from "../../utils/errorCodes";
 import type {
 	CreateOrganisationBody,
 	UpdateOrganisationBody,
 } from "./organisations.types";
 
-const ORGANISATION_NOT_FOUND_MESSAGE = "Organisation not found";
-const ORGANISATION_HAS_ACTIVE_USERS_MESSAGE =
+const ORGANISATION_HAS_ACTIVE_USERS_DETAIL =
 	"Organisation cannot be deactivated because it has active users";
-const ORGANISATION_HAS_ACTIVE_PROJECTS_MESSAGE =
+const ORGANISATION_HAS_ACTIVE_PROJECTS_DETAIL =
 	"Organisation cannot be deactivated because it has active projects";
 
 interface PaginatedOrganisations {
@@ -57,11 +56,7 @@ export class OrganisationsService {
 		});
 
 		if (!organisation) {
-			throw new AppError(
-				404,
-				ORGANISATION_NOT_FOUND_MESSAGE,
-				ERROR_CODES.DATA_001,
-			);
+			throw new AppError(404, customError("DATA_001"));
 		}
 
 		return organisation;
@@ -116,16 +111,16 @@ export class OrganisationsService {
 		if (activeUserCount > 0) {
 			throw new AppError(
 				409,
-				ORGANISATION_HAS_ACTIVE_USERS_MESSAGE,
-				ERROR_CODES.DATA_002,
+				customError("DATA_004"),
+				ORGANISATION_HAS_ACTIVE_USERS_DETAIL,
 			);
 		}
 
 		if (activeProjectCount > 0) {
 			throw new AppError(
 				409,
-				ORGANISATION_HAS_ACTIVE_PROJECTS_MESSAGE,
-				ERROR_CODES.DATA_002,
+				customError("DATA_004"),
+				ORGANISATION_HAS_ACTIVE_PROJECTS_DETAIL,
 			);
 		}
 
