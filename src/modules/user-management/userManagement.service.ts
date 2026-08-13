@@ -1,5 +1,5 @@
 import { prisma } from "../../lib/prisma";
-import { ERROR_CODES } from "../../utils/errorCodes";
+import { customError } from "../../utils/errorCodes";
 import { AppError } from "../../middleware/errorHandler";
 import type { Prisma } from "@prisma/client";
 import { hashPassword } from "../../lib/bcrypt";
@@ -34,7 +34,7 @@ const userSelect = {
 const validateRole = (role: string) => {
 	const valid = ["ADMIN", "MANAGER", "INSPECTOR", "FARMER"];
 	if (!valid.includes(role)) {
-		throw new AppError(403, ERROR_CODES.AUTH_004, ERROR_CODES.AUTH_004);
+		throw new AppError(403, customError("AUTH_004"));
 	}
 };
 
@@ -45,7 +45,7 @@ export const UserManagementService = {
 		const parsed = projectId ? Number(projectId) : undefined;
 
 		if (projectId && Number.isNaN(parsed)) {
-			throw new AppError(400, ERROR_CODES.VAL_002, ERROR_CODES.VAL_002);
+			throw new AppError(400, customError("VAL_002"));
 		}
 
 		const where: Prisma.UserWhereInput = {};
@@ -66,7 +66,7 @@ export const UserManagementService = {
 			const allowed = authUser.projectIds ?? [];
 
 			if (parsed !== undefined && !allowed.includes(parsed)) {
-				throw new AppError(403, ERROR_CODES.AUTH_004, ERROR_CODES.AUTH_004);
+				throw new AppError(403, customError("AUTH_004"));
 			}
 
 			where.userProjects = parsed
@@ -80,7 +80,7 @@ export const UserManagementService = {
 			});
 		}
 
-		throw new AppError(403, ERROR_CODES.AUTH_004, ERROR_CODES.AUTH_004);
+		throw new AppError(403, customError("AUTH_004"));
 	},
 
 	getUserById: async (authUser: AuthUser, id: string) => {
@@ -89,7 +89,7 @@ export const UserManagementService = {
 		const userId = Number(id);
 
 		if (Number.isNaN(userId)) {
-			throw new AppError(400, ERROR_CODES.VAL_002, ERROR_CODES.VAL_002);
+			throw new AppError(400, customError("VAL_002"));
 		}
 
 		const user = await prisma.user.findUnique({
@@ -98,7 +98,7 @@ export const UserManagementService = {
 		});
 
 		if (!user) {
-			throw new AppError(404, ERROR_CODES.DATA_001, ERROR_CODES.DATA_001);
+			throw new AppError(404, customError("DATA_001"));
 		}
 
 		if (authUser.role === "ADMIN") {
@@ -111,7 +111,7 @@ export const UserManagementService = {
 			);
 
 			if (!allowed) {
-				throw new AppError(403, ERROR_CODES.AUTH_004, ERROR_CODES.AUTH_004);
+				throw new AppError(403, customError("AUTH_004"));
 			}
 
 			return user;
@@ -119,41 +119,41 @@ export const UserManagementService = {
 
 		if (authUser.role === "INSPECTOR" || authUser.role === "FARMER") {
 			if (authUser.id !== userId) {
-				throw new AppError(403, ERROR_CODES.AUTH_004, ERROR_CODES.AUTH_004);
+				throw new AppError(403, customError("AUTH_004"));
 			}
 			return user;
 		}
 
-		throw new AppError(403, ERROR_CODES.AUTH_004, ERROR_CODES.AUTH_004);
+		throw new AppError(403, customError("AUTH_004"));
 	},
 
 	createUser: async (data: CreateUserInput) => {
 		if (!data.name?.trim()) {
-			throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
+			throw new AppError(400, customError("VAL_003"));
 		}
 
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 		if (!emailRegex.test(data.email)) {
-			throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
+			throw new AppError(400, customError("VAL_003"));
 		}
 
 		if (data.email.length > 300) {
-			throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
+			throw new AppError(400, customError("VAL_003"));
 		}
 
 		// Validate password complexity if provided
 		if (data.password) {
 			if (data.password.length < 8 || data.password.length > 72) {
-				throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
+				throw new AppError(400, customError("VAL_003"));
 			}
 			if (!/[A-Z]/.test(data.password)) {
-				throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
+				throw new AppError(400, customError("VAL_003"));
 			}
 			if (!/[0-9]/.test(data.password)) {
-				throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
+				throw new AppError(400, customError("VAL_003"));
 			}
 			if (!/[^a-zA-Z0-9]/.test(data.password)) {
-				throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
+				throw new AppError(400, customError("VAL_003"));
 			}
 		}
 
@@ -162,7 +162,7 @@ export const UserManagementService = {
 		});
 
 		if (!role) {
-			throw new AppError(400, ERROR_CODES.VAL_003, ERROR_CODES.VAL_003);
+			throw new AppError(400, customError("VAL_003"));
 		}
 
 		const existing = await prisma.user.findUnique({
@@ -170,7 +170,7 @@ export const UserManagementService = {
 		});
 
 		if (existing) {
-			throw new AppError(409, ERROR_CODES.DATA_002, ERROR_CODES.DATA_002);
+			throw new AppError(409, customError("DATA_002"));
 		}
 
 		// Hash password if provided
@@ -195,7 +195,7 @@ export const UserManagementService = {
 		const userId = Number(id);
 
 		if (Number.isNaN(userId)) {
-			throw new AppError(400, ERROR_CODES.VAL_002, ERROR_CODES.VAL_002);
+			throw new AppError(400, customError("VAL_002"));
 		}
 
 		const existing = await prisma.user.findUnique({
@@ -204,7 +204,7 @@ export const UserManagementService = {
 		});
 
 		if (!existing) {
-			throw new AppError(404, ERROR_CODES.DATA_001, ERROR_CODES.DATA_001);
+			throw new AppError(404, customError("DATA_001"));
 		}
 
 		if (authUser.role === "MANAGER") {
@@ -213,7 +213,7 @@ export const UserManagementService = {
 			);
 
 			if (!allowed) {
-				throw new AppError(403, ERROR_CODES.AUTH_004, ERROR_CODES.AUTH_004);
+				throw new AppError(403, customError("AUTH_004"));
 			}
 
 			const restricted = ["roleId", "accountActive", "canSignIn"];
@@ -223,7 +223,7 @@ export const UserManagementService = {
 			);
 
 			if (hasRestricted) {
-				throw new AppError(403, ERROR_CODES.AUTH_004, ERROR_CODES.AUTH_004);
+				throw new AppError(403, customError("AUTH_004"));
 			}
 		}
 
@@ -241,7 +241,7 @@ export const UserManagementService = {
 		const userId = Number(id);
 
 		if (Number.isNaN(userId)) {
-			throw new AppError(400, ERROR_CODES.VAL_002, ERROR_CODES.VAL_002);
+			throw new AppError(400, customError("VAL_002"));
 		}
 
 		const user = await prisma.user.findUnique({
@@ -249,7 +249,7 @@ export const UserManagementService = {
 		});
 
 		if (!user) {
-			throw new AppError(404, ERROR_CODES.DATA_001, ERROR_CODES.DATA_001);
+			throw new AppError(404, customError("DATA_001"));
 		}
 
 		const linked = await prisma.treeScan.findFirst({
@@ -259,7 +259,7 @@ export const UserManagementService = {
 		});
 
 		if (linked) {
-			throw new AppError(409, ERROR_CODES.VAL_001, ERROR_CODES.VAL_001);
+			throw new AppError(409, customError("VAL_001"));
 		}
 
 		await prisma.user.update({

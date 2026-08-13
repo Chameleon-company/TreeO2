@@ -112,7 +112,7 @@ describe("TreeTypesService", () => {
 
 			await expect(service.getTreeTypeById(1)).rejects.toMatchObject({
 				statusCode: 404,
-				message: "Tree type not found",
+				detail: "Tree type not found",
 			});
 		});
 	});
@@ -203,7 +203,7 @@ describe("TreeTypesService", () => {
 				}),
 			).rejects.toMatchObject({
 				statusCode: 409,
-				message: "Tree type key already exists",
+				detail: "Tree type key already exists",
 			});
 		});
 
@@ -218,7 +218,7 @@ describe("TreeTypesService", () => {
 				}),
 			).rejects.toMatchObject({
 				statusCode: 409,
-				message: "Tree type key already exists",
+				detail: "Tree type key already exists",
 			});
 		});
 	});
@@ -253,7 +253,7 @@ describe("TreeTypesService", () => {
 				service.updateTreeType(1, { name: "Updated Eucalyptus" }),
 			).rejects.toMatchObject({
 				statusCode: 404,
-				message: "Tree type not found",
+				detail: "Tree type not found",
 			});
 		});
 
@@ -266,7 +266,7 @@ describe("TreeTypesService", () => {
 				service.updateTreeType(1, { key: "eucalyptus" }),
 			).rejects.toMatchObject({
 				statusCode: 409,
-				message: "Tree type key already exists",
+				detail: "Tree type key already exists",
 			});
 		});
 	});
@@ -295,7 +295,7 @@ describe("TreeTypesService", () => {
 
 			await expect(service.deleteTreeType(1)).rejects.toMatchObject({
 				statusCode: 409,
-				message:
+				detail:
 					"Tree type cannot be deleted because it is referenced by other records",
 			});
 			expect(prismaMock.treeType.delete).not.toHaveBeenCalled();
@@ -307,7 +307,7 @@ describe("TreeTypesService", () => {
 
 			await expect(service.deleteTreeType(1)).rejects.toMatchObject({
 				statusCode: 409,
-				message:
+				detail:
 					"Tree type cannot be deleted because it is referenced by other records",
 			});
 			expect(prismaMock.treeType.delete).not.toHaveBeenCalled();
@@ -318,7 +318,7 @@ describe("TreeTypesService", () => {
 
 			await expect(service.deleteTreeType(1)).rejects.toMatchObject({
 				statusCode: 409,
-				message:
+				detail:
 					"Tree type cannot be deleted because it is referenced by other records",
 			});
 		});

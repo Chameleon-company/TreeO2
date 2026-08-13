@@ -1,4 +1,4 @@
-import { ERROR_CODES } from "../../src/utils/errorCodes";
+import { customError } from "../../src/utils/errorCodes";
 import { TreeScansService } from "../../src/modules/tree-scans/treeScans.service";
 
 jest.mock("@prisma/client", () => {
@@ -203,12 +203,14 @@ describe("TreeScansService", () => {
 
 		it("should throw SYS_002 when listing tree scans fails", async () => {
 			mockPrisma.treeScan.findMany.mockRejectedValue(new Error("DB failure"));
+			const err = customError("SYS_002");
 
 			await expect(
 				service.listTreeScans({ page: 1, limit: 10 }, adminUser),
 			).rejects.toMatchObject({
 				statusCode: 500,
-				code: ERROR_CODES.SYS_002,
+				code: err.code,
+				message: err.message,
 			});
 		});
 	});
@@ -242,12 +244,14 @@ describe("TreeScansService", () => {
 				...treeScanRecord,
 				inspectorId: 999,
 			});
+			const err = customError("AUTH_004");
 
 			await expect(
 				service.getTreeScanById(1, inspectorUser),
 			).rejects.toMatchObject({
 				statusCode: 403,
-				code: ERROR_CODES.AUTH_004,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
@@ -275,24 +279,28 @@ describe("TreeScansService", () => {
 		it("should throw AUTH_007 when manager accesses scan from unassigned project", async () => {
 			mockPrisma.treeScan.findUnique.mockResolvedValue(treeScanRecord);
 			mockPrisma.userProject.findUnique.mockResolvedValue(null);
+			const err = customError("AUTH_007");
 
 			await expect(
 				service.getTreeScanById(1, managerUser),
 			).rejects.toMatchObject({
 				statusCode: 403,
-				code: ERROR_CODES.AUTH_007,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
 		it("should throw DATA_001 when tree scan does not exist", async () => {
 			mockPrisma.treeScan.findUnique.mockResolvedValue(null);
+			const err = customError("DATA_001");
 
 			await expect(
 				service.getTreeScanById(999, adminUser),
 			).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Tree scan not found",
+				code: err.code,
+				message: err.message,
+				detail: "Tree scan not found",
 			});
 		});
 	});
@@ -367,13 +375,15 @@ describe("TreeScansService", () => {
 
 		it("should throw DATA_001 when project does not exist", async () => {
 			mockPrisma.project.findUnique.mockResolvedValue(null);
+			const err = customError("DATA_001");
 
 			await expect(
 				service.createTreeScan(validCreateInput, inspectorUser),
 			).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Project not found",
+				code: err.code,
+				message: err.message,
+				detail: "Project not found",
 			});
 		});
 
@@ -382,13 +392,15 @@ describe("TreeScansService", () => {
 				id: 1,
 				isActive: false,
 			});
+			const err = customError("VAL_002");
 
 			await expect(
 				service.createTreeScan(validCreateInput, inspectorUser),
 			).rejects.toMatchObject({
 				statusCode: 400,
-				code: ERROR_CODES.VAL_002,
-				message: "Project is inactive",
+				code: err.code,
+				message: err.message,
+				detail: "Project is inactive",
 			});
 		});
 
@@ -396,12 +408,14 @@ describe("TreeScansService", () => {
 			mockPrisma.user.findUnique.mockReset();
 			mockPrisma.user.findUnique.mockResolvedValueOnce(null);
 
+			const err = customError("DATA_001");
 			await expect(
 				service.createTreeScan(validCreateInput, inspectorUser),
 			).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Farmer not found",
+				code: err.code,
+				message: err.message,
+				detail: "Farmer not found",
 			});
 		});
 
@@ -413,13 +427,15 @@ describe("TreeScansService", () => {
 					accountActive: true,
 				})
 				.mockResolvedValueOnce(null);
+			const err = customError("DATA_001");
 
 			await expect(
 				service.createTreeScan(validCreateInput, inspectorUser),
 			).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Inspector not found",
+				code: err.code,
+				message: err.message,
+				detail: "Inspector not found",
 			});
 		});
 
@@ -429,26 +445,30 @@ describe("TreeScansService", () => {
 				id: 2,
 				accountActive: false,
 			});
+			const err = customError("VAL_002");
 
 			await expect(
 				service.createTreeScan(validCreateInput, inspectorUser),
 			).rejects.toMatchObject({
 				statusCode: 400,
-				code: ERROR_CODES.VAL_002,
-				message: "User account is inactive",
+				code: err.code,
+				message: err.message,
+				detail: "User account is inactive",
 			});
 		});
 
 		it("should throw AUTH_007 when farmer is not assigned to project", async () => {
 			mockPrisma.userProject.findUnique.mockReset();
 			mockPrisma.userProject.findUnique.mockResolvedValueOnce(null);
+			const err = customError("AUTH_007");
 
 			await expect(
 				service.createTreeScan(validCreateInput, inspectorUser),
 			).rejects.toMatchObject({
 				statusCode: 403,
-				code: ERROR_CODES.AUTH_007,
-				message: "Farmer is not assigned to this project",
+				code: err.code,
+				message: err.message,
+				detail: "Farmer is not assigned to this project",
 			});
 		});
 
@@ -460,48 +480,56 @@ describe("TreeScansService", () => {
 					projectId: 1,
 				})
 				.mockResolvedValueOnce(null);
+			const err = customError("AUTH_007");
 
 			await expect(
 				service.createTreeScan(validCreateInput, inspectorUser),
 			).rejects.toMatchObject({
 				statusCode: 403,
-				code: ERROR_CODES.AUTH_007,
-				message: "Inspector is not assigned to this project",
+				code: err.code,
+				message: err.message,
+				detail: "Inspector is not assigned to this project",
 			});
 		});
 
 		it("should throw DATA_001 when species does not exist", async () => {
 			mockPrisma.treeType.findUnique.mockResolvedValue(null);
+			const err = customError("DATA_001");
 
 			await expect(
 				service.createTreeScan(validCreateInput, inspectorUser),
 			).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Tree type not found",
+				code: err.code,
+				message: err.message,
+				detail: "Tree type not found",
 			});
 		});
 
 		it("should throw VAL_002 when species is not assigned to project", async () => {
 			mockPrisma.projectTreeType.findUnique.mockResolvedValue(null);
+			const err = customError("VAL_002");
 
 			await expect(
 				service.createTreeScan(validCreateInput, inspectorUser),
 			).rejects.toMatchObject({
 				statusCode: 400,
-				code: ERROR_CODES.VAL_002,
-				message: "Tree type is not assigned to this project",
+				code: err.code,
+				message: err.message,
+				detail: "Tree type is not assigned to this project",
 			});
 		});
 
 		it("should throw SYS_002 when create fails unexpectedly", async () => {
 			mockPrisma.treeScan.create.mockRejectedValue(new Error("DB failure"));
+			const err = customError("SYS_002");
 
 			await expect(
 				service.createTreeScan(validCreateInput, inspectorUser),
 			).rejects.toMatchObject({
 				statusCode: 500,
-				code: ERROR_CODES.SYS_002,
+				code: err.code,
+				message: err.message,
 			});
 		});
 	});
@@ -577,23 +605,28 @@ describe("TreeScansService", () => {
 		});
 
 		it("should throw AUTH_004 when inspector tries to update a tree scan", async () => {
+			const err = customError("AUTH_004");
+
 			await expect(
 				service.updateTreeScan(1, updateInput, inspectorUser),
 			).rejects.toMatchObject({
 				statusCode: 403,
-				code: ERROR_CODES.AUTH_004,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
 		it("should throw DATA_001 when tree scan does not exist", async () => {
 			mockPrisma.treeScan.findUnique.mockResolvedValue(null);
+			const err = customError("DATA_001");
 
 			await expect(
 				service.updateTreeScan(999, updateInput, adminUser),
 			).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Tree scan not found",
+				code: err.code,
+				message: err.message,
+				detail: "Tree scan not found",
 			});
 		});
 
@@ -661,12 +694,14 @@ describe("TreeScansService", () => {
 
 		it("should throw SYS_002 when update fails unexpectedly", async () => {
 			mockPrisma.treeScan.update.mockRejectedValue(new Error("DB failure"));
+			const err = customError("SYS_002");
 
 			await expect(
 				service.updateTreeScan(1, updateInput, adminUser),
 			).rejects.toMatchObject({
 				statusCode: 500,
-				code: ERROR_CODES.SYS_002,
+				code: err.code,
+				message: err.message,
 			});
 		});
 	});
@@ -696,11 +731,13 @@ describe("TreeScansService", () => {
 
 		it("should throw DATA_001 when tree scan does not exist", async () => {
 			mockPrisma.treeScan.findUnique.mockResolvedValue(null);
+			const err = customError("DATA_001");
 
 			await expect(service.deleteTreeScan(999)).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Tree scan not found",
+				code: err.code,
+				message: err.message,
+				detail: "Tree scan not found",
 			});
 		});
 	});
@@ -731,21 +768,25 @@ describe("TreeScansService", () => {
 		});
 
 		it("should throw VAL_003 when FOB ID is empty", async () => {
+			const err = customError("VAL_003");
 			await expect(service.recycleFob("", adminUser)).rejects.toMatchObject({
 				statusCode: 400,
-				code: ERROR_CODES.VAL_003,
-				message: "FOB ID is required",
+				code: err.code,
+				message: err.message,
+				detail: "FOB ID is required",
 			});
 		});
 
 		it("should throw SYS_002 when recycle fails unexpectedly", async () => {
 			mockPrisma.treeScan.updateMany.mockRejectedValue(new Error("DB failure"));
+			const err = customError("SYS_002");
 
 			await expect(
 				service.recycleFob("FOB-001", adminUser),
 			).rejects.toMatchObject({
 				statusCode: 500,
-				code: ERROR_CODES.SYS_002,
+				code: err.code,
+				message: err.message,
 			});
 		});
 

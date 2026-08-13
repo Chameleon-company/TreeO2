@@ -9,10 +9,10 @@ import {
 	SCAN_BATCHES_AUTH_ROLES,
 	SCAN_BATCHES_DB_ROLES,
 	SCAN_BATCHES_DEFAULTS,
-	SCAN_BATCHES_ERRORS,
 	SCAN_BATCHES_LIMITS,
 	SCAN_BATCHES_MESSAGES,
 } from "./scan-batches.constants";
+import { customError } from "../../utils/errorCodes";
 
 interface CurrentUser {
 	id: number;
@@ -131,8 +131,8 @@ export const getScanBatchById = async (
 	if (!scanBatch) {
 		throw new AppError(
 			404,
+			customError("DATA_001"),
 			SCAN_BATCHES_MESSAGES.NOT_FOUND,
-			SCAN_BATCHES_ERRORS.NOT_FOUND,
 		);
 	}
 
@@ -142,8 +142,8 @@ export const getScanBatchById = async (
 	) {
 		throw new AppError(
 			403,
+			customError("AUTH_004"),
 			SCAN_BATCHES_MESSAGES.UNAUTHORIZED_ACCESS,
-			SCAN_BATCHES_ERRORS.FORBIDDEN,
 		);
 	}
 
@@ -158,8 +158,8 @@ export const getScanBatchById = async (
 		if (!hasAccess) {
 			throw new AppError(
 				403,
+				customError("AUTH_004"),
 				SCAN_BATCHES_MESSAGES.UNAUTHORIZED_ACCESS,
-				SCAN_BATCHES_ERRORS.FORBIDDEN,
 			);
 		}
 	}
@@ -179,24 +179,24 @@ export const createScanBatch = async (data: CreateScanBatchServiceInput) => {
 	if (!inspector) {
 		throw new AppError(
 			404,
+			customError("DATA_001"),
 			SCAN_BATCHES_MESSAGES.INSPECTOR_NOT_FOUND,
-			SCAN_BATCHES_ERRORS.NOT_FOUND,
 		);
 	}
 
 	if (inspector.primaryRole?.name !== SCAN_BATCHES_DB_ROLES.INSPECTOR) {
 		throw new AppError(
 			403,
+			customError("AUTH_004"),
 			SCAN_BATCHES_MESSAGES.INVALID_INSPECTOR_ROLE,
-			SCAN_BATCHES_ERRORS.INVALID_ROLE,
 		);
 	}
 
 	if (!inspector.accountActive || !inspector.canSignIn) {
 		throw new AppError(
 			403,
+			customError("AUTH_003"),
 			"Inspector account is inactive or cannot sign in",
-			SCAN_BATCHES_ERRORS.FORBIDDEN,
 		);
 	}
 
@@ -207,16 +207,16 @@ export const createScanBatch = async (data: CreateScanBatchServiceInput) => {
 	if (!project) {
 		throw new AppError(
 			404,
+			customError("DATA_001"),
 			SCAN_BATCHES_MESSAGES.PROJECT_NOT_FOUND,
-			SCAN_BATCHES_ERRORS.NOT_FOUND,
 		);
 	}
 
 	if (!project.isActive) {
 		throw new AppError(
 			422,
+			customError("DATA_005"),
 			SCAN_BATCHES_MESSAGES.PROJECT_INACTIVE,
-			SCAN_BATCHES_ERRORS.PROJECT_INACTIVE,
 		);
 	}
 
@@ -230,8 +230,8 @@ export const createScanBatch = async (data: CreateScanBatchServiceInput) => {
 	if (!inspectorAssignment) {
 		throw new AppError(
 			403,
+			customError("DATA_001"),
 			SCAN_BATCHES_MESSAGES.INSPECTOR_NOT_ASSIGNED,
-			SCAN_BATCHES_ERRORS.NOT_ASSIGNED,
 		);
 	}
 
@@ -246,16 +246,16 @@ export const createScanBatch = async (data: CreateScanBatchServiceInput) => {
 		if (!farmer) {
 			throw new AppError(
 				404,
+				customError("DATA_001"),
 				SCAN_BATCHES_MESSAGES.FARMER_NOT_FOUND,
-				SCAN_BATCHES_ERRORS.NOT_FOUND,
 			);
 		}
 
 		if (farmer.primaryRole?.name !== SCAN_BATCHES_DB_ROLES.FARMER) {
 			throw new AppError(
 				403,
+				customError("DATA_001"),
 				SCAN_BATCHES_MESSAGES.INVALID_FARMER_ROLE,
-				SCAN_BATCHES_ERRORS.INVALID_ROLE,
 			);
 		}
 
@@ -269,8 +269,9 @@ export const createScanBatch = async (data: CreateScanBatchServiceInput) => {
 		if (!farmerAssignment) {
 			throw new AppError(
 				403,
+				customError("DATA_001"),
+
 				SCAN_BATCHES_MESSAGES.FARMER_NOT_ASSIGNED,
-				SCAN_BATCHES_ERRORS.NOT_ASSIGNED,
 			);
 		}
 
@@ -281,8 +282,8 @@ export const createScanBatch = async (data: CreateScanBatchServiceInput) => {
 		if (!species) {
 			throw new AppError(
 				404,
+				customError("DATA_001"),
 				SCAN_BATCHES_MESSAGES.SPECIES_NOT_FOUND,
-				SCAN_BATCHES_ERRORS.NOT_FOUND,
 			);
 		}
 
@@ -296,16 +297,16 @@ export const createScanBatch = async (data: CreateScanBatchServiceInput) => {
 		if (!projectSpecies) {
 			throw new AppError(
 				403,
+				customError("DATA_001"),
 				SCAN_BATCHES_MESSAGES.SPECIES_NOT_IN_PROJECT,
-				SCAN_BATCHES_ERRORS.SPECIES_NOT_IN_PROJECT,
 			);
 		}
 
 		if (scan.height_m && scan.height_m > SCAN_BATCHES_LIMITS.MAX_HEIGHT_M) {
 			throw new AppError(
 				422,
+				customError("VAL_006"),
 				SCAN_BATCHES_MESSAGES.INVALID_MEASUREMENT,
-				SCAN_BATCHES_ERRORS.INVALID_MEASUREMENT,
 			);
 		}
 
@@ -315,8 +316,8 @@ export const createScanBatch = async (data: CreateScanBatchServiceInput) => {
 		) {
 			throw new AppError(
 				422,
+				customError("VAL_006"),
 				SCAN_BATCHES_MESSAGES.INVALID_MEASUREMENT,
-				SCAN_BATCHES_ERRORS.INVALID_MEASUREMENT,
 			);
 		}
 
@@ -326,8 +327,8 @@ export const createScanBatch = async (data: CreateScanBatchServiceInput) => {
 		) {
 			throw new AppError(
 				422,
+				customError("VAL_006"),
 				SCAN_BATCHES_MESSAGES.INVALID_MEASUREMENT,
-				SCAN_BATCHES_ERRORS.INVALID_MEASUREMENT,
 			);
 		}
 	}
@@ -402,16 +403,16 @@ export const deleteScanBatch = async (id: number) => {
 	if (!scanBatch) {
 		throw new AppError(
 			404,
+			customError("DATA_001"),
 			SCAN_BATCHES_MESSAGES.NOT_FOUND,
-			SCAN_BATCHES_ERRORS.NOT_FOUND,
 		);
 	}
 
 	if (scanBatch._count.treeScans > 0) {
 		throw new AppError(
 			409,
+			customError("DATA_004"),
 			SCAN_BATCHES_MESSAGES.DELETE_BLOCKED_HAS_SCANS,
-			SCAN_BATCHES_ERRORS.DELETE_BLOCKED,
 		);
 	}
 

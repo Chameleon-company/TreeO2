@@ -1,6 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
-import { ERROR_CODES } from "../../utils/errorCodes";
+import { customError } from "../../utils/errorCodes";
 import { type AccessType } from "@prisma/client";
 
 const ensureProjectExists = async (projectId: number) => {
@@ -10,7 +10,7 @@ const ensureProjectExists = async (projectId: number) => {
 	});
 
 	if (!project) {
-		throw new AppError(404, "Project not found", ERROR_CODES.DATA_001);
+		throw new AppError(404, customError("DATA_001"), "Project not found");
 	}
 };
 
@@ -21,13 +21,17 @@ const ensureOrganisationExists = async (organisationId: number) => {
 	});
 
 	if (!org) {
-		throw new AppError(404, "Organisation not found", ERROR_CODES.DATA_001);
+		throw new AppError(404, customError("DATA_001"), "Organisation not found");
 	}
 };
 
 const ensureNoOwnerAccessType = (accessType: AccessType) => {
 	if (accessType === "owner") {
-		throw new AppError(422, "Access type can't be owner", ERROR_CODES.VAL_002);
+		throw new AppError(
+			422,
+			customError("VAL_002"),
+			"Access type can't be owner",
+		);
 	}
 };
 
@@ -46,8 +50,8 @@ const getEntry = async (projectId: number, organisationId: number) => {
 	if (!entry) {
 		throw new AppError(
 			404,
+			customError("DATA_001"),
 			"Project-organisation sharing link not found",
-			ERROR_CODES.DATA_001,
 		);
 	}
 

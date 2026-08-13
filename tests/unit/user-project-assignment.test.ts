@@ -1,4 +1,4 @@
-import { ERROR_CODES } from "../../src/utils/errorCodes";
+import { customError } from "../../src/utils/errorCodes";
 import { UserProjectAssignmentService } from "../../src/modules/user-project-assignment/userProjectAssignment.service";
 
 jest.mock("@prisma/client", () => {
@@ -92,9 +92,12 @@ describe("UserProjectAssignmentService", () => {
 		it("throws SYS_002 when fetching assignments fails", async () => {
 			mockPrisma.userProject.findMany.mockRejectedValue(new Error("DB down"));
 
+			const err = customError("SYS_002");
+
 			await expect(service.getAssignments(1, "ADMIN")).rejects.toMatchObject({
 				statusCode: 500,
-				code: ERROR_CODES.SYS_002,
+				code: err.code,
+				message: err.message,
 			});
 		});
 	});
@@ -129,23 +132,29 @@ describe("UserProjectAssignmentService", () => {
 		});
 
 		it("throws VAL_002 for invalid ids", async () => {
+			const err = customError("VAL_002");
+
 			await expect(
 				service.assignUserToProject({ userId: 0, projectId: 2 }),
 			).rejects.toMatchObject({
 				statusCode: 400,
-				code: ERROR_CODES.VAL_002,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
 		it("throws DATA_001 when user is missing", async () => {
 			mockPrisma.user.findUnique.mockResolvedValue(null);
 
+			const err = customError("DATA_001");
+
 			await expect(
 				service.assignUserToProject({ userId: 1, projectId: 2 }),
 			).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "User not found",
+				code: err.code,
+				message: err.message,
+				detail: "User not found",
 			});
 		});
 
@@ -153,12 +162,15 @@ describe("UserProjectAssignmentService", () => {
 			mockPrisma.user.findUnique.mockResolvedValue({ id: 1 });
 			mockPrisma.project.findUnique.mockResolvedValue(null);
 
+			const err = customError("DATA_001");
+
 			await expect(
 				service.assignUserToProject({ userId: 1, projectId: 2 }),
 			).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Project not found",
+				code: err.code,
+				message: err.message,
+				detail: "Project not found",
 			});
 		});
 
@@ -170,11 +182,14 @@ describe("UserProjectAssignmentService", () => {
 				projectId: 2,
 			});
 
+			const err = customError("DATA_002");
+
 			await expect(
 				service.assignUserToProject({ userId: 1, projectId: 2 }),
 			).rejects.toMatchObject({
 				statusCode: 409,
-				code: ERROR_CODES.DATA_002,
+				code: err.code,
+				message: err.message,
 			});
 		});
 	});
@@ -206,21 +221,27 @@ describe("UserProjectAssignmentService", () => {
 		});
 
 		it("throws VAL_002 for invalid path ids", async () => {
+			const err = customError("VAL_002");
+
 			await expect(
 				service.removeUserFromProject(Number.NaN, 2),
 			).rejects.toMatchObject({
 				statusCode: 400,
-				code: ERROR_CODES.VAL_002,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
 		it("throws DATA_001 when assignment is missing", async () => {
 			mockPrisma.userProject.findUnique.mockResolvedValue(null);
 
+			const err = customError("DATA_001");
+
 			await expect(service.removeUserFromProject(1, 2)).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Assignment not found",
+				code: err.code,
+				message: err.message,
+				detail: "Assignment not found",
 			});
 		});
 	});

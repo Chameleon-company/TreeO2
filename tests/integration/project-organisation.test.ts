@@ -2,7 +2,7 @@ import "dotenv/config";
 import request from "supertest";
 import { PrismaClient } from "@prisma/client";
 import app from "../../src/app";
-import { ERROR_CODES } from "../../src/utils/errorCodes";
+import { customError } from "../../src/utils/errorCodes";
 
 const prisma = new PrismaClient();
 
@@ -306,8 +306,10 @@ describe("Project Organisation Integration Tests", () => {
 					accessType: "shared",
 				});
 
+			const err = customError("DATA_001");
 			expect(response.status).toBe(404);
-			expect(response.body.code).toBe(ERROR_CODES.DATA_001);
+			expect(response.body.error.code).toBe(err.code);
+			expect(response.body.error.message).toBe(err.message);
 		});
 
 		it("should return 404 when organisation does not exist", async () => {
@@ -320,8 +322,10 @@ describe("Project Organisation Integration Tests", () => {
 					accessType: "shared",
 				});
 
+			const err = customError("DATA_001");
 			expect(response.status).toBe(404);
-			expect(response.body.code).toBe(ERROR_CODES.DATA_001);
+			expect(response.body.error.code).toBe(err.code);
+			expect(response.body.error.message).toBe(err.message);
 		});
 
 		it("should return 422 when accessType is owner", async () => {
@@ -334,9 +338,11 @@ describe("Project Organisation Integration Tests", () => {
 					accessType: "owner",
 				});
 
+			const err = customError("VAL_002");
 			expect(response.status).toBe(422);
-			expect(response.body.code).toBe(ERROR_CODES.VAL_002);
-			expect(response.body.message).toBe("Access type can't be owner");
+			expect(response.body.error.code).toBe(err.code);
+			expect(response.body.error.message).toBe(err.message);
+			expect(response.body.error.detail).toBe("Access type can't be owner");
 		});
 
 		it("should return 409 when duplicate entry exists", async () => {
@@ -435,9 +441,11 @@ describe("Project Organisation Integration Tests", () => {
 				.delete(`/project-organisations/${projectId}/${orgId}`)
 				.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
 
+			const err = customError("DATA_001");
 			expect(response.status).toBe(404);
-			expect(response.body.code).toBe(ERROR_CODES.DATA_001);
-			expect(response.body.message).toBe(
+			expect(response.body.error.code).toBe(err.code);
+			expect(response.body.error.message).toBe(err.message);
+			expect(response.body.error.detail).toBe(
 				"Project-organisation sharing link not found",
 			);
 		});
@@ -457,9 +465,11 @@ describe("Project Organisation Integration Tests", () => {
 				.delete(`/project-organisations/${projectId}/${orgId}`)
 				.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
 
+			const err = customError("VAL_002");
 			expect(response.status).toBe(422);
-			expect(response.body.code).toBe(ERROR_CODES.VAL_002);
-			expect(response.body.message).toBe("Access type can't be owner");
+			expect(response.body.error.code).toBe(err.code);
+			expect(response.body.error.message).toBe(err.message);
+			expect(response.body.error.detail).toBe("Access type can't be owner");
 		});
 
 		it("should successfully delete entry with accessType partner", async () => {

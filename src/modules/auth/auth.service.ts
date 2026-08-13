@@ -1,5 +1,5 @@
 import { AppError } from "../../middleware/errorHandler";
-import { ERROR_CODES } from "../../utils/errorCodes";
+import { customError } from "../../utils/errorCodes";
 import type {
 	ForgotPasswordRequestBody,
 	JwtPayload,
@@ -13,27 +13,27 @@ export class AuthService {
 
 	async login(_payload: LoginRequestBody): Promise<never> {
 		await this.ensureAuthReadiness();
-		throw new AppError(501, ERROR_CODES.AUTH_006, "AUTH_006");
+		throw new AppError(501, customError("AUTH_006"));
 	}
 
 	async logout(_user: JwtPayload): Promise<never> {
 		await this.ensureAuthReadiness();
-		throw new AppError(501, ERROR_CODES.AUTH_006, "AUTH_006");
+		throw new AppError(501, customError("AUTH_006"));
 	}
 
 	async forgotPassword(_payload: ForgotPasswordRequestBody): Promise<never> {
 		await this.ensureAuthReadiness();
-		throw new AppError(501, ERROR_CODES.AUTH_006, "AUTH_006");
+		throw new AppError(501, customError("AUTH_006"));
 	}
 
 	async resetPassword(_payload: ResetPasswordRequestBody): Promise<never> {
 		await this.ensureAuthReadiness();
-		throw new AppError(501, ERROR_CODES.AUTH_006, "AUTH_006");
+		throw new AppError(501, customError("AUTH_006"));
 	}
 
 	async getMe(_user: JwtPayload): Promise<never> {
 		await this.ensureAuthReadiness();
-		throw new AppError(501, ERROR_CODES.AUTH_006, "AUTH_006");
+		throw new AppError(501, customError("AUTH_006"));
 	}
 
 	private async ensureAuthReadiness(): Promise<void> {

@@ -3,7 +3,7 @@ import { env } from "../config/env";
 import { verifyJwt } from "../lib/jwt";
 import type { JwtPayload } from "../modules/auth/auth.types";
 import { AppError } from "../middleware/errorHandler";
-import { ERROR_CODES } from "../utils/errorCodes";
+import { customError } from "../utils/errorCodes";
 
 export const authMiddleware = (
 	req: Request,
@@ -13,7 +13,7 @@ export const authMiddleware = (
 	const authHeader = req.headers.authorization;
 
 	if (!authHeader?.startsWith("Bearer ")) {
-		next(new AppError(401, ERROR_CODES.AUTH_003, "AUTH_003"));
+		next(new AppError(401, customError("AUTH_003")));
 		return;
 	}
 
@@ -76,6 +76,6 @@ export const authMiddleware = (
 		req.user = payload;
 		next();
 	} catch {
-		next(new AppError(401, ERROR_CODES.AUTH_005, "AUTH_005"));
+		next(new AppError(401, customError("AUTH_005")));
 	}
 };

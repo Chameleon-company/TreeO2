@@ -1,4 +1,4 @@
-import { ERROR_CODES } from "../../src/utils/errorCodes";
+import { customError } from "../../src/utils/errorCodes";
 import { ProjectManagementService } from "../../src/modules/project-management/projectManagement.service";
 
 jest.mock("@prisma/client", () => {
@@ -89,10 +89,12 @@ describe("ProjectManagementService", () => {
 
 		it("should throw SYS_002 when fetching projects fails", async () => {
 			mockPrisma.project.findMany.mockRejectedValue(new Error("DB failure"));
+			const err = customError("SYS_002");
 
 			await expect(service.getAllProjects()).rejects.toMatchObject({
 				statusCode: 500,
-				code: ERROR_CODES.SYS_002,
+				code: err.code,
+				message: err.message,
 			});
 		});
 	});
@@ -113,19 +115,24 @@ describe("ProjectManagementService", () => {
 		});
 
 		it("should throw VAL_002 when project id is invalid", async () => {
+			const err = customError("VAL_002");
+
 			await expect(service.getProjectById(0)).rejects.toMatchObject({
 				statusCode: 400,
-				code: ERROR_CODES.VAL_002,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
 		it("should throw DATA_001 when project is not found", async () => {
 			mockPrisma.project.findUnique.mockResolvedValue(null);
+			const err = customError("DATA_001");
 
 			await expect(service.getProjectById(1)).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Project not found",
+				code: err.code,
+				message: err.message,
+				detail: "Project not found",
 			});
 		});
 	});
@@ -256,6 +263,7 @@ describe("ProjectManagementService", () => {
 		});
 
 		it("should throw VAL_003 when required fields are missing", async () => {
+			const err = customError("VAL_003");
 			await expect(
 				service.createProject({
 					ownerOrganisationId: 1,
@@ -265,7 +273,8 @@ describe("ProjectManagementService", () => {
 				}),
 			).rejects.toMatchObject({
 				statusCode: 400,
-				code: ERROR_CODES.VAL_003,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
@@ -273,6 +282,7 @@ describe("ProjectManagementService", () => {
 			mockPrisma.country.findUnique.mockResolvedValue({ id: 1 });
 			mockPrisma.organisation.findUnique.mockResolvedValue(null);
 
+			const err = customError("DATA_001");
 			await expect(
 				service.createProject({
 					ownerOrganisationId: 1,
@@ -282,8 +292,9 @@ describe("ProjectManagementService", () => {
 				}),
 			).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Organisation not found",
+				code: err.code,
+				message: err.message,
+				detail: "Organisation not found",
 			});
 		});
 
@@ -291,6 +302,7 @@ describe("ProjectManagementService", () => {
 			mockPrisma.country.findUnique.mockResolvedValue(null);
 			mockPrisma.organisation.findUnique.mockResolvedValue({ id: 1 });
 
+			const err = customError("DATA_001");
 			await expect(
 				service.createProject({
 					ownerOrganisationId: 1,
@@ -300,8 +312,9 @@ describe("ProjectManagementService", () => {
 				}),
 			).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Country not found",
+				code: err.code,
+				message: err.message,
+				detail: "Country not found",
 			});
 		});
 
@@ -310,6 +323,7 @@ describe("ProjectManagementService", () => {
 			mockPrisma.location.findUnique.mockResolvedValue({ id: 1, countryId: 2 });
 			mockPrisma.organisation.findUnique.mockResolvedValue({ id: 1 });
 
+			const err = customError("VAL_001");
 			await expect(
 				service.createProject({
 					ownerOrganisationId: 1,
@@ -319,8 +333,9 @@ describe("ProjectManagementService", () => {
 				}),
 			).rejects.toMatchObject({
 				statusCode: 400,
-				code: ERROR_CODES.VAL_001,
-				message:
+				code: err.code,
+				message: err.message,
+				detail:
 					"Selected admin location does not belong to the selected country",
 			});
 		});
@@ -336,6 +351,7 @@ describe("ProjectManagementService", () => {
 					code: "P2002",
 				}),
 			);
+			const err = customError("DATA_002");
 
 			await expect(
 				service.createProject({
@@ -346,7 +362,8 @@ describe("ProjectManagementService", () => {
 				}),
 			).rejects.toMatchObject({
 				statusCode: 409,
-				code: ERROR_CODES.DATA_002,
+				code: err.code,
+				message: err.message,
 			});
 		});
 	});
@@ -393,21 +410,26 @@ describe("ProjectManagementService", () => {
 		});
 
 		it("should throw VAL_003 when update payload is empty", async () => {
+			const err = customError("VAL_003");
+
 			await expect(service.updateProject(1, {})).rejects.toMatchObject({
 				statusCode: 400,
-				code: ERROR_CODES.VAL_003,
+				code: err.code,
+				message: err.message,
 			});
 		});
 
 		it("should throw DATA_001 when project is not found", async () => {
 			mockPrisma.project.findUnique.mockResolvedValue(null);
 
+			const err = customError("DATA_001");
 			await expect(
 				service.updateProject(1, { name: "Updated Name" }),
 			).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Project not found",
+				code: err.code,
+				message: err.message,
+				detail: "Project not found",
 			});
 		});
 
@@ -424,12 +446,14 @@ describe("ProjectManagementService", () => {
 			mockPrisma.project.findUnique.mockResolvedValue(existingProject);
 			mockPrisma.location.findUnique.mockResolvedValue({ id: 2, countryId: 2 });
 
+			const err = customError("VAL_001");
 			await expect(
 				service.updateProject(1, { adminLocationId: 2 }),
 			).rejects.toMatchObject({
 				statusCode: 400,
-				code: ERROR_CODES.VAL_001,
-				message:
+				code: err.code,
+				message: err.message,
+				detail:
 					"Selected admin location does not belong to the selected country",
 			});
 		});
@@ -480,10 +504,12 @@ describe("ProjectManagementService", () => {
 		it("should throw DATA_001 when project is not found", async () => {
 			mockPrisma.project.findUnique.mockResolvedValue(null);
 
+			const err = customError("DATA_001");
 			await expect(service.deleteProject(1)).rejects.toMatchObject({
 				statusCode: 404,
-				code: ERROR_CODES.DATA_001,
-				message: "Project not found",
+				code: err.code,
+				message: err.message,
+				detail: "Project not found",
 			});
 		});
 
@@ -499,10 +525,12 @@ describe("ProjectManagementService", () => {
 			mockPrisma.projectTreeType.count.mockResolvedValue(0);
 			mockPrisma.scanBatch.count.mockResolvedValue(0);
 
+			const err = customError("DATA_004");
 			await expect(service.deleteProject(1)).rejects.toMatchObject({
 				statusCode: 409,
-				code: ERROR_CODES.VAL_001,
-				message: "Cannot delete project with dependent records",
+				code: err.code,
+				message: err.message,
+				detail: "Cannot delete project with dependent records",
 			});
 		});
 	});

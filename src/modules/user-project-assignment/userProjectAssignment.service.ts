@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
-import { ERROR_CODES } from "../../utils/errorCodes";
+import { customError } from "../../utils/errorCodes";
 
 export type AssignUserProjectInput = {
 	userId: number;
@@ -30,7 +30,11 @@ const isPositiveInt = (value: unknown): value is number =>
 
 const assertAssignmentIds = (userId: number, projectId: number) => {
 	if (!isPositiveInt(userId) || !isPositiveInt(projectId)) {
-		throw new AppError(400, "Invalid userId or projectId", ERROR_CODES.VAL_002);
+		throw new AppError(
+			400,
+			customError("VAL_002"),
+			"Invalid userId or projectId",
+		);
 	}
 };
 
@@ -41,7 +45,7 @@ const ensureUserExists = async (userId: number) => {
 	});
 
 	if (!user) {
-		throw new AppError(404, "User not found", ERROR_CODES.DATA_001);
+		throw new AppError(404, customError("DATA_001"), "User not found");
 	}
 };
 
@@ -52,7 +56,7 @@ const ensureProjectExists = async (projectId: number) => {
 	});
 
 	if (!project) {
-		throw new AppError(404, "Project not found", ERROR_CODES.DATA_001);
+		throw new AppError(404, customError("DATA_001"), "Project not found");
 	}
 };
 
@@ -85,7 +89,7 @@ export class UserProjectAssignmentService {
 				orderBy: [{ projectId: "asc" }, { userId: "asc" }],
 			});
 		} catch {
-			throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
+			throw new AppError(500, customError("SYS_002"));
 		}
 	}
 
@@ -106,7 +110,7 @@ export class UserProjectAssignmentService {
 			});
 
 			if (existingAssignment) {
-				throw new AppError(409, ERROR_CODES.DATA_002, ERROR_CODES.DATA_002);
+				throw new AppError(409, customError("DATA_002"));
 			}
 
 			return await prisma.userProject.create({
@@ -125,10 +129,10 @@ export class UserProjectAssignmentService {
 				error instanceof Prisma.PrismaClientKnownRequestError &&
 				error.code === "P2002"
 			) {
-				throw new AppError(409, ERROR_CODES.DATA_002, ERROR_CODES.DATA_002);
+				throw new AppError(409, customError("DATA_002"));
 			}
 
-			throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
+			throw new AppError(500, customError("SYS_002"));
 		}
 	}
 
@@ -146,7 +150,11 @@ export class UserProjectAssignmentService {
 			});
 
 			if (!existingAssignment) {
-				throw new AppError(404, "Assignment not found", ERROR_CODES.DATA_001);
+				throw new AppError(
+					404,
+					customError("DATA_001"),
+					"Assignment not found",
+				);
 			}
 
 			await prisma.userProject.delete({
@@ -166,7 +174,7 @@ export class UserProjectAssignmentService {
 				throw error;
 			}
 
-			throw new AppError(500, ERROR_CODES.SYS_002, ERROR_CODES.SYS_002);
+			throw new AppError(500, customError("SYS_002"));
 		}
 	}
 }

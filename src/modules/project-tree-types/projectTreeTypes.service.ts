@@ -6,6 +6,7 @@ import type {
 	CreateProjectTreeTypeInput,
 	ListProjectTreeTypesQuery,
 } from "./projectTreeTypes.schemas";
+import { customError } from "../../utils/errorCodes";
 
 interface ProjectTreeTypeResponse {
 	project_id: number;
@@ -84,11 +85,19 @@ export class ProjectTreeTypesService {
 		]);
 
 		if (!project) {
-			throw new AppError(404, PROJECT_NOT_FOUND_MESSAGE, "DATA_001");
+			throw new AppError(
+				404,
+				customError("DATA_001"),
+				PROJECT_NOT_FOUND_MESSAGE,
+			);
 		}
 
 		if (!treeType) {
-			throw new AppError(404, TREE_TYPE_NOT_FOUND_MESSAGE, "DATA_001");
+			throw new AppError(
+				404,
+				customError("DATA_001"),
+				TREE_TYPE_NOT_FOUND_MESSAGE,
+			);
 		}
 
 		const existingMapping = await prisma.projectTreeType.findUnique({
@@ -101,7 +110,11 @@ export class ProjectTreeTypesService {
 		});
 
 		if (existingMapping) {
-			throw new AppError(409, PROJECT_TREE_TYPE_DUPLICATE_MESSAGE, "DATA_002");
+			throw new AppError(
+				409,
+				customError("DATA_002"),
+				PROJECT_TREE_TYPE_DUPLICATE_MESSAGE,
+			);
 		}
 
 		try {
@@ -154,7 +167,11 @@ export class ProjectTreeTypesService {
 		});
 
 		if (!existingMapping) {
-			throw new AppError(404, PROJECT_TREE_TYPE_NOT_FOUND_MESSAGE, "DATA_001");
+			throw new AppError(
+				404,
+				customError("DATA_002"),
+				PROJECT_TREE_TYPE_NOT_FOUND_MESSAGE,
+			);
 		}
 
 		await prisma.projectTreeType.delete({
@@ -186,14 +203,18 @@ export class ProjectTreeTypesService {
 			if (error.code === "P2002") {
 				throw new AppError(
 					409,
+					customError("DATA_002"),
 					PROJECT_TREE_TYPE_DUPLICATE_MESSAGE,
-					"DATA_002",
 				);
 			}
 		}
 
 		if (errorCode === "P2002" || errorCode === "23505") {
-			throw new AppError(409, PROJECT_TREE_TYPE_DUPLICATE_MESSAGE, "DATA_002");
+			throw new AppError(
+				409,
+				customError("DATA_002"),
+				PROJECT_TREE_TYPE_DUPLICATE_MESSAGE,
+			);
 		}
 
 		throw error;
