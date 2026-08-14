@@ -51,6 +51,7 @@ describe("Tree Scans Integration Tests", () => {
 		longitude: 144.9631,
 		photoId: "550e8400-e29b-41d4-a716-446655440000",
 		deviceId: "DEVICE-001",
+		clientScanId: randomUUID(),
 		validationNotes: "Healthy tree",
 	});
 

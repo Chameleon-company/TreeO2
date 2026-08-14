@@ -23,6 +23,25 @@ type CreateScanBatchServiceInput = CreateScanBatchInput & {
 	inspector_id: number;
 };
 
+type ScanBatchWithRelations = Prisma.ScanBatchGetPayload<{
+	include: {
+		inspector: { select: { id: true; name: true; email: true } };
+		project: { select: { id: true; name: true } };
+		treeScans: true;
+	};
+}>;
+
+// Result of an upload. `batch` is null when every submitted scan already
+// existed, in which case no batch header is created and `created` is 0.
+interface CreateScanBatchResult {
+	batch: ScanBatchWithRelations | null;
+	summary: {
+		created: number;
+		skipped: number;
+		skippedClientScanIds: string[];
+	};
+}
+
 // Fetch paginated scan batches with role-based access filtering
 export const getScanBatches = async (
 	query: GetScanBatchesQueryInput,
@@ -168,7 +187,9 @@ export const getScanBatchById = async (
 };
 
 // Validate and create a scan batch with related tree scans
-export const createScanBatch = async (data: CreateScanBatchServiceInput) => {
+export const createScanBatch = async (
+	data: CreateScanBatchServiceInput,
+): Promise<CreateScanBatchResult> => {
 	const inspector = await prisma.user.findUnique({
 		where: { id: data.inspector_id },
 		include: {
@@ -377,13 +398,10 @@ export const createScanBatch = async (data: CreateScanBatchServiceInput) => {
 			data: {
 				inspectorId: data.inspector_id,
 				projectId: data.project_id,
-				deviceId: data.device_id,
 				uploadedAt: data.uploaded_at ?? new Date(),
 			},
 		});
 
-		// skipDuplicates guards against a concurrent retry inserting the same
-		// (device, client_scan_id) between the lookup above and this insert.
 		const inserted = await tx.treeScan.createMany({
 			data: newScans.map((scan) => ({
 				fobId: scan.fob_id,
@@ -405,7 +423,6 @@ export const createScanBatch = async (data: CreateScanBatchServiceInput) => {
 				scanTimestamp: scan.scan_timestamp ?? null,
 				batchId: scanBatch.id,
 			})),
-			skipDuplicates: true,
 		});
 
 		const batch = await tx.scanBatch.findUnique({

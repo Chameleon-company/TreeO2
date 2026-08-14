@@ -111,6 +111,13 @@ export const createScanBatchSchema = z
 			.min(1, SCAN_BATCHES_MESSAGES.INVALID_SCANS_ARRAY)
 			.max(SCAN_BATCHES_LIMITS.MAX_SCANS_PER_BATCH),
 	})
+	// Reject a batch that carries the same client_scan_id more than once.
+	//
+	// client_scan_id is the device's idempotency key: the DB enforces uniqueness
+	// on (project_id, inspector_id, device_id, client_scan_id), but that only
+	// catches collisions against rows already stored. A single payload repeating
+	// an id would otherwise reach the insert and fail there, so it is caught here
+	// and reported as a validation error against the offending scan's index.
 	.superRefine((data, ctx) => {
 		const seenClientScanIds = new Set<string>();
 

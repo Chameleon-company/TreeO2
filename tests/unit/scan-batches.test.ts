@@ -408,7 +408,6 @@ describe("ScanBatchesService", () => {
 				data: {
 					inspectorId: inspectorUser.id,
 					projectId: 1,
-					deviceId: "MOB-001",
 					uploadedAt: validCreateInput.uploaded_at,
 				},
 			});
@@ -428,7 +427,6 @@ describe("ScanBatchesService", () => {
 						batchId: 1,
 					}),
 				],
-				skipDuplicates: true,
 			});
 
 			expect(result).toEqual({
@@ -497,7 +495,6 @@ describe("ScanBatchesService", () => {
 						clientScanId: "1c2d3e4f-5a6b-7c8d-9e0f-1a2b3c4d5e6f",
 					}),
 				],
-				skipDuplicates: true,
 			});
 
 			expect(result.summary).toEqual({

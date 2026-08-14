@@ -873,7 +873,7 @@ describe("Scan Batches Integration Tests", () => {
 			expect(response.body.data.treeScans.length).toBe(1);
 		});
 
-		it("should return 400 when client_scan_id is missing", async () => {
+		it("should return 400 when tree scan is missing client_scan_id field", async () => {
 			const response = await request(app)
 				.post("/scan-batches")
 				.set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
@@ -918,7 +918,7 @@ describe("Scan Batches Integration Tests", () => {
 			expect(response.status).toBe(400);
 		});
 
-		it("should return 400 for a duplicate client_scan_id within one batch", async () => {
+		it("should return 400 when tree scans have duplicate client_scan_id within one batch", async () => {
 			const scan = validPayload().scans[0];
 
 			const response = await request(app)
