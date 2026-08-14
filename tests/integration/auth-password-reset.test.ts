@@ -69,7 +69,7 @@ describe("Auth Password Reset Integration Tests", () => {
 				.send({ token: "not-a-real-token", password: "newpassword123" });
 
 			expect(res.status).toBe(400);
-			expect(res.body.code).toBe("AUTH_005");
+			expect(res.body.error.code).toBe("AUTH_005");
 		});
 
 		it("returns 400 for an expired token", async () => {
