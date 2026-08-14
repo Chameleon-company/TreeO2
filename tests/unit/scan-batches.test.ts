@@ -408,7 +408,7 @@ describe("ScanBatchesService", () => {
 				data: {
 					inspectorId: inspectorUser.id,
 					projectId: 1,
-					uploadedAt: validCreateInput.uploaded_at,
+					deviceId: "MOB-001",
 				},
 			});
 
@@ -504,8 +504,9 @@ describe("ScanBatchesService", () => {
 			});
 		});
 
-		// Tests default upload timestamp when uploaded_at is omitted
-		it("should use current date when uploaded_at is not provided", async () => {
+		// uploaded_at is no longer written by the service: the scan_batches
+		// column carries @default(now()), so the database stamps it.
+		it("should not set uploaded_at when creating a scan batch", async () => {
 			const inputWithoutUploadedAt = {
 				...validCreateInput,
 				uploaded_at: null,
@@ -514,8 +515,8 @@ describe("ScanBatchesService", () => {
 			await createScanBatch(inputWithoutUploadedAt);
 
 			expect(mockPrisma.scanBatch.create).toHaveBeenCalledWith({
-				data: expect.objectContaining({
-					uploadedAt: expect.any(Date),
+				data: expect.not.objectContaining({
+					uploadedAt: expect.anything(),
 				}),
 			});
 		});

@@ -398,7 +398,7 @@ export const createScanBatch = async (
 			data: {
 				inspectorId: data.inspector_id,
 				projectId: data.project_id,
-				uploadedAt: data.uploaded_at ?? new Date(),
+				deviceId: data.device_id,
 			},
 		});
 
