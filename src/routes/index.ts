@@ -13,6 +13,7 @@ import { partnersRoutes } from "../modules/partners";
 import { scanBatchesRoutes } from "../modules/scan-batches";
 import treeScansRoutes from "../modules/tree-scans";
 import { projectOrganisationRoutes } from "../modules/project-organisation";
+import { userProjectRoleRoutes } from "../modules/user-project-role";
 
 const router = Router();
 
@@ -26,6 +27,7 @@ router.use("/projects", projectManagementRoutes);
 router.use("/project-organisations", projectOrganisationRoutes);
 router.use("/localized-strings", localizationRoutes);
 router.use("/user-projects", userProjectAssignmentRoutes);
+router.use("/user-project-roles", userProjectRoleRoutes);
 router.use("/project-tree-types", projectTreeTypesRoutes);
 router.use("/partners", partnersRoutes);
 router.use("/scan-batches", scanBatchesRoutes);
