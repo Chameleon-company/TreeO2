@@ -5,7 +5,8 @@ model Role {
   primaryUsers User[]      @relation("PrimaryRole")
   roleAssignments          UserRoleAssignment[] 
 
-  userProjectRoles    UserProjectRole[]
+  userProjectRoles      UserProjectRole[]
+  userOrganisationRoles UserOrganisationRoles[]
   
   @@map("roles")
 }
