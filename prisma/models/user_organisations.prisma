@@ -7,6 +7,8 @@ model UserOrganisation {
   user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
 
+  roles UserOrganisationRoles[]
+
   @@id([userId, organisationId])
   @@map("user_organisations")
 }
