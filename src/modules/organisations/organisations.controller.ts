@@ -1,15 +1,15 @@
 import type { Response } from "express";
 import { organisationsService } from "./organisations.service";
 import type {
-	CreateOrganisationRequest,
-	ListOrganisationsRequest,
-	OrganisationIdRequest,
-	UpdateOrganisationRequest,
-} from "./organisations.types";
+	CreateOrganisationReq,
+	ListOrganisationsReq,
+	OrganisationIdReq,
+	UpdateOrganisationReq,
+} from "./organisations.schemas";
 
 export class OrganisationsController {
 	async listOrganisations(
-		req: ListOrganisationsRequest,
+		req: ListOrganisationsReq,
 		res: Response,
 	): Promise<void> {
 		const { page, limit } = req.query;
@@ -24,7 +24,7 @@ export class OrganisationsController {
 	}
 
 	async getOrganisationById(
-		req: OrganisationIdRequest,
+		req: OrganisationIdReq,
 		res: Response,
 	): Promise<void> {
 		const organisation = await organisationsService.getOrganisationById(
@@ -35,7 +35,7 @@ export class OrganisationsController {
 	}
 
 	async createOrganisation(
-		req: CreateOrganisationRequest,
+		req: CreateOrganisationReq,
 		res: Response,
 	): Promise<void> {
 		const organisation = await organisationsService.createOrganisation(
@@ -46,7 +46,7 @@ export class OrganisationsController {
 	}
 
 	async updateOrganisation(
-		req: UpdateOrganisationRequest,
+		req: UpdateOrganisationReq,
 		res: Response,
 	): Promise<void> {
 		const organisation = await organisationsService.updateOrganisation(
@@ -58,7 +58,7 @@ export class OrganisationsController {
 	}
 
 	async deleteOrganisation(
-		req: OrganisationIdRequest,
+		req: OrganisationIdReq,
 		res: Response,
 	): Promise<void> {
 		const organisation = await organisationsService.deactivateOrganisation(

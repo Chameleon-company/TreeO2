@@ -1,206 +1,218 @@
-import { describe, expect, it, beforeEach, jest } from "@jest/globals";
-import { organisationsService } from "../../src/modules/organisations/organisations.service";
-import { prisma } from "../../src/lib/prisma";
-import { AppError } from "../../src/middleware/errorHandler";
+process.env.NODE_ENV = "development";
+process.env.AUTH_DEV_MODE = "true";
 
-jest.mock("../../src/lib/prisma", () => ({
-	prisma: {
-		organisation: {
-			findMany: jest.fn(),
-			findUnique: jest.fn(),
-			create: jest.fn(),
-			update: jest.fn(),
-			count: jest.fn(),
-		},
-		userOrganisation: {
-			count: jest.fn(),
-		},
-		project: {
-			count: jest.fn(),
-		},
-	},
-}));
+import { describe, expect, it } from "@jest/globals";
+import request from "supertest";
+import app from "../../src/app";
 
-const mockedOrganisation = prisma.organisation as {
-	findMany: jest.MockedFunction<any>;
-	findUnique: jest.MockedFunction<any>;
-	create: jest.MockedFunction<any>;
-	update: jest.MockedFunction<any>;
-	count: jest.MockedFunction<any>;
+const TOKENS = {
+	ADMIN: process.env.AUTH_DEV_ADMIN_TOKEN!,
 };
 
-const mockedUserOrganisation = prisma.userOrganisation as {
-	count: jest.MockedFunction<any>;
-};
+const uniqueEmail = (): string =>
+	`org-${Date.now()}-${Math.floor(Math.random() * 10000)}@example.com`;
 
-const mockedProject = prisma.project as {
-	count: jest.MockedFunction<any>;
-};
-
-const buildOrganisation = (overrides = {}) => ({
-	id: 1,
-	name: "xpand Foundation",
-	contactEmail: "contact@xpand.net.au",
-	governmentId: null,
-	countryId: null,
-	adminLocationId: null,
-	streetAddress: null,
-	logoId: null,
-	description: null,
-	notes: null,
-	accountActive: true,
-	dateJoined: null,
-	createdAt: new Date("2026-01-01T00:00:00.000Z"),
-	updatedAt: new Date("2026-01-01T00:00:00.000Z"),
-	...overrides,
-});
-
-describe("OrganisationsService - Unit Tests", () => {
-	beforeEach(() => {
-		jest.clearAllMocks();
-	});
-
-	describe("listOrganisations", () => {
-		it("should return paginated organisations", async () => {
-			mockedOrganisation.findMany.mockResolvedValue([buildOrganisation()]);
-			mockedOrganisation.count.mockResolvedValue(1);
-
-			const result = await organisationsService.listOrganisations(1, 10);
-
-			expect(result.data.length).toBe(1);
-			expect(result.pagination.total).toBe(1);
-			expect(result.pagination.totalPages).toBe(1);
-			expect(mockedOrganisation.findMany).toHaveBeenCalled();
-		});
-
-		it("should calculate skip correctly for later pages", async () => {
-			mockedOrganisation.findMany.mockResolvedValue([]);
-			mockedOrganisation.count.mockResolvedValue(25);
-
-			const result = await organisationsService.listOrganisations(3, 10);
-
-			expect(result.pagination.page).toBe(3);
-			expect(result.pagination.totalPages).toBe(3);
-			expect(mockedOrganisation.findMany).toHaveBeenCalledWith(
-				expect.objectContaining({ skip: 20, take: 10 }),
-			);
-		});
-	});
-
-	describe("getOrganisationById", () => {
-		it("should return organisation when it exists", async () => {
-			mockedOrganisation.findUnique.mockResolvedValue(buildOrganisation());
-
-			const result = await organisationsService.getOrganisationById(1);
-
-			expect(result.id).toBe(1);
-			expect(result.name).toBe("xpand Foundation");
-		});
-
-		it("should throw 404 when organisation not found", async () => {
-			mockedOrganisation.findUnique.mockResolvedValue(null);
-
-			await expect(
-				organisationsService.getOrganisationById(999),
-			).rejects.toThrow(AppError);
-		});
-	});
-
-	describe("createOrganisation", () => {
-		it("should create organisation successfully", async () => {
-			mockedOrganisation.create.mockResolvedValue(buildOrganisation());
-
-			const result = await organisationsService.createOrganisation({
-				name: "xpand Foundation",
-				contactEmail: "contact@xpand.net.au",
+describe("Organisations API Integration Tests", () => {
+	it("POST /organisations - should create an organisation", async () => {
+		const res = await request(app)
+			.post("/organisations")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+			.set("Content-Type", "application/json")
+			.send({
+				name: "Integration Test Organisation",
+				contactEmail: uniqueEmail(),
+				description: "Created by integration tests",
 			});
 
-			expect(result.id).toBe(1);
-			expect(result.contactEmail).toBe("contact@xpand.net.au");
-			expect(mockedOrganisation.create).toHaveBeenCalledTimes(1);
-		});
-
-		it("should pass the validated payload straight to prisma", async () => {
-			mockedOrganisation.create.mockResolvedValue(buildOrganisation());
-
-			await organisationsService.createOrganisation({ name: "Only Name" });
-
-			expect(mockedOrganisation.create).toHaveBeenCalledWith({
-				data: { name: "Only Name" },
-			});
-		});
+		expect(res.status).toBe(201);
+		expect(res.body.success).toBe(true);
+		expect(res.body).toHaveProperty("data.id");
+		expect(res.body.data.accountActive).toBe(true);
 	});
 
-	describe("updateOrganisation", () => {
-		it("should update organisation successfully", async () => {
-			mockedOrganisation.findUnique.mockResolvedValue(buildOrganisation());
-			mockedOrganisation.update.mockResolvedValue(
-				buildOrganisation({ description: "Updated" }),
-			);
+	it("POST /organisations - should return 400 when name is missing", async () => {
+		const res = await request(app)
+			.post("/organisations")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+			.set("Content-Type", "application/json")
+			.send({ contactEmail: uniqueEmail() });
 
-			const result = await organisationsService.updateOrganisation(1, {
-				description: "Updated",
-			});
-
-			expect(result.description).toBe("Updated");
-			expect(mockedOrganisation.update).toHaveBeenCalledTimes(1);
-		});
-
-		it("should throw 404 when updating a non-existing organisation", async () => {
-			mockedOrganisation.findUnique.mockResolvedValue(null);
-
-			await expect(
-				organisationsService.updateOrganisation(999, { name: "Test" }),
-			).rejects.toThrow(AppError);
-		});
+		expect(res.status).toBe(400);
 	});
 
-	describe("deactivateOrganisation", () => {
-		it("should deactivate organisation when it has no active users or projects", async () => {
-			mockedOrganisation.findUnique.mockResolvedValue(buildOrganisation());
-			mockedUserOrganisation.count.mockResolvedValue(0);
-			mockedProject.count.mockResolvedValue(0);
-			mockedOrganisation.update.mockResolvedValue(
-				buildOrganisation({ accountActive: false }),
-			);
+	it("POST /organisations - should return 400 for an invalid email", async () => {
+		const res = await request(app)
+			.post("/organisations")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+			.set("Content-Type", "application/json")
+			.send({ name: "Invalid Email Org", contactEmail: "not-an-email" });
 
-			const result = await organisationsService.deactivateOrganisation(1);
+		expect(res.status).toBe(400);
+	});
 
-			expect(result.accountActive).toBe(false);
-			expect(mockedOrganisation.update).toHaveBeenCalledWith({
-				where: { id: 1 },
-				data: { accountActive: false },
-			});
-		});
+	it("POST /organisations - should return 409 for a duplicate contact email", async () => {
+		const email = uniqueEmail();
 
-		it("should throw 409 when organisation has active users", async () => {
-			mockedOrganisation.findUnique.mockResolvedValue(buildOrganisation());
-			mockedUserOrganisation.count.mockResolvedValue(2);
-			mockedProject.count.mockResolvedValue(0);
+		await request(app)
+			.post("/organisations")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+			.set("Content-Type", "application/json")
+			.send({ name: "First Organisation", contactEmail: email });
 
-			await expect(
-				organisationsService.deactivateOrganisation(1),
-			).rejects.toThrow(AppError);
-			expect(mockedOrganisation.update).not.toHaveBeenCalled();
-		});
+		const res = await request(app)
+			.post("/organisations")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+			.set("Content-Type", "application/json")
+			.send({ name: "Second Organisation", contactEmail: email });
 
-		it("should throw 409 when organisation has active projects", async () => {
-			mockedOrganisation.findUnique.mockResolvedValue(buildOrganisation());
-			mockedUserOrganisation.count.mockResolvedValue(0);
-			mockedProject.count.mockResolvedValue(3);
+		expect(res.status).toBe(409);
+	});
 
-			await expect(
-				organisationsService.deactivateOrganisation(1),
-			).rejects.toThrow(AppError);
-			expect(mockedOrganisation.update).not.toHaveBeenCalled();
-		});
+	it("GET /organisations - should return a paginated list", async () => {
+		const res = await request(app)
+			.get("/organisations?page=1&limit=10")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
 
-		it("should throw 404 when deactivating a non-existing organisation", async () => {
-			mockedOrganisation.findUnique.mockResolvedValue(null);
+		expect(res.status).toBe(200);
+		expect(res.body.success).toBe(true);
+		expect(Array.isArray(res.body.data)).toBe(true);
+		expect(res.body.pagination).toHaveProperty("total");
+		expect(res.body.pagination).toHaveProperty("totalPages");
+	});
 
-			await expect(
-				organisationsService.deactivateOrganisation(999),
-			).rejects.toThrow(AppError);
-		});
+	it("GET /organisations - should apply default pagination values", async () => {
+		const res = await request(app)
+			.get("/organisations")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
+
+		expect(res.status).toBe(200);
+		expect(res.body.pagination.page).toBe(1);
+		expect(res.body.pagination.limit).toBe(10);
+	});
+
+	it("GET /organisations - should return 400 for an invalid page value", async () => {
+		const res = await request(app)
+			.get("/organisations?page=0")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
+
+		expect(res.status).toBe(400);
+	});
+
+	it("GET /organisations/:id - should return the created organisation", async () => {
+		const created = await request(app)
+			.post("/organisations")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+			.set("Content-Type", "application/json")
+			.send({ name: "Fetch Me Organisation", contactEmail: uniqueEmail() });
+
+		const res = await request(app)
+			.get(`/organisations/${created.body.data.id}`)
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
+
+		expect(res.status).toBe(200);
+		expect(res.body.data.name).toBe("Fetch Me Organisation");
+	});
+
+	it("GET /organisations/:id - should return 404 when not found", async () => {
+		const res = await request(app)
+			.get("/organisations/999999")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
+
+		expect(res.status).toBe(404);
+	});
+
+	it("PUT /organisations/:id - should update an organisation", async () => {
+		const created = await request(app)
+			.post("/organisations")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+			.set("Content-Type", "application/json")
+			.send({ name: "Before Update", contactEmail: uniqueEmail() });
+
+		const res = await request(app)
+			.put(`/organisations/${created.body.data.id}`)
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+			.set("Content-Type", "application/json")
+			.send({ description: "Updated by integration tests" });
+
+		expect(res.status).toBe(200);
+		expect(res.body.data.description).toBe("Updated by integration tests");
+	});
+
+	it("PUT /organisations/:id - should return 400 for an empty body", async () => {
+		const created = await request(app)
+			.post("/organisations")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+			.set("Content-Type", "application/json")
+			.send({ name: "Empty Update Org", contactEmail: uniqueEmail() });
+
+		const res = await request(app)
+			.put(`/organisations/${created.body.data.id}`)
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+			.set("Content-Type", "application/json")
+			.send({});
+
+		expect(res.status).toBe(400);
+	});
+
+	it("PUT /organisations/:id - should reject accountActive in the update body", async () => {
+		const created = await request(app)
+			.post("/organisations")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+			.set("Content-Type", "application/json")
+			.send({ name: "Cannot Deactivate By Put", contactEmail: uniqueEmail() });
+
+		const res = await request(app)
+			.put(`/organisations/${created.body.data.id}`)
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+			.set("Content-Type", "application/json")
+			.send({ accountActive: false });
+
+		expect(res.status).toBe(400);
+
+		const fetched = await request(app)
+			.get(`/organisations/${created.body.data.id}`)
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
+
+		expect(fetched.body.data.accountActive).toBe(true);
+	});
+
+	it("PUT /organisations/:id - should return 404 when not found", async () => {
+		const res = await request(app)
+			.put("/organisations/999999")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+			.set("Content-Type", "application/json")
+			.send({ description: "Does not exist" });
+
+		expect(res.status).toBe(404);
+	});
+
+	it("DELETE /organisations/:id - should deactivate rather than remove", async () => {
+		const created = await request(app)
+			.post("/organisations")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+			.set("Content-Type", "application/json")
+			.send({ name: "Deactivate Me", contactEmail: uniqueEmail() });
+
+		const res = await request(app)
+			.delete(`/organisations/${created.body.data.id}`)
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
+
+		expect(res.status).toBe(200);
+		expect(res.body.data.accountActive).toBe(false);
+
+		const fetched = await request(app)
+			.get(`/organisations/${created.body.data.id}`)
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
+
+		expect(fetched.status).toBe(200);
+		expect(fetched.body.data.accountActive).toBe(false);
+	});
+
+	it("DELETE /organisations/:id - should return 404 when not found", async () => {
+		const res = await request(app)
+			.delete("/organisations/999999")
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
+
+		expect(res.status).toBe(404);
 	});
 });

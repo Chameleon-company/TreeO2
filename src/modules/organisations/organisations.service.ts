@@ -4,9 +4,9 @@ import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { customError } from "../../utils/errorCodes";
 import type {
-	CreateOrganisationBody,
-	UpdateOrganisationBody,
-} from "./organisations.types";
+	CreateOrganisationReqBody,
+	UpdateOrganisationReqBody,
+} from "./organisations.schemas";
 
 const ORGANISATION_HAS_ACTIVE_USERS_DETAIL =
 	"Organisation cannot be deactivated because it has active users";
@@ -63,7 +63,7 @@ export class OrganisationsService {
 	}
 
 	async createOrganisation(
-		payload: CreateOrganisationBody,
+		payload: CreateOrganisationReqBody,
 	): Promise<Organisation> {
 		const organisation = await prisma.organisation.create({
 			data: payload,
@@ -79,7 +79,7 @@ export class OrganisationsService {
 
 	async updateOrganisation(
 		id: number,
-		payload: UpdateOrganisationBody,
+		payload: UpdateOrganisationReqBody,
 	): Promise<Organisation> {
 		await this.getOrganisationById(id);
 

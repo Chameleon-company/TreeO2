@@ -47,33 +47,48 @@ const optionalText = z.string().trim().min(1).optional();
 
 const optionalForeignKey = z.coerce.number().int().positive().optional();
 
-const organisationIdParams = z.object({
+// request params return strings, so coerce to number
+export const OrganisationReqParams = z.object({
 	id: z.coerce.number().int().positive(),
 });
+export type OrganisationReqParams = z.infer<typeof OrganisationReqParams>;
 
-export const listOrganisationsSchema = z.object({
-	query: z.object({
-		page: z.coerce.number().int().positive().default(DEFAULT_PAGE),
-		limit: z.coerce
-			.number()
-			.int()
-			.positive()
-			.max(MAX_PAGE_SIZE)
-			.default(DEFAULT_PAGE_SIZE),
-	}),
+// query values also arrive as strings, so coerce to number
+export const ListOrganisationsReqQuery = z.object({
+	page: z.coerce.number().int().positive().default(DEFAULT_PAGE),
+	limit: z.coerce
+		.number()
+		.int()
+		.positive()
+		.max(MAX_PAGE_SIZE)
+		.default(DEFAULT_PAGE_SIZE),
 });
+export type ListOrganisationsReqQuery = z.infer<
+	typeof ListOrganisationsReqQuery
+>;
+typeof ListOrganisationsReqQuery;
 
-export const organisationIdSchema = z.object({
-	params: organisationIdParams,
+export const CreateOrganisationReqBody = z.object({
+	name: requiredName,
+	contactEmail: optionalEmail,
+	governmentId: optionalGovernmentId,
+	countryId: optionalForeignKey,
+	adminLocationId: optionalForeignKey,
+	streetAddress: optionalStreetAddress,
+	logoId: optionalLogoId,
+	description: optionalText,
+	notes: optionalText,
 });
+export type CreateOrganisationReqBody = z.infer<
+	typeof CreateOrganisationReqBody
+>;
+typeof CreateOrganisationReqBody;
 
-export const deleteOrganisationSchema = z.object({
-	params: organisationIdParams,
-});
-
-export const createOrganisationSchema = z.object({
-	body: z.object({
-		name: requiredName,
+// accountActive is intentionally excluded: deactivation is only available via
+// DELETE, which enforces the active users and active projects guards
+export const UpdateOrganisationReqBody = z
+	.object({
+		name: requiredName.optional(),
 		contactEmail: optionalEmail,
 		governmentId: optionalGovernmentId,
 		countryId: optionalForeignKey,
@@ -82,25 +97,36 @@ export const createOrganisationSchema = z.object({
 		logoId: optionalLogoId,
 		description: optionalText,
 		notes: optionalText,
-	}),
-});
+	})
+	.refine((value) => Object.keys(value).length > 0, {
+		message: "At least one field is required",
+	});
+export type UpdateOrganisationReqBody = z.infer<
+	typeof UpdateOrganisationReqBody
+>;
+typeof UpdateOrganisationReqBody;
 
-export const updateOrganisationSchema = z.object({
-	params: organisationIdParams,
-	body: z
-		.object({
-			name: requiredName.optional(),
-			contactEmail: optionalEmail,
-			governmentId: optionalGovernmentId,
-			countryId: optionalForeignKey,
-			adminLocationId: optionalForeignKey,
-			streetAddress: optionalStreetAddress,
-			logoId: optionalLogoId,
-			description: optionalText,
-			notes: optionalText,
-			accountActive: z.boolean().optional(),
-		})
-		.refine((value) => Object.keys(value).length > 0, {
-			message: "At least one field is required",
-		}),
+// used for parsing req with query
+export const ListOrganisationsReq = z.object({
+	query: ListOrganisationsReqQuery,
 });
+export type ListOrganisationsReq = z.infer<typeof ListOrganisationsReq>;
+
+// used for parsing req with params
+export const OrganisationIdReq = z.object({
+	params: OrganisationReqParams,
+});
+export type OrganisationIdReq = z.infer<typeof OrganisationIdReq>;
+
+// used for parsing req with body
+export const CreateOrganisationReq = z.object({
+	body: CreateOrganisationReqBody,
+});
+export type CreateOrganisationReq = z.infer<typeof CreateOrganisationReq>;
+
+// used for parsing req with params and body
+export const UpdateOrganisationReq = z.object({
+	params: OrganisationReqParams,
+	body: UpdateOrganisationReqBody,
+});
+export type UpdateOrganisationReq = z.infer<typeof UpdateOrganisationReq>;
