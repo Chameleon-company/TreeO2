@@ -5,9 +5,12 @@ import { env } from "../config/env";
 import {
 	SYSTEM_ROLE_NAMES,
 	ORGANISATION_ROLE_NAMES,
+	PROJECT_ROLE_NAMES,
 	type JwtPayload,
 	type IdentityJwtPayload,
 	type IdentityJwtInfo,
+	type ProjectJwtPayload,
+	type ProjectJwtInfo,
 } from "../modules/auth/auth.types";
 
 export const signJwt = (payload: JwtPayload): string =>
@@ -55,4 +58,38 @@ export const verifyIdentityJwt = (token: string): IdentityJwtPayload => {
 	});
 
 	return identityJwtPayloadSchema.parse(decoded);
+};
+
+const PROJECT_TOKEN_EXPIRY = "15m";
+
+// Signs a short-lived Project-Scoped JWT; jti is generated here, iat/exp are added automatically
+export const signProjectJwt = (payload: ProjectJwtInfo): string =>
+	jwt.sign({ ...payload, jti: randomUUID() }, env.JWT_SECRET as Secret, {
+		expiresIn: PROJECT_TOKEN_EXPIRY,
+		algorithm: "HS256",
+	});
+
+const projectJwtPayloadSchema = z.object({
+	sub: z.string(),
+	userId: z.number(),
+	projectId: z.number(),
+	systemRole: z.enum(SYSTEM_ROLE_NAMES).optional(),
+	organisationId: z.number(),
+	organisationRole: z.enum(ORGANISATION_ROLE_NAMES),
+	projectRoles: z.array(z.enum(PROJECT_ROLE_NAMES)),
+	scope: z.literal("project"),
+	jti: z.string(),
+	iat: z.number(),
+	exp: z.number(),
+});
+
+// Verifies a token and validates it's a well-formed Project-Scoped JWT via Zod;
+// throws ZodError (handled centrally by errorHandler.ts) if the decoded payload
+// doesn't match the expected shape/scope
+export const verifyProjectJwt = (token: string): ProjectJwtPayload => {
+	const decoded = jwt.verify(token, env.JWT_SECRET as Secret, {
+		algorithms: ["HS256"],
+	});
+
+	return projectJwtPayloadSchema.parse(decoded);
 };

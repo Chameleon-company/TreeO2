@@ -67,3 +67,26 @@ export interface IdentityJwtPayload extends IdentityJwtInfo {
 	iat: number;
 	exp: number;
 }
+
+// Project-level roles: scoped to a single project assignment (v1.3 Section 6.3)
+export const PROJECT_ROLE_NAMES = ["Farmer", "Inspector", "Manager"] as const;
+export type ProjectRoleName = (typeof PROJECT_ROLE_NAMES)[number];
+
+// Project JWT claims that exist before signing (jti/iat/exp are added at signing time)
+export interface ProjectJwtInfo {
+	sub: string;
+	userId: number;
+	projectId: number;
+	systemRole?: SystemRoleName;
+	organisationId: number;
+	organisationRole: OrganisationRoleName;
+	projectRoles: ProjectRoleName[];
+	scope: "project";
+}
+
+// Project-Scoped JWT payload: issued after /auth/select-project, tied to exactly one project
+export interface ProjectJwtPayload extends ProjectJwtInfo {
+	jti: string;
+	iat: number;
+	exp: number;
+}
