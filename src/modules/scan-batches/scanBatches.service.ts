@@ -356,7 +356,14 @@ export const createScanBatch = async (
 
 	const clientScanIds = data.scans.map((scan) => scan.client_scan_id);
 
+	// TODO(API25): run this transaction at Serializable isolation and retry on
+	// P2034. Concurrent uploads of the same batch can both pass the lookup below
+	// before either commits, which currently surfaces as a P2002.
 	return prisma.$transaction(async (tx) => {
+		// TODO(API25): last-write-wins replaces this skip behaviour. A duplicate
+		// client_scan_id should compare scan_timestamp against the stored record
+		// and overwrite it where the scan is newer, writing the previous state to
+		// tree_scan_audit (V1.3 clarification, sec 10.7/7.24).
 		// Idempotency: find scans already stored for this device so a retry
 		// (e.g. after a network timeout or reconnect) never creates duplicate
 		// scan records. Matches the DB unique key
@@ -399,6 +406,7 @@ export const createScanBatch = async (
 				inspectorId: data.inspector_id,
 				projectId: data.project_id,
 				deviceId: data.device_id,
+				uploadedAt: data.uploaded_at ?? new Date(),
 			},
 		});
 
