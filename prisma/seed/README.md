@@ -4,8 +4,7 @@ Seeds a small, internally consistent set of dev and test data. Safe to run again
 
 ## Order
 
-Each file depends on ids created by the ones before it, so `seed.ts` calls them in
-a fixed order:
+Each file depends on ids created by the ones before it, so `seed.ts` calls them in a fixed order:
 
 1. `roles.ts` and `geography.ts` first, almost everything else needs a role id or a location id.
 2. `organisations.ts`, needs a country and location from geography. Seeds two organisations, the main owner and a partner used later to demonstrate project sharing.
