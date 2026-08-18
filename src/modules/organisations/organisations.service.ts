@@ -8,6 +8,8 @@ import type {
 	UpdateOrganisationReqBody,
 } from "./organisations.schemas";
 
+const ORGANISATION_DEACTIVATED_DETAIL =
+	"Organisation is deactivated and cannot be updated";
 const ORGANISATION_HAS_ACTIVE_USERS_DETAIL =
 	"Organisation cannot be deactivated because it has active users";
 const ORGANISATION_HAS_ACTIVE_PROJECTS_DETAIL =
@@ -81,7 +83,15 @@ export class OrganisationsService {
 		id: number,
 		payload: UpdateOrganisationReqBody,
 	): Promise<Organisation> {
-		await this.getOrganisationById(id);
+		const existingOrganisation = await this.getOrganisationById(id);
+
+		if (!existingOrganisation.accountActive) {
+			throw new AppError(
+				409,
+				customError("DATA_005"),
+				ORGANISATION_DEACTIVATED_DETAIL,
+			);
+		}
 
 		const organisation = await prisma.organisation.update({
 			where: { id },

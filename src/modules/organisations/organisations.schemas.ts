@@ -47,7 +47,7 @@ const optionalText = z.string().trim().min(1).optional();
 
 const optionalForeignKey = z.coerce.number().int().positive().optional();
 
-// request params return strings, so coerce to number
+// request params return strings, so use z.coerce.number() to convert to number
 export const OrganisationReqParams = z.object({
 	id: z.coerce.number().int().positive(),
 });
@@ -66,7 +66,6 @@ export const ListOrganisationsReqQuery = z.object({
 export type ListOrganisationsReqQuery = z.infer<
 	typeof ListOrganisationsReqQuery
 >;
-typeof ListOrganisationsReqQuery;
 
 export const CreateOrganisationReqBody = z.object({
 	name: requiredName,
@@ -82,10 +81,9 @@ export const CreateOrganisationReqBody = z.object({
 export type CreateOrganisationReqBody = z.infer<
 	typeof CreateOrganisationReqBody
 >;
-typeof CreateOrganisationReqBody;
 
-// accountActive is intentionally excluded: deactivation is only available via
-// DELETE, which enforces the active users and active projects guards
+// accountActive is intentionally excluded: deactivation is only available via DELETE,
+// which enforces the active users and active projects guards
 export const UpdateOrganisationReqBody = z
 	.object({
 		name: requiredName.optional(),
@@ -104,7 +102,6 @@ export const UpdateOrganisationReqBody = z
 export type UpdateOrganisationReqBody = z.infer<
 	typeof UpdateOrganisationReqBody
 >;
-typeof UpdateOrganisationReqBody;
 
 // used for parsing req with query
 export const ListOrganisationsReq = z.object({

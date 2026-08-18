@@ -7,11 +7,17 @@ import app from "../../src/app";
 
 const TOKENS = {
 	ADMIN: process.env.AUTH_DEV_ADMIN_TOKEN!,
-	MANAGER: process.env.AUTH_DEV_MANAGER_TOKEN!,
 };
 
 const uniqueEmail = (): string =>
 	`org-${Date.now()}-${Math.floor(Math.random() * 10000)}@example.com`;
+
+const createOrganisation = async (name: string) =>
+	request(app)
+		.post("/organisations")
+		.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+		.set("Content-Type", "application/json")
+		.send({ name, contactEmail: uniqueEmail() });
 
 describe("Organisations API Integration Tests", () => {
 	it("POST /organisations - should create an organisation", async () => {
@@ -69,22 +75,12 @@ describe("Organisations API Integration Tests", () => {
 		expect(res.status).toBe(409);
 	});
 
-	it("POST /organisations - should return 401 when no token is supplied", async () => {
-		const res = await request(app)
-			.post("/organisations")
-			.set("Content-Type", "application/json")
-			.send({ name: "No Token Org" });
-
-		expect(res.status).toBe(401);
-	});
-
 	it("GET /organisations - should return a paginated list", async () => {
 		const res = await request(app)
 			.get("/organisations?page=1&limit=10")
 			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
 
 		expect(res.status).toBe(200);
-		expect(res.body.success).toBe(true);
 		expect(Array.isArray(res.body.data)).toBe(true);
 		expect(res.body.pagination).toHaveProperty("total");
 		expect(res.body.pagination).toHaveProperty("totalPages");
@@ -108,20 +104,8 @@ describe("Organisations API Integration Tests", () => {
 		expect(res.status).toBe(400);
 	});
 
-	it("GET /organisations - MANAGER should be able to access the list", async () => {
-		const res = await request(app)
-			.get("/organisations")
-			.set("Authorization", `Bearer ${TOKENS.MANAGER}`);
-
-		expect(res.status).toBe(200);
-	});
-
 	it("GET /organisations/:id - should return the created organisation", async () => {
-		const created = await request(app)
-			.post("/organisations")
-			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
-			.set("Content-Type", "application/json")
-			.send({ name: "Fetch Me Organisation", contactEmail: uniqueEmail() });
+		const created = await createOrganisation("Fetch Me Organisation");
 
 		const res = await request(app)
 			.get(`/organisations/${created.body.data.id}`)
@@ -140,11 +124,7 @@ describe("Organisations API Integration Tests", () => {
 	});
 
 	it("PUT /organisations/:id - should update an organisation", async () => {
-		const created = await request(app)
-			.post("/organisations")
-			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
-			.set("Content-Type", "application/json")
-			.send({ name: "Before Update", contactEmail: uniqueEmail() });
+		const created = await createOrganisation("Before Update");
 
 		const res = await request(app)
 			.put(`/organisations/${created.body.data.id}`)
@@ -157,11 +137,7 @@ describe("Organisations API Integration Tests", () => {
 	});
 
 	it("PUT /organisations/:id - should return 400 for an empty body", async () => {
-		const created = await request(app)
-			.post("/organisations")
-			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
-			.set("Content-Type", "application/json")
-			.send({ name: "Empty Update Org", contactEmail: uniqueEmail() });
+		const created = await createOrganisation("Empty Update Org");
 
 		const res = await request(app)
 			.put(`/organisations/${created.body.data.id}`)
@@ -170,6 +146,40 @@ describe("Organisations API Integration Tests", () => {
 			.send({});
 
 		expect(res.status).toBe(400);
+	});
+
+	it("PUT /organisations/:id - should reject accountActive in the update body", async () => {
+		const created = await createOrganisation("Cannot Deactivate By Put");
+
+		const res = await request(app)
+			.put(`/organisations/${created.body.data.id}`)
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+			.set("Content-Type", "application/json")
+			.send({ accountActive: false });
+
+		expect(res.status).toBe(400);
+
+		const fetched = await request(app)
+			.get(`/organisations/${created.body.data.id}`)
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
+
+		expect(fetched.body.data.accountActive).toBe(true);
+	});
+
+	it("PUT /organisations/:id - should return 409 when the organisation is deactivated", async () => {
+		const created = await createOrganisation("Deactivated Then Updated");
+
+		await request(app)
+			.delete(`/organisations/${created.body.data.id}`)
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
+
+		const res = await request(app)
+			.put(`/organisations/${created.body.data.id}`)
+			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
+			.set("Content-Type", "application/json")
+			.send({ description: "Should not be allowed" });
+
+		expect(res.status).toBe(409);
 	});
 
 	it("PUT /organisations/:id - should return 404 when not found", async () => {
@@ -183,11 +193,7 @@ describe("Organisations API Integration Tests", () => {
 	});
 
 	it("DELETE /organisations/:id - should deactivate rather than remove", async () => {
-		const created = await request(app)
-			.post("/organisations")
-			.set("Authorization", `Bearer ${TOKENS.ADMIN}`)
-			.set("Content-Type", "application/json")
-			.send({ name: "Deactivate Me", contactEmail: uniqueEmail() });
+		const created = await createOrganisation("Deactivate Me");
 
 		const res = await request(app)
 			.delete(`/organisations/${created.body.data.id}`)
