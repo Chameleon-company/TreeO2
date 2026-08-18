@@ -24,11 +24,18 @@ export const verifyJwt = (token: string): JwtPayload =>
 		algorithms: ["HS256"],
 	}) as JwtPayload;
 
+const requireJwtSecret = (): string => {
+	if (!env.JWT_SECRET) {
+		throw new Error("JWT_SECRET is not configured");
+	}
+	return env.JWT_SECRET;
+};
+
 const IDENTITY_TOKEN_EXPIRY = "15m";
 
 // Signs a short-lived Identity JWT; jti is generated here, iat/exp are added automatically by jwt.sign()
 export const signIdentityJwt = (payload: IdentityJwtInfo): string =>
-	jwt.sign({ ...payload, jti: randomUUID() }, env.JWT_SECRET as Secret, {
+	jwt.sign({ ...payload, jti: randomUUID() }, requireJwtSecret(), {
 		expiresIn: IDENTITY_TOKEN_EXPIRY,
 		algorithm: "HS256",
 	});
@@ -53,7 +60,7 @@ const identityJwtPayloadSchema = z.object({
 // throws ZodError (handled centrally by errorHandler.ts) if the decoded payload
 // doesn't match the expected shape/scope
 export const verifyIdentityJwt = (token: string): IdentityJwtPayload => {
-	const decoded = jwt.verify(token, env.JWT_SECRET as Secret, {
+	const decoded = jwt.verify(token, requireJwtSecret(), {
 		algorithms: ["HS256"],
 	});
 
@@ -64,7 +71,7 @@ const PROJECT_TOKEN_EXPIRY = "15m";
 
 // Signs a short-lived Project-Scoped JWT; jti is generated here, iat/exp are added automatically
 export const signProjectJwt = (payload: ProjectJwtInfo): string =>
-	jwt.sign({ ...payload, jti: randomUUID() }, env.JWT_SECRET as Secret, {
+	jwt.sign({ ...payload, jti: randomUUID() }, requireJwtSecret(), {
 		expiresIn: PROJECT_TOKEN_EXPIRY,
 		algorithm: "HS256",
 	});
@@ -87,7 +94,7 @@ const projectJwtPayloadSchema = z.object({
 // throws ZodError (handled centrally by errorHandler.ts) if the decoded payload
 // doesn't match the expected shape/scope
 export const verifyProjectJwt = (token: string): ProjectJwtPayload => {
-	const decoded = jwt.verify(token, env.JWT_SECRET as Secret, {
+	const decoded = jwt.verify(token, requireJwtSecret(), {
 		algorithms: ["HS256"],
 	});
 
