@@ -18,24 +18,8 @@ a fixed order:
 
 ## Why users are seeded at all
 
-`AUTH_DEV_MODE` lets you skip logging in entirely, so it's a fair question
-whether seeding real user rows is even necessary. It only skips proving who you
-are, not what the app does with that identity afterward. Every controller that
-writes to the database still takes `req.user.sub` and uses it as a real user id,
-for example who's recorded as the inspector on a scan batch. If nobody actually
-exists at that id, the write fails with a foreign key error instead of an auth
-error.
+`AUTH_DEV_MODE` lets you skip logging in entirely, so it's a fair question whether seeding real user rows is even necessary. It only skips proving who you are, not what the app does with that identity afterward. Every controller that writes to the database still takes `req.user.sub` and uses it as a real user id, for example who's recorded as the inspector on a scan batch. If nobody actually exists at that id, the write fails with a foreign key error instead of an auth error.
 
-That's also why the ids in `users.ts` are pinned instead of left to whatever
-Postgres happens to assign. `auth.middleware.ts` hardcodes sub `"1"` through
-`"5"` to five specific roles, so the real ids have to match. This happened
-during development, not just in theory: reseeding after running the test suite
-once drifted the ids off 1-5, and dev token requests started failing on writes
-for a reason that had nothing to do with auth. Pinning the ids and resyncing the
-sequence afterward fixes that, and if 1-5 are ever genuinely taken by something
-else, seeding now fails loudly with a unique constraint error instead of
-drifting quietly.
+That's also why the ids in `users.ts` are pinned instead of left to whatever Postgres happens to assign. `auth.middleware.ts` hardcodes sub `"1"` through `"5"` to five specific roles, so the real ids have to match. This happened during development, not just in theory: reseeding after running the test suite once drifted the ids off 1-5, and dev token requests started failing on writes for a reason that had nothing to do with auth. Pinning the ids and resyncing the sequence afterward fixes that, and if 1-5 are ever genuinely taken by something else, seeding now fails loudly with a unique constraint error instead of drifting quietly.
 
-TODO (AUTH05, T2 2026): once the dev bypass looks users up by email instead of
-trusting a hardcoded sub, the pinned ids in `users.ts` can go away and it can go
-back to a plain upsert.
+TODO (AUTH05, T2 2026): once the dev bypass looks users up by email instead of trusting a hardcoded sub, the pinned ids in `users.ts` can go away and it can go back to a plain upsert.
