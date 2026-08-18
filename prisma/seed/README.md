@@ -1,8 +1,6 @@
 # Seeding
 
-Seeds a small, internally consistent set of dev and test data. Safe to run against
-a fresh database or re-run against one that's already seeded, everything here is
-idempotent.
+Seeds a small, internally consistent set of dev and test data. Safe to run against a fresh database or re-run against one that's already seeded, everything here is idempotent.
 
 ## Order
 
