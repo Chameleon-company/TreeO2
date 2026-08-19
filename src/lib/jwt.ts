@@ -4,7 +4,7 @@ import { env } from "../config/env";
 import {
 	JwtPayloadSchema,
 	IdentityJwtPayloadSchema,
-  ProjectJwtPayloadSchema,
+	ProjectJwtPayloadSchema,
 	type JwtPayload,
 	type IdentityJwtPayload,
 	type IdentityJwtInfo,
