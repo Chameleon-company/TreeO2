@@ -1,6 +1,7 @@
 // Needs the project, the farmer and inspector user ids, and the tree type
 // ids. Also needs the manager id, since one of the two scans below is
 // corrected and the correction is attributed to them.
+import { randomUUID } from "crypto";
 import { prisma } from "./client";
 
 export const seedScans = async (
@@ -37,6 +38,9 @@ export const seedScans = async (
 			latitude: -8.92,
 			longitude: 125.5,
 			batchId: batch.id,
+			deviceId: "MOB-001",
+			clientScanId: randomUUID(),
+			scanTimestamp: new Date("2024-02-10T08:15:00Z"),
 			isValid: true,
 		},
 	});
@@ -60,6 +64,9 @@ export const seedScans = async (
 			latitude: -8.925,
 			longitude: 125.505,
 			batchId: batch.id,
+			deviceId: "MOB-001",
+			clientScanId: randomUUID(),
+			scanTimestamp: new Date("2024-02-10T08:22:00Z"),
 			isCorrected: true,
 			correctedBy: managerId,
 			correctionReason:

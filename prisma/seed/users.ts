@@ -7,9 +7,8 @@ import type { RoleMap } from "./roles";
 // skips authentication, not the foreign key writes that still use these ids
 // afterward. For more information, including why, refer to the README in
 // this directory: prisma/seed/README.md
-// TODO (AUTH05, T2 2026): once the dev bypass looks users up by email instead
-// of trusting a hardcoded sub, this can go back to a plain upsert with no
-// pinned ids.
+// TODO: if the dev bypass ever looks users up by email instead of a hardcoded
+// sub, this can go back to a plain upsert with no pinned ids.
 export const seedUsers = async (
 	roles: RoleMap,
 	countryId: number,

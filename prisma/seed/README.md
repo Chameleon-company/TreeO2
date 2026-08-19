@@ -21,4 +21,4 @@ Each file depends on ids created by the ones before it, so `seed.ts` calls them 
 
 That's also why the ids in `users.ts` are pinned instead of left to whatever Postgres happens to assign. `auth.middleware.ts` hardcodes sub `"1"` through `"5"` to five specific roles, so the real ids have to match. This happened during development, not just in theory: reseeding after running the test suite once drifted the ids off 1-5, and dev token requests started failing on writes for a reason that had nothing to do with auth. Pinning the ids and resyncing the sequence afterward fixes that, and if 1-5 are ever genuinely taken by something else, seeding now fails loudly with a unique constraint error instead of drifting quietly.
 
-TODO (AUTH05, T2 2026): once the dev bypass looks users up by email instead of trusting a hardcoded sub, the pinned ids in `users.ts` can go away and it can go back to a plain upsert.
+TODO: if the dev bypass ever looks users up by email instead of a hardcoded sub, the pinned ids in `users.ts` can go away and it can go back to a plain upsert.
