@@ -5,7 +5,10 @@ import { env } from "../../config/env";
 import { logger } from "../../config/logger";
 import { hashPassword } from "../../lib/bcrypt";
 import type { JwtPayload, LoginRequestBody } from "./auth.types";
-import type { ForgotPasswordReqBody, ResetPasswordReqBody } from "./auth.schemas";
+import type {
+	ForgotPasswordReqBody,
+	ResetPasswordReqBody,
+} from "./auth.schemas";
 import { AuthRepository } from "./auth.repository";
 
 export class AuthService {
