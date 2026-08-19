@@ -89,6 +89,7 @@ describe("Auth Password Reset Integration Tests", () => {
 				.send({ token: rawToken, password: "newpassword123" });
 
 			expect(res.status).toBe(400);
+			expect(res.body.error.code).toBe("AUTH_002");
 		});
 
 		it("resets the password and clears the token for a valid token", async () => {
@@ -112,7 +113,7 @@ describe("Auth Password Reset Integration Tests", () => {
 			const updated = await prisma.user.findUnique({ where: { id: userId } });
 			expect(updated?.resetToken).toBeNull();
 			expect(updated?.resetTokenExpires).toBeNull();
-			expect(updated?.passwordHash).not.toBeNull();
+			expect(updated?.passwordHash).toMatch(/^\$2[aby]\$\d{2}\$/);
 		});
 	});
 });

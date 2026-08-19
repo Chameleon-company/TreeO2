@@ -11,6 +11,7 @@ import {
 	loginSchema,
 	resetPasswordSchema,
 } from "./auth.schemas";
+import type { ForgotPasswordRequest, ResetPasswordRequest } from "./auth.types";
 
 const router = Router();
 const authController = new AuthController();
@@ -27,7 +28,9 @@ router.post(
 	"/forgot-password",
 	validateMiddleware(forgotPasswordSchema),
 	(req, res, next) => {
-		void authController.forgotPassword(req, res).catch(next);
+		void authController
+			.forgotPassword(req as unknown as ForgotPasswordRequest, res)
+			.catch(next);
 	},
 );
 
@@ -35,7 +38,9 @@ router.post(
 	"/reset-password",
 	validateMiddleware(resetPasswordSchema),
 	(req, res, next) => {
-		void authController.resetPassword(req, res).catch(next);
+		void authController
+			.resetPassword(req as unknown as ResetPasswordRequest, res)
+			.catch(next);
 	},
 );
 

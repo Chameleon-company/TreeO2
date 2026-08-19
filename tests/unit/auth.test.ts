@@ -22,7 +22,7 @@ describe("AuthService", () => {
 	let mockRepo: {
 		findUserByEmail: jest.Mock;
 		setResetToken: jest.Mock;
-		findUserByValidResetTokenHash: jest.Mock;
+		findUserByResetTokenHash: jest.Mock;
 		updatePasswordAndClearResetToken: jest.Mock;
 	};
 	let service: AuthService;
@@ -32,7 +32,7 @@ describe("AuthService", () => {
 		mockRepo = {
 			findUserByEmail: jest.fn(),
 			setResetToken: jest.fn(),
-			findUserByValidResetTokenHash: jest.fn(),
+			findUserByResetTokenHash: jest.fn(),
 			updatePasswordAndClearResetToken: jest.fn(),
 		};
 		service = new AuthService(mockRepo as unknown as AuthRepository);
@@ -52,6 +52,9 @@ describe("AuthService", () => {
 
 			await service.forgotPassword({ email: "user@example.com" });
 
+			expect(mockRepo.findUserByEmail).toHaveBeenCalledWith(
+				"user@example.com",
+			);
 			expect(mockRepo.setResetToken).toHaveBeenCalledTimes(1);
 			const [userId, tokenHash, expiresAt] =
 				mockRepo.setResetToken.mock.calls[0];
@@ -69,8 +72,8 @@ describe("AuthService", () => {
 	});
 
 	describe("resetPassword", () => {
-		it("throws 400 AUTH_005 when the token is invalid or expired", async () => {
-			mockRepo.findUserByValidResetTokenHash.mockResolvedValue(null);
+		it("throws 400 AUTH_005 when the token hash doesn't match any user", async () => {
+			mockRepo.findUserByResetTokenHash.mockResolvedValue(null);
 
 			await expect(
 				service.resetPassword({
@@ -82,9 +85,26 @@ describe("AuthService", () => {
 			expect(mockRepo.updatePasswordAndClearResetToken).not.toHaveBeenCalled();
 		});
 
-		it("hashes the new password and clears the reset token on success", async () => {
-			mockRepo.findUserByValidResetTokenHash.mockResolvedValue({
+		it("throws 400 AUTH_002 when the token has expired", async () => {
+			mockRepo.findUserByResetTokenHash.mockResolvedValue({
 				id: 7,
+				resetTokenExpires: new Date(Date.now() - 60 * 1000),
+			} as unknown as User);
+
+			await expect(
+				service.resetPassword({
+					token: "expired-token",
+					password: "newpassword123",
+				}),
+			).rejects.toMatchObject({ statusCode: 400, code: "AUTH_002" });
+
+			expect(mockRepo.updatePasswordAndClearResetToken).not.toHaveBeenCalled();
+		});
+
+		it("hashes the new password and clears the reset token on success", async () => {
+			mockRepo.findUserByResetTokenHash.mockResolvedValue({
+				id: 7,
+				resetTokenExpires: new Date(Date.now() + 60 * 1000),
 			} as unknown as User);
 			(hashPassword as jest.Mock).mockResolvedValue("hashed-password");
 

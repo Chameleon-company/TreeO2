@@ -1,3 +1,5 @@
+import type { Request } from "express";
+
 export const ROLE_NAMES = [
 	"FARMER",
 	"INSPECTOR",
@@ -27,6 +29,17 @@ export interface ResetPasswordRequestBody {
 	token: string;
 	password: string;
 }
+
+export type ForgotPasswordRequest = Request<
+	unknown,
+	unknown,
+	ForgotPasswordRequestBody
+>;
+export type ResetPasswordRequest = Request<
+	unknown,
+	unknown,
+	ResetPasswordRequestBody
+>;
 
 export interface AuthRouteResponse {
 	success: boolean;

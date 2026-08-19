@@ -3,10 +3,10 @@ import { AppError } from "../../middleware/errorHandler";
 import { customError } from "../../utils/errorCodes";
 import { AuthService } from "./auth.service";
 import type {
-	ForgotPasswordRequestBody,
+	ForgotPasswordRequest,
 	JwtPayload,
 	LoginRequestBody,
-	ResetPasswordRequestBody,
+	ResetPasswordRequest,
 } from "./auth.types";
 
 export class AuthController {
@@ -22,18 +22,17 @@ export class AuthController {
 		res.status(501).json({ success: false, message: "Not implemented" });
 	}
 
-	async forgotPassword(req: Request, res: Response): Promise<void> {
-		await this.authService.forgotPassword(
-			req.body as ForgotPasswordRequestBody,
-		);
+	async forgotPassword(req: ForgotPasswordRequest, res: Response): Promise<void> {
+		await this.authService.forgotPassword(req.body);
 		res.status(200).json({
 			success: true,
-			message: "If that email exists, a reset link has been sent",
+			message:
+				"If an account with that email exists, a password reset link has been sent",
 		});
 	}
 
-	async resetPassword(req: Request, res: Response): Promise<void> {
-		await this.authService.resetPassword(req.body as ResetPasswordRequestBody);
+	async resetPassword(req: ResetPasswordRequest, res: Response): Promise<void> {
+		await this.authService.resetPassword(req.body);
 		res.status(200).json({
 			success: true,
 			message: "Password has been reset",

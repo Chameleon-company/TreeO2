@@ -25,12 +25,9 @@ export class AuthRepository {
 		});
 	}
 
-	async findUserByValidResetTokenHash(tokenHash: string): Promise<User | null> {
+	async findUserByResetTokenHash(tokenHash: string): Promise<User | null> {
 		return prisma.user.findFirst({
-			where: {
-				resetToken: tokenHash,
-				resetTokenExpires: { gt: new Date() },
-			},
+			where: { resetToken: tokenHash },
 		});
 	}
 
