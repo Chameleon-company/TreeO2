@@ -52,9 +52,7 @@ describe("AuthService", () => {
 
 			await service.forgotPassword({ email: "user@example.com" });
 
-			expect(mockRepo.findUserByEmail).toHaveBeenCalledWith(
-				"user@example.com",
-			);
+			expect(mockRepo.findUserByEmail).toHaveBeenCalledWith("user@example.com");
 			expect(mockRepo.setResetToken).toHaveBeenCalledTimes(1);
 			const [userId, tokenHash, expiresAt] =
 				mockRepo.setResetToken.mock.calls[0];
