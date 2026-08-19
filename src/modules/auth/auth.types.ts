@@ -1,4 +1,3 @@
-import type { Request } from "express";
 import { z } from "zod";
 
 export const ROLE_NAMES = [
@@ -72,26 +71,6 @@ export interface LoginRequestBody {
 	email: string;
 	password: string;
 }
-
-export interface ForgotPasswordRequestBody {
-	email: string;
-}
-
-export interface ResetPasswordRequestBody {
-	token: string;
-	password: string;
-}
-
-export type ForgotPasswordRequest = Request<
-	unknown,
-	unknown,
-	ForgotPasswordRequestBody
->;
-export type ResetPasswordRequest = Request<
-	unknown,
-	unknown,
-	ResetPasswordRequestBody
->;
 
 export interface AuthRouteResponse {
 	success: boolean;

@@ -2,12 +2,8 @@ import type { Request, Response } from "express";
 import { AppError } from "../../middleware/errorHandler";
 import { customError } from "../../utils/errorCodes";
 import { AuthService } from "./auth.service";
-import type {
-	ForgotPasswordRequest,
-	JwtPayload,
-	LoginRequestBody,
-	ResetPasswordRequest,
-} from "./auth.types";
+import type { JwtPayload, LoginRequestBody } from "./auth.types";
+import type { ForgotPasswordReq, ResetPasswordReq } from "./auth.schemas";
 
 export class AuthController {
 	constructor(private readonly authService = new AuthService()) {}
@@ -22,10 +18,7 @@ export class AuthController {
 		res.status(501).json({ success: false, message: "Not implemented" });
 	}
 
-	async forgotPassword(
-		req: ForgotPasswordRequest,
-		res: Response,
-	): Promise<void> {
+	async forgotPassword(req: ForgotPasswordReq, res: Response): Promise<void> {
 		await this.authService.forgotPassword(req.body);
 		res.status(200).json({
 			success: true,
@@ -34,7 +27,7 @@ export class AuthController {
 		});
 	}
 
-	async resetPassword(req: ResetPasswordRequest, res: Response): Promise<void> {
+	async resetPassword(req: ResetPasswordReq, res: Response): Promise<void> {
 		await this.authService.resetPassword(req.body);
 		res.status(200).json({
 			success: true,

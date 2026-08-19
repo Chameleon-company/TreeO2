@@ -4,12 +4,8 @@ import { customError } from "../../utils/errorCodes";
 import { env } from "../../config/env";
 import { logger } from "../../config/logger";
 import { hashPassword } from "../../lib/bcrypt";
-import type {
-	ForgotPasswordRequestBody,
-	JwtPayload,
-	LoginRequestBody,
-	ResetPasswordRequestBody,
-} from "./auth.types";
+import type { JwtPayload, LoginRequestBody } from "./auth.types";
+import type { ForgotPasswordReqBody, ResetPasswordReqBody } from "./auth.schemas";
 import { AuthRepository } from "./auth.repository";
 
 export class AuthService {
@@ -25,7 +21,7 @@ export class AuthService {
 		throw new AppError(501, customError("AUTH_006"));
 	}
 
-	async forgotPassword(payload: ForgotPasswordRequestBody): Promise<void> {
+	async forgotPassword(payload: ForgotPasswordReqBody): Promise<void> {
 		const user = await this.authRepository.findUserByEmail(payload.email);
 
 		// Same response whether or not the email exists, so we don't leak account existence
@@ -50,7 +46,7 @@ export class AuthService {
 		});
 	}
 
-	async resetPassword(payload: ResetPasswordRequestBody): Promise<void> {
+	async resetPassword(payload: ResetPasswordReqBody): Promise<void> {
 		const tokenHash = this.hashToken(payload.token);
 		const user = await this.authRepository.findUserByResetTokenHash(tokenHash);
 
