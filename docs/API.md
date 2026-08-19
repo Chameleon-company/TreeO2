@@ -4300,6 +4300,7 @@ Create a new scan batch and associate uploaded tree scans.
 ```json
 {
   "project_id": 1,
+  "device_id": "MOB-001",
   "uploaded_at": "2024-05-20T10:35:00.000Z",
   "scans": [
     {
@@ -4314,7 +4315,8 @@ Create a new scan batch and associate uploaded tree scans.
       "diameter_cm": 14.4,
       "latitude": -8.5569,
       "longitude": 125.5603,
-      "device_id": "MOB-001"
+      "client_scan_id": "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+      "scan_timestamp": "2024-05-20T10:30:00.000Z"
     }
   ]
 }
@@ -4322,14 +4324,31 @@ Create a new scan batch and associate uploaded tree scans.
 
 ##### Required Fields
 - `project_id`
+- `device_id` (batch level; identifies the uploading device)
 - `scans`
 - `fob_id`
 - `farmer_id`
 - `species_id`
 - `estimated_planted_year`
 - `estimated_planted_month`
+- `client_scan_id` (per scan; device-generated UUID)
+
+##### Offline Idempotency
+
+Offline scan uploads are idempotent. Each scan carries a device-generated
+`client_scan_id` (UUID), and the pair is stored under the unique key
+`(project_id, inspector_id, device_id, client_scan_id)`. If a batch is
+re-sent — for example after a network timeout or reconnect — scans that
+already exist are detected and skipped, so no duplicate scan records are
+created. `scan_timestamp` records when the scan was captured on the device
+and cannot be in the future.
+
+Each response includes a `summary` reporting how many scans were `created`
+versus `skipped`.
 
 ##### Response
+
+New scans created (some may be skipped duplicates):
 
 ```json
 {
@@ -4338,14 +4357,40 @@ Create a new scan batch and associate uploaded tree scans.
   "data": {
     "id": 1,
     "inspectorId": 4,
-    "projectId": 1
+    "projectId": 1,
+    "deviceId": "MOB-001",
+    "treeScans": []
+  },
+  "summary": {
+    "created": 1,
+    "skipped": 0,
+    "skippedClientScanIds": []
+  }
+}
+```
+
+Idempotent retry where every submitted scan already exists (no new batch is
+created):
+
+```json
+{
+  "success": true,
+  "message": "All submitted scans already exist. No new scans were created.",
+  "data": null,
+  "summary": {
+    "created": 0,
+    "skipped": 1,
+    "skippedClientScanIds": ["7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c"]
   }
 }
 ```
 
 ##### Status Codes
-- `201` Created
-- `400` Validation failed
+- `201` Created (one or more new scans inserted)
+- `200` Idempotent no-op (all submitted scans already existed)
+- `400` Validation failed (includes missing/invalid `client_scan_id` or
+  `device_id`, future `scan_timestamp`, or duplicate `client_scan_id` within
+  the batch)
 - `401` Authentication required
 - `403` Insufficient permissions
 - `404` Related entity not found

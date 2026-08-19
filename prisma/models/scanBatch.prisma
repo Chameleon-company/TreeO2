@@ -2,7 +2,9 @@ model ScanBatch {
   id          Int      @id @default(autoincrement())
   inspectorId Int      @map("inspector_id")
   projectId   Int      @map("project_id")
+  deviceId    String?  @map("device_id") @db.VarChar(100)
   uploadedAt  DateTime @default(now()) @map("uploaded_at")
+  createdAt   DateTime @default(now()) @map("created_at")
 
   inspector   User     @relation("ScanBatchInspector", fields: [inspectorId], references: [id], onDelete: Restrict)
   project     Project  @relation("ProjectScanBatches", fields: [projectId], references: [id], onDelete: Restrict)

@@ -313,6 +313,7 @@ export class TreeScansService {
 					photoId: data.photoId,
 					batchId: data.batchId,
 					deviceId: data.deviceId,
+					clientScanId: data.clientScanId,
 					validationNotes: data.validationNotes,
 				},
 				include: TREE_SCAN_INCLUDE,
