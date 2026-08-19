@@ -89,6 +89,7 @@ describe("TreeScansService", () => {
 		photoId: "550e8400-e29b-41d4-a716-446655440000",
 		batchId: 1,
 		deviceId: "DEVICE-001",
+		clientScanId: "3f1a6d90-8c25-4d0e-9b7a-2e5f8c1d4a63",
 		validationNotes: "Healthy tree",
 	};
 

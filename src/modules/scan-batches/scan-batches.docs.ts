@@ -96,12 +96,18 @@
  *             type: object
  *             required:
  *               - project_id
+ *               - device_id
  *               - scans
  *             properties:
  *               project_id:
  *                 type: integer
  *                 minimum: 1
  *                 example: 1
+ *               device_id:
+ *                 type: string
+ *                 maxLength: 100
+ *                 description: Identifier of the device uploading the batch. Forms part of the offline idempotency key.
+ *                 example: MOB-001
  *               uploaded_at:
  *                 type: string
  *                 format: date-time
@@ -118,6 +124,7 @@
  *                     - species_id
  *                     - estimated_planted_year
  *                     - estimated_planted_month
+ *                     - client_scan_id
  *                   properties:
  *                     fob_id:
  *                       type: string
@@ -169,16 +176,23 @@
  *                       minimum: -180
  *                       maximum: 180
  *                       example: 125.5603
- *                     device_id:
+ *                     client_scan_id:
  *                       type: string
- *                       maxLength: 100
- *                       example: MOB-001
+ *                       format: uuid
+ *                       description: Device-generated UUID that makes each scan idempotent across retries.
+ *                       example: 7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c
+ *                     scan_timestamp:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Time the scan was captured on the device. Cannot be in the future.
+ *                       example: 2024-05-20T10:30:00.000Z
  *                     photo_id:
  *                       type: string
  *                       format: uuid
  *                       example: 550e8400-e29b-41d4-a716-446655440000
  *           example:
  *             project_id: 1
+ *             device_id: MOB-001
  *             uploaded_at: 2024-05-20T10:35:00.000Z
  *             scans:
  *               - fob_id: NFC-001
@@ -192,10 +206,13 @@
  *                 diameter_cm: 14.4
  *                 latitude: -8.5569
  *                 longitude: 125.5603
- *                 device_id: MOB-001
+ *                 client_scan_id: 7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c
+ *                 scan_timestamp: 2024-05-20T10:30:00.000Z
  *     responses:
+ *       200:
+ *         description: Idempotent no-op. Every submitted scan already existed for this device, so no new records were created. Response body includes a summary with created (0) and skipped counts.
  *       201:
- *         description: Scan batch uploaded successfully
+ *         description: Scan batch uploaded successfully. Response body includes a summary of created and skipped (duplicate) scan counts.
  *       400:
  *         description: Validation failed
  *       401:

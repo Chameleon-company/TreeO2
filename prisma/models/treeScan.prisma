@@ -16,6 +16,9 @@ model TreeScan {
   photoId               String?    @map("photo_id") @db.Uuid
   batchId               Int?       @map("batch_id")
   deviceId              String?    @map("device_id") @db.VarChar(100)
+  clientScanId          String     @map("client_scan_id") @db.Uuid
+  // TODO(API25): add upload_timestamp (TIMESTAMP DEFAULT now()) per V1.2 7.20
+  scanTimestamp         DateTime?  @map("scan_timestamp")
   isArchived            Boolean    @default(false) @map("is_archived")
   isCorrected           Boolean    @default(false) @map("is_corrected")
   correctedBy           Int?       @map("corrected_by")
@@ -33,10 +36,12 @@ model TreeScan {
   correctedByUser       User?      @relation("CorrectedTreeScans", fields: [correctedBy], references: [id], onDelete: SetNull)
   audits                TreeScanAudit[]
 
+  @@unique([projectId, inspectorId, deviceId, clientScanId], name: "tree_scans_client_dedup")
   @@index([fobId])
   @@index([projectId])
   @@index([farmerId])
   @@index([speciesId])
   @@index([batchId])
+  @@index([clientScanId])
   @@map("tree_scans")
 }

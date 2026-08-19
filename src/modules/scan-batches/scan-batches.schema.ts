@@ -78,31 +78,55 @@ const scanSchema = z.object({
 		.optional()
 		.nullable(),
 
-	device_id: z
-		.string()
-		.trim()
-		.max(SCAN_BATCHES_LIMITS.DEVICE_ID_MAX_LENGTH)
-		.optional()
-		.nullable(),
-});
+	client_scan_id: z.string().uuid(SCAN_BATCHES_MESSAGES.INVALID_CLIENT_SCAN_ID),
 
-export const createScanBatchSchema = z.object({
-	project_id: z.coerce
-		.number()
-		.int()
-		.positive(SCAN_BATCHES_MESSAGES.PROJECT_REQUIRED),
-
-	uploaded_at: z.coerce
+	scan_timestamp: z.coerce
 		.date()
-		.refine(futureDateValidator, "Uploaded date cannot be in the future")
+		.refine(futureDateValidator, SCAN_BATCHES_MESSAGES.INVALID_SCAN_TIMESTAMP)
 		.optional()
 		.nullable(),
-
-	scans: z
-		.array(scanSchema)
-		.min(1, SCAN_BATCHES_MESSAGES.INVALID_SCANS_ARRAY)
-		.max(SCAN_BATCHES_LIMITS.MAX_SCANS_PER_BATCH),
 });
+
+export const createScanBatchSchema = z
+	.object({
+		project_id: z.coerce
+			.number()
+			.int()
+			.positive(SCAN_BATCHES_MESSAGES.PROJECT_REQUIRED),
+
+		device_id: z
+			.string()
+			.trim()
+			.min(1, SCAN_BATCHES_MESSAGES.DEVICE_ID_REQUIRED)
+			.max(SCAN_BATCHES_LIMITS.DEVICE_ID_MAX_LENGTH),
+
+		uploaded_at: z.coerce
+			.date()
+			.refine(futureDateValidator, "Uploaded date cannot be in the future")
+			.optional()
+			.nullable(),
+
+		scans: z
+			.array(scanSchema)
+			.min(1, SCAN_BATCHES_MESSAGES.INVALID_SCANS_ARRAY)
+			.max(SCAN_BATCHES_LIMITS.MAX_SCANS_PER_BATCH),
+	})
+	// Reject a batch that carries the same client_scan_id more than once.
+	.superRefine((data, ctx) => {
+		const seenClientScanIds = new Set<string>();
+
+		data.scans.forEach((scan, index) => {
+			if (seenClientScanIds.has(scan.client_scan_id)) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: SCAN_BATCHES_MESSAGES.DUPLICATE_CLIENT_SCAN_IDS,
+					path: ["scans", index, "client_scan_id"],
+				});
+			}
+
+			seenClientScanIds.add(scan.client_scan_id);
+		});
+	});
 
 export const getScanBatchesQuerySchema = z.object({
 	page: z.coerce.number().int().positive().default(SCAN_BATCHES_DEFAULTS.PAGE),
