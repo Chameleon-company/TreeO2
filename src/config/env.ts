@@ -43,6 +43,8 @@ const envSchema = z.object({
 	AUTH_DEV_MANAGER_TOKEN: z.string().optional(),
 	AUTH_DEV_INSPECTOR_TOKEN: z.string().optional(),
 	AUTH_DEV_DEVELOPER_TOKEN: z.string().optional(),
+	AUTH_DEV_ORG_ADMIN_TOKEN: z.string().optional(),
+	AUTH_DEV_SUPPORT_ADMIN_TOKEN: z.string().optional(),
 
 	RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000),
 	RATE_LIMIT_MAX: z.coerce.number().default(100),
