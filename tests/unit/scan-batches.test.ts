@@ -11,6 +11,7 @@ import {
 	SCAN_BATCHES_MESSAGES,
 } from "../../src/modules/scan-batches/scan-batches.constants";
 import { customError } from "../../src/utils/errorCodes";
+import { Prisma } from "@prisma/client";
 
 jest.mock("../../src/lib/prisma", () => {
 	const mockPrisma: any = {
@@ -24,6 +25,10 @@ jest.mock("../../src/lib/prisma", () => {
 		treeScan: {
 			findMany: jest.fn(),
 			createMany: jest.fn(),
+			update: jest.fn(),
+		},
+		treeScanAudit: {
+			create: jest.fn(),
 		},
 		user: {
 			findUnique: jest.fn(),
@@ -434,30 +439,117 @@ describe("ScanBatchesService", () => {
 				batch: scanBatchRecord,
 				summary: {
 					created: 1,
+					updated: 0,
 					skipped: 0,
 					skippedClientScanIds: [],
+					skippedNoTimestamp: [],
 				},
 			});
 		});
 
-		// Tests idempotent no-op when every submitted scan already exists
-		it("should skip batch creation when all scans already exist", async () => {
+		// Tests idempotent no-op when the stored record was modified after capture
+		it("should skip batch creation when all scans lose last-write-wins", async () => {
 			mockPrisma.treeScan.findMany.mockResolvedValue([
-				{ clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c" },
+				{
+					id: 50,
+					clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+					// Server record modified after the scan was captured, so it wins.
+					updatedAt: new Date("2024-05-21T00:00:00.000Z"),
+				},
 			]);
 
 			const result = await createScanBatch(validCreateInput);
 
 			expect(mockPrisma.scanBatch.create).not.toHaveBeenCalled();
 			expect(mockPrisma.treeScan.createMany).not.toHaveBeenCalled();
+			expect(mockPrisma.treeScan.update).not.toHaveBeenCalled();
 
 			expect(result).toEqual({
 				batch: null,
 				summary: {
 					created: 0,
+					updated: 0,
 					skipped: 1,
 					skippedClientScanIds: ["7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c"],
+					skippedNoTimestamp: [],
 				},
+			});
+		});
+
+		// Tests last-write-wins overwrite when the uploaded scan is the newer write
+		it("should overwrite a stored scan when the uploaded scan is newer", async () => {
+			const storedScan = {
+				id: 50,
+				fobId: "OLD-001",
+				clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+				// Server record last modified before the scan was captured.
+				updatedAt: new Date("2024-05-19T00:00:00.000Z"),
+			};
+
+			mockPrisma.treeScan.findMany.mockResolvedValue([storedScan]);
+			mockPrisma.treeScan.update.mockResolvedValue({
+				...storedScan,
+				fobId: "SWAGGER-001",
+			});
+
+			const result = await createScanBatch(validCreateInput);
+
+			expect(mockPrisma.treeScan.createMany).not.toHaveBeenCalled();
+			expect(mockPrisma.treeScan.update).toHaveBeenCalledWith({
+				where: { id: 50 },
+				data: expect.objectContaining({
+					fobId: "SWAGGER-001",
+					clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+					batchId: 1,
+				}),
+			});
+
+			// Overwritten state must be preserved for audit (V1.3 10.7/7.24)
+			expect(mockPrisma.treeScanAudit.create).toHaveBeenCalledWith({
+				data: expect.objectContaining({
+					treeScanId: 50,
+					changedBy: inspectorUser.id,
+					changeType: "corrected",
+					changeReason: "offline sync last-write-wins",
+				}),
+			});
+
+			expect(result.summary).toEqual({
+				created: 0,
+				updated: 1,
+				skipped: 0,
+				skippedClientScanIds: [],
+				skippedNoTimestamp: [],
+			});
+		});
+
+		// A duplicate with no scan_timestamp cannot be compared, so v1.2 10.5
+		// idempotency applies and no second record is created.
+		it("should skip a duplicate scan that has no scan_timestamp", async () => {
+			const inputWithoutScanTimestamp = {
+				...validCreateInput,
+				scans: [{ ...validCreateInput.scans[0], scan_timestamp: null }],
+			};
+
+			mockPrisma.treeScan.findMany.mockResolvedValue([
+				{
+					id: 50,
+					clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+					updatedAt: new Date("2024-05-19T00:00:00.000Z"),
+				},
+			]);
+
+			const result = await createScanBatch(inputWithoutScanTimestamp);
+
+			expect(mockPrisma.treeScan.update).not.toHaveBeenCalled();
+			expect(mockPrisma.treeScan.createMany).not.toHaveBeenCalled();
+
+			expect(result.summary).toEqual({
+				created: 0,
+				updated: 0,
+				skipped: 1,
+				skippedClientScanIds: [],
+				skippedNoTimestamp: ["7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c"],
 			});
 		});
 
@@ -481,9 +573,14 @@ describe("ScanBatchesService", () => {
 				.mockResolvedValueOnce(farmerRecord)
 				.mockResolvedValueOnce(farmerRecord);
 
-			// Only the first scan already exists; the second is new.
+			// Only the first scan already exists, and the stored record is newer, so
+			// it wins last-write-wins. The second scan is new.
 			mockPrisma.treeScan.findMany.mockResolvedValue([
-				{ clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c" },
+				{
+					id: 50,
+					clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+					updatedAt: new Date("2024-05-21T00:00:00.000Z"),
+				},
 			]);
 			mockPrisma.treeScan.createMany.mockResolvedValue({ count: 1 });
 
@@ -500,9 +597,33 @@ describe("ScanBatchesService", () => {
 
 			expect(result.summary).toEqual({
 				created: 1,
+				updated: 0,
 				skipped: 1,
 				skippedClientScanIds: ["7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c"],
+				skippedNoTimestamp: [],
 			});
+		});
+
+		// A Serializable transaction aborts with P2034 on write conflict; the
+		// upload retries rather than surfacing the conflict to the client.
+		it("should retry the transaction when it aborts with P2034", async () => {
+			const writeConflict = new Prisma.PrismaClientKnownRequestError(
+				"Transaction failed due to a write conflict or a deadlock",
+				{ code: "P2034", clientVersion: "test" },
+			);
+
+			const runTransaction = mockPrisma.$transaction;
+			mockPrisma.$transaction = jest
+				.fn()
+				.mockRejectedValueOnce(writeConflict)
+				.mockImplementation((callback: any) => callback(mockPrisma));
+
+			const result = await createScanBatch(validCreateInput);
+
+			expect(mockPrisma.$transaction).toHaveBeenCalledTimes(2);
+			expect(result.summary.created).toBe(1);
+
+			mockPrisma.$transaction = runTransaction;
 		});
 
 		// Tests default upload timestamp when uploaded_at is omitted

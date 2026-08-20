@@ -2,8 +2,9 @@ model TreeScanAudit {
   id           Int      @id @default(autoincrement())
   treeScanId   Int      @map("tree_scan_id")
   changedBy    Int      @map("changed_by")
-  changeReason String   @map("change_reason") @db.Text
-  oldData      Json     @map("old_data") @db.JsonB
+  changeType   String   @map("change_type") @db.VarChar(50)
+  changeReason String?  @map("change_reason") @db.Text
+  oldData      Json?    @map("old_data") @db.JsonB
   newData      Json     @map("new_data") @db.JsonB
   changedAt    DateTime @default(now()) @map("changed_at")
 

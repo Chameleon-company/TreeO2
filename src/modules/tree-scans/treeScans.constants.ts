@@ -11,6 +11,14 @@ export const TREE_SCAN_LIMITS = {
 	MAX_LIMIT: 100,
 } as const;
 
+// change_type values for tree_scan_audit (V1.2 7.21)
+export const TREE_SCAN_AUDIT_CHANGE_TYPES = {
+	CREATED: "created",
+	CORRECTED: "corrected",
+	ARCHIVED: "archived",
+	VALIDATED: "validated",
+} as const;
+
 export const TREE_SCAN_MESSAGES = {
 	SCAN_NOT_FOUND: "Tree scan not found",
 	PROJECT_NOT_FOUND: "Project not found",

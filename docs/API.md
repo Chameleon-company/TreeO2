@@ -4338,13 +4338,24 @@ Create a new scan batch and associate uploaded tree scans.
 Offline scan uploads are idempotent. Each scan carries a device-generated
 `client_scan_id` (UUID), and the pair is stored under the unique key
 `(project_id, inspector_id, device_id, client_scan_id)`. If a batch is
-re-sent — for example after a network timeout or reconnect — scans that
-already exist are detected and skipped, so no duplicate scan records are
-created. `scan_timestamp` records when the scan was captured on the device
-and cannot be in the future.
+re-sent — for example after a network timeout or reconnect — no duplicate
+scan record is created. `scan_timestamp` records when the scan was captured
+on the device and cannot be in the future.
 
-Each response includes a `summary` reporting how many scans were `created`
-versus `skipped`.
+##### Conflict Resolution (Last-Write-Wins)
+
+When a submitted `client_scan_id` already exists, the offline scan is treated
+as the authoritative field observation. If the stored record has not been
+modified since the scan was captured, the uploaded scan replaces it. If the
+stored record was modified after the scan was captured, the more recent
+modification wins and the upload is skipped. Either way the previous state of
+an overwritten record is preserved in `tree_scan_audit`.
+
+A duplicate submitted without a `scan_timestamp` cannot be compared, so it is
+skipped and reported under `skippedNoTimestamp` rather than overwriting.
+
+Each response includes a `summary` reporting how many scans were `created`,
+`updated` (overwritten under last-write-wins) and `skipped`.
 
 ##### Response
 
@@ -4363,8 +4374,10 @@ New scans created (some may be skipped duplicates):
   },
   "summary": {
     "created": 1,
+    "updated": 0,
     "skipped": 0,
-    "skippedClientScanIds": []
+    "skippedClientScanIds": [],
+    "skippedNoTimestamp": []
   }
 }
 ```
@@ -4379,21 +4392,25 @@ created):
   "data": null,
   "summary": {
     "created": 0,
+    "updated": 0,
     "skipped": 1,
-    "skippedClientScanIds": ["7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c"]
+    "skippedClientScanIds": ["7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c"],
+    "skippedNoTimestamp": []
   }
 }
 ```
 
 ##### Status Codes
-- `201` Created (one or more new scans inserted)
-- `200` Idempotent no-op (all submitted scans already existed)
+- `201` Created (one or more scans inserted or overwritten)
+- `200` Idempotent no-op (no scan was created or overwritten)
 - `400` Validation failed (includes missing/invalid `client_scan_id` or
   `device_id`, future `scan_timestamp`, or duplicate `client_scan_id` within
   the batch)
 - `401` Authentication required
 - `403` Insufficient permissions
 - `404` Related entity not found
+- `409` Write conflict between concurrent uploads could not be resolved after
+  retrying; the client may retry the request
 - `422` Invalid project or measurement values
 
 ---
