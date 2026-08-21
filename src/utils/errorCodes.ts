@@ -11,6 +11,7 @@ const ERROR_CODES = {
 	AUTH_007: "Project scope required",
 	AUTH_008: "Invalid token scope",
 	AUTH_009: "Refresh token revoked",
+	AUTH_010: "Too many requests",
 
 	// Tenant
 	TENANT_001: "Organisation access denied",

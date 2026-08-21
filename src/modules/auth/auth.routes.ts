@@ -1,5 +1,10 @@
 import { Router } from "express";
 import { env } from "../../config/env";
+import {
+	loginRateLimit,
+	forgotPasswordRateLimit,
+	resetPasswordRateLimit,
+} from "../../middleware/authRateLimit.middleware";
 import { authMiddleware } from "../../middleware/auth.middleware";
 import { projectScopeMiddleware } from "../../middleware/projectScope.middleware";
 import { roleMiddleware } from "../../middleware/role.middleware";
@@ -15,9 +20,14 @@ import {
 const router = Router();
 const authController = new AuthController();
 
-router.post("/login", validateMiddleware(loginSchema), (req, res, next) => {
-	void authController.login(req, res).catch(next);
-});
+router.post(
+	"/login",
+	loginRateLimit,
+	validateMiddleware(loginSchema),
+	(req, res, next) => {
+		void authController.login(req, res).catch(next);
+	},
+);
 
 router.post("/logout", authMiddleware, (req, res, next) => {
 	void authController.logout(req, res).catch(next);
@@ -26,6 +36,7 @@ router.post("/logout", authMiddleware, (req, res, next) => {
 router.post(
 	"/forgot-password",
 	validateMiddleware(ForgotPasswordReq),
+	forgotPasswordRateLimit,
 	(req, res, next) => {
 		void authController
 			.forgotPassword(req as unknown as ForgotPasswordReq, res)
@@ -36,6 +47,7 @@ router.post(
 router.post(
 	"/reset-password",
 	validateMiddleware(ResetPasswordReq),
+	resetPasswordRateLimit,
 	(req, res, next) => {
 		void authController
 			.resetPassword(req as unknown as ResetPasswordReq, res)
