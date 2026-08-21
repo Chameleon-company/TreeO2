@@ -166,23 +166,6 @@ Open the SVG file using Visual Studio Code or a web browser to review the genera
 
 ---
 
-## Step 7 – Review the Generated ERD
-
-Check that the generated ERD accurately represents the current TreeO2 database structure.
-
-Review the following:
-
-- All expected database entities are displayed
-- Primary keys are represented
-- Foreign key relationships are visible
-- Relationships between models are correct
-- Newly added models are displayed
-- Removed models are no longer displayed
-- Recent database changes are reflected
-
-The ERD should correspond with the current TreeO2 Prisma schema.
-
----
 
 # Updating the Temporary ERD Repository
 
@@ -209,88 +192,6 @@ The output should show:
 ```text
 * erd-generation
 ```
-
----
-
-## Step 1 – Check for Existing Changes
-
-Before updating the repository, run:
-
-```bash
-git status
-```
-
-This checks whether there are any uncommitted changes in the temporary repository.
-
-If there are no changes, continue to the next step.
-
-If there are unfinished changes that you do not want to commit yet, temporarily store them using:
-
-```bash
-git stash -u
-```
-
----
-
-## Step 2 – Retrieve the Latest TreeO2 Changes
-
-Run:
-
-```bash
-git fetch origin
-```
-
-This retrieves information about the latest changes from the TreeO2 GitHub repository.
-
-`git fetch` does **not** immediately modify the current working files.
-
----
-
-## Step 3 – Update the ERD Branch
-
-Run:
-
-```bash
-git rebase origin/master
-```
-
-This updates the ERD working branch so that it is based on the latest TreeO2 `master` branch.
-
-The result is approximately:
-
-```text
-Latest TreeO2 master
-        +
-ERD generation configuration
-```
-
-This allows the existing ERD setup to remain while bringing in the latest TreeO2 database changes.
-
----
-
-## Step 4 – Restore Temporarily Stored Changes
-
-If `git stash -u` was used earlier, restore the changes using:
-
-```bash
-git stash pop
-```
-
-If Git reports a conflict, review and resolve the affected files before continuing.
-
----
-
-## Step 5 – Regenerate the ERD
-
-Once the temporary repository has been updated, generate the ERD again:
-
-```bash
-npx prisma generate
-```
-
-The newly generated ERD should now reflect the latest TreeO2 Prisma database structure.
-
-Review the updated diagram before adding it to the project documentation.
 
 ---
 
