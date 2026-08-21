@@ -1,7 +1,12 @@
 import "dotenv/config";
 import type { Request, Response, NextFunction } from "express";
 import { projectScopeMiddleware } from "../../../src/middleware/projectScope.middleware";
-import type { ProjectJwtPayload } from "../../../src/modules/auth/auth.types";
+import { AppError } from "../../../src/middleware/errorHandler";
+import { customError } from "../../../src/utils/errorCodes";
+import type {
+	IdentityJwtPayload,
+	ProjectJwtPayload,
+} from "../../../src/modules/auth/auth.types";
 
 describe("projectScopeMiddleware - Comprehensive Unit Tests", () => {
 	let req: Partial<Request>;
@@ -10,11 +15,7 @@ describe("projectScopeMiddleware - Comprehensive Unit Tests", () => {
 
 	beforeEach(() => {
 		req = {
-			headers: {},
-			get: jest.fn((headerName: string) => {
-				const val = req.headers?.[headerName.toLowerCase()];
-				return Array.isArray(val) ? val[0] : val;
-			}) as any,
+			headers: {}, get: jest.fn(),
 		};
 		res = {};
 		next = jest.fn();
@@ -36,36 +37,132 @@ describe("projectScopeMiddleware - Comprehensive Unit Tests", () => {
 		};
 
 		req.user = projectUser;
-		req.headers = { "x-project-id": "45" };
 
-		projectScopeMiddleware(req as Request, res as Response, next);
+		projectScopeMiddleware(
+			req as unknown as Request,
+			res as unknown as Response,
+			next,
+		);
 
 		expect(next).toHaveBeenCalledTimes(1);
 		expect(next).toHaveBeenCalledWith();
 		expect(req.projectScope).toEqual({ projectId: 45 });
 	});
 
-	it("should reject requests with missing x-project-id header with 403 (AUTH_007)", () => {
-		req.headers = {};
+	it("should reject Identity-Scoped tokens (without SystemAdmin) with 403 (AUTH_008)", () => {
+		const identityUser: IdentityJwtPayload = {
+			sub: "123",
+			userId: 1,
+			scope: "identity",
+		};
+		req.user = identityUser;
 
-		projectScopeMiddleware(req as Request, res as Response, next);
+		projectScopeMiddleware(
+			req as unknown as Request,
+			res as unknown as Response,
+			next,
+		);
 
 		expect(next).toHaveBeenCalledTimes(1);
-		const [err] = next.mock.calls[0];
-		expect(err).toMatchObject({
-			statusCode: 403,
-		});
+		const err: unknown = next.mock.calls[0][0];
+		if (!(err instanceof AppError)) {
+			throw new Error("Expected AppError");
+		}
+		expect(err.statusCode).toBe(403);
+		expect(err.message).toBe(customError("AUTH_008").message);
 	});
 
-	it("should reject requests with missing or non-positive x-project-id header with 403 (AUTH_007)", () => {
-		req.headers = { "x-project-id": "0" };
+	it("should allow SystemAdmin Identity tokens to bypass project scope", () => {
+		const adminUser: IdentityJwtPayload = {
+			sub: "123",
+			userId: 123,
+			scope: "identity",
+			systemRole: "SystemAdmin",
+		};
 
-		projectScopeMiddleware(req as Request, res as Response, next);
+		req.user = adminUser;
+		req.params = { project_id: "99" };
+
+		projectScopeMiddleware(
+			req as unknown as Request,
+			res as unknown as Response,
+			next,
+		);
 
 		expect(next).toHaveBeenCalledTimes(1);
-		const [err] = next.mock.calls[0];
-		expect(err).toMatchObject({
-			statusCode: 403,
-		});
+		expect(next).toHaveBeenCalledWith();
+		expect(req.projectScope).toEqual({ projectId: 99 });
+	});
+
+	it("should reject unauthenticated requests (req.user undefined) with 401 (AUTH_003)", () => {
+		req.user = undefined;
+
+		projectScopeMiddleware(
+			req as unknown as Request,
+			res as unknown as Response,
+			next,
+		);
+
+		expect(next).toHaveBeenCalledTimes(1);
+		const err: unknown = next.mock.calls[0][0];
+		if (!(err instanceof AppError)) {
+			throw new Error("Expected AppError");
+		}
+		expect(err.statusCode).toBe(401);
+		expect(err.message).toBe(customError("AUTH_003").message);
+	});
+
+	it("should reject tokens with missing or non-positive projectId with 403 (AUTH_007)", () => {
+		const invalidProjectUser = {
+			sub: "123",
+			userId: 123,
+			scope: "project" as const,
+			projectId: 0,
+			organisationId: 10,
+			organisationRole: "Member",
+			projectRoles: ["Inspector"],
+		};
+
+		req.user = invalidProjectUser;
+
+		projectScopeMiddleware(
+			req as unknown as Request,
+			res as unknown as Response,
+			next,
+		);
+
+		expect(next).toHaveBeenCalledTimes(1);
+		const err: unknown = next.mock.calls[0][0];
+		if (!(err instanceof AppError)) {
+			throw new Error("Expected AppError");
+		}
+		expect(err.statusCode).toBe(403);
+		expect(err.message).toBe(customError("AUTH_007").message);
+	});
+
+	it("should ignore client x-project-id HTTP header and strictly use token claims", () => {
+		const identityUser: IdentityJwtPayload = {
+			sub: "123",
+			userId: 123,
+			scope: "identity",
+		};
+
+		req.user = identityUser;
+		req.headers = { "x-project-id": "999" };
+
+		projectScopeMiddleware(
+			req as unknown as Request,
+			res as unknown as Response,
+			next,
+		);
+
+		expect(next).toHaveBeenCalledTimes(1);
+		const err: unknown = next.mock.calls[0][0];
+		if (!(err instanceof AppError)) {
+			throw new Error("Expected AppError");
+		}
+		expect(err.statusCode).toBe(403);
+		expect(req.projectScope).toBeUndefined();
 	});
 });
+
