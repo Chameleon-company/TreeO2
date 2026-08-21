@@ -19,7 +19,8 @@ export const projectScopeMiddleware = (
 	// AUTH04 Rule 1: SystemAdmin Override
 	if (req.user.systemRole === "SystemAdmin") {
 		const inferredProjectId = Number(
-			req.params.project_id || req.body.project_id,
+			req.params.project_id ||
+				(req.body as Record<string, unknown>)?.project_id,
 		);
 		if (!Number.isNaN(inferredProjectId) && inferredProjectId > 0) {
 			req.projectScope = { projectId: inferredProjectId };

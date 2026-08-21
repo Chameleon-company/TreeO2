@@ -15,7 +15,8 @@ describe("projectScopeMiddleware - Comprehensive Unit Tests", () => {
 
 	beforeEach(() => {
 		req = {
-			headers: {}, get: jest.fn(),
+			headers: {},
+			get: jest.fn(),
 		};
 		res = {};
 		next = jest.fn();
@@ -165,4 +166,3 @@ describe("projectScopeMiddleware - Comprehensive Unit Tests", () => {
 		expect(req.projectScope).toBeUndefined();
 	});
 });
-
