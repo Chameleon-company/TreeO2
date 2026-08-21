@@ -49,6 +49,8 @@ const envSchema = z.object({
 	RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000),
 	RATE_LIMIT_MAX: z.coerce.number().default(100),
 
+	RESET_TOKEN_EXPIRY_MINUTES: z.coerce.number().default(30),
+
 	LOG_TO_FILE: booleanFromEnv(false),
 });
 

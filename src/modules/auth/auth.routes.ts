@@ -7,9 +7,9 @@ import { validateMiddleware } from "../../middleware/validate.middleware";
 import { AuthController } from "./auth.controller";
 import "./auth.docs";
 import {
-	forgotPasswordSchema,
+	ForgotPasswordReq,
 	loginSchema,
-	resetPasswordSchema,
+	ResetPasswordReq,
 } from "./auth.schemas";
 
 const router = Router();
@@ -25,17 +25,21 @@ router.post("/logout", authMiddleware, (req, res, next) => {
 
 router.post(
 	"/forgot-password",
-	validateMiddleware(forgotPasswordSchema),
+	validateMiddleware(ForgotPasswordReq),
 	(req, res, next) => {
-		void authController.forgotPassword(req, res).catch(next);
+		void authController
+			.forgotPassword(req as unknown as ForgotPasswordReq, res)
+			.catch(next);
 	},
 );
 
 router.post(
 	"/reset-password",
-	validateMiddleware(resetPasswordSchema),
+	validateMiddleware(ResetPasswordReq),
 	(req, res, next) => {
-		void authController.resetPassword(req, res).catch(next);
+		void authController
+			.resetPassword(req as unknown as ResetPasswordReq, res)
+			.catch(next);
 	},
 );
 
