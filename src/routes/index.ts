@@ -14,6 +14,7 @@ import { scanBatchesRoutes } from "../modules/scan-batches";
 import { organisationsRoutes } from "../modules/organisations";
 import treeScansRoutes from "../modules/tree-scans";
 import { projectOrganisationRoutes } from "../modules/project-organisation";
+import { userOrganisationsRoutes } from "../modules/user-organisations";
 
 const router = Router();
 
@@ -31,7 +32,7 @@ router.use("/project-tree-types", projectTreeTypesRoutes);
 router.use("/partners", partnersRoutes);
 router.use("/scan-batches", scanBatchesRoutes);
 router.use("/organisations", organisationsRoutes);
-
+router.use("/user-organisations", userOrganisationsRoutes);
 router.use("/tree-scans", treeScansRoutes);
 
 export default router;
