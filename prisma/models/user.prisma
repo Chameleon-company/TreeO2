@@ -41,6 +41,7 @@ model User {
   userProjectRoles     UserProjectRole[]    @relation("UserProjectRoles")
   assignedProjectRoles UserProjectRole[]    @relation("AssignedByUser")
   systemRole           SystemRole?          @relation(fields: [systemRoleId], references: [id])
+  refreshTokens        RefreshToken[]
 
   @@index([roleId])
   @@index([countryId])
