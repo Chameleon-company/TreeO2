@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { customError } from "../../utils/errorCodes";
@@ -35,23 +34,20 @@ const ensureProjectExists = async (projectId: number) => {
 const ensureRoleExists = async (roleId: number) => {
 	const role = await prisma.role.findUnique({
 		where: { id: roleId },
-		select: {
-			id: true,
-			name: true,
-		},
+		select: { id: true },
 	});
 
 	if (!role) {
 		throw new AppError(404, customError("DATA_001"), "Role not found");
 	}
-
-	return role;
 };
 
 const ensureUserCanBelongToProject = async (
 	userId: number,
 	projectId: number,
 ) => {
+	// Confirms the target user belongs to an active organisation
+	// that has access to the selected project.
 	const membership = await prisma.userOrganisation.findFirst({
 		where: {
 			userId,
@@ -67,7 +63,6 @@ const ensureUserCanBelongToProject = async (
 		},
 		select: {
 			userId: true,
-			organisationId: true,
 		},
 	});
 
@@ -78,8 +73,6 @@ const ensureUserCanBelongToProject = async (
 			"User does not belong to an active organisation linked to this project",
 		);
 	}
-
-	return membership;
 };
 
 const ensureRoleNotAlreadyAssigned = async (
@@ -97,8 +90,6 @@ const ensureRoleNotAlreadyAssigned = async (
 		},
 		select: {
 			userId: true,
-			projectId: true,
-			roleId: true,
 		},
 	});
 
@@ -112,60 +103,13 @@ const ensureRoleNotAlreadyAssigned = async (
 };
 
 export class UserProjectRoleService {
-	async getRoles() {
-		return await prisma.userProjectRole.findMany({
-			include: {
-				user: {
-					select: {
-						id: true,
-						name: true,
-						email: true,
-					},
-				},
-				project: {
-					select: {
-						id: true,
-						name: true,
-					},
-				},
-				role: {
-					select: {
-						id: true,
-						name: true,
-					},
-				},
-				assignedByUser: {
-					select: {
-						id: true,
-						name: true,
-					},
-				},
-			},
-			orderBy: {
-				createdAt: "desc",
-			},
-		});
-	}
+	async getRoles(page = 1, limit = 10) {
+		const skip = (page - 1) * limit;
 
-	async assignRole(data: AssignUserProjectRoleInput) {
-		await ensureUserExists(data.userId);
-		await ensureProjectExists(data.projectId);
-		await ensureRoleExists(data.roleId);
-		await ensureUserCanBelongToProject(data.userId, data.projectId);
-		await ensureRoleNotAlreadyAssigned(
-			data.userId,
-			data.projectId,
-			data.roleId,
-		);
-
-		try {
-			return await prisma.userProjectRole.create({
-				data: {
-					userId: data.userId,
-					projectId: data.projectId,
-					roleId: data.roleId,
-					assignedBy: data.assignedBy,
-				},
+		const [data, total] = await Promise.all([
+			prisma.userProjectRole.findMany({
+				skip,
+				take: limit,
 				include: {
 					user: {
 						select: {
@@ -186,23 +130,72 @@ export class UserProjectRoleService {
 							name: true,
 						},
 					},
+					assignedByUser: {
+						select: {
+							id: true,
+							name: true,
+						},
+					},
 				},
-			});
-		} catch (error) {
-			if (
-				error instanceof Prisma.PrismaClientKnownRequestError &&
-				error.code === "P2002"
-			) {
-				throw new AppError(
-					409,
-					customError("DATA_002"),
-					"Role is already assigned to this user for this project",
-				);
-			}
+				orderBy: {
+					createdAt: "desc",
+				},
+			}),
+			prisma.userProjectRole.count(),
+		]);
 
-			throw new AppError(500, customError("SYS_002"));
-		}
+		return {
+			data,
+			meta: {
+				page,
+				limit,
+				total,
+			},
+		};
 	}
+
+	async assignRole(data: AssignUserProjectRoleInput) {
+		await ensureUserExists(data.userId);
+		await ensureProjectExists(data.projectId);
+		await ensureRoleExists(data.roleId);
+		await ensureUserCanBelongToProject(data.userId, data.projectId);
+		await ensureRoleNotAlreadyAssigned(
+			data.userId,
+			data.projectId,
+			data.roleId,
+		);
+
+		return prisma.userProjectRole.create({
+			data: {
+				userId: data.userId,
+				projectId: data.projectId,
+				roleId: data.roleId,
+				assignedBy: data.assignedBy,
+			},
+			include: {
+				user: {
+					select: {
+						id: true,
+						name: true,
+						email: true,
+					},
+				},
+				project: {
+					select: {
+						id: true,
+						name: true,
+					},
+				},
+				role: {
+					select: {
+						id: true,
+						name: true,
+					},
+				},
+			},
+		});
+	}
+
 	async removeRole(userId: number, projectId: number, roleId: number) {
 		const existingAssignment = await prisma.userProjectRole.findUnique({
 			where: {
@@ -222,30 +215,19 @@ export class UserProjectRoleService {
 			);
 		}
 
-		try {
-			await prisma.userProjectRole.delete({
-				where: {
-					userId_projectId_roleId: {
-						userId,
-						projectId,
-						roleId,
-					},
+		await prisma.userProjectRole.delete({
+			where: {
+				userId_projectId_roleId: {
+					userId,
+					projectId,
+					roleId,
 				},
-			});
+			},
+		});
 
-			// TODO: Revoke refresh tokens if project access is materially reduced.
-			// Authorisation-related functionality will be handled separately.
-
-			return {
-				message: "User project role removed successfully",
-			};
-		} catch (error) {
-			if (error instanceof AppError) {
-				throw error;
-			}
-
-			throw new AppError(500, customError("SYS_002"));
-		}
+		return {
+			message: "User project role removed successfully",
+		};
 	}
 }
 

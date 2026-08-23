@@ -8,6 +8,7 @@ jest.mock("@prisma/client", () => {
 			findUnique: jest.fn(),
 			create: jest.fn(),
 			delete: jest.fn(),
+			count: jest.fn(),
 		},
 		user: {
 			findUnique: jest.fn(),
@@ -23,21 +24,8 @@ jest.mock("@prisma/client", () => {
 		},
 	};
 
-	class PrismaClientKnownRequestError extends Error {
-		code: string;
-
-		constructor(message: string, options: { code: string }) {
-			super(message);
-			this.code = options.code;
-			this.name = "PrismaClientKnownRequestError";
-		}
-	}
-
 	return {
 		PrismaClient: jest.fn(() => mockPrisma),
-		Prisma: {
-			PrismaClientKnownRequestError,
-		},
 		__mockPrisma: mockPrisma,
 	};
 });
@@ -53,7 +41,7 @@ describe("UserProjectRoleService", () => {
 	});
 
 	describe("getRoles", () => {
-		it("returns all user project role assignments", async () => {
+		it("returns paginated user project role assignments", async () => {
 			const assignments = [
 				{
 					userId: 1,
@@ -64,10 +52,13 @@ describe("UserProjectRoleService", () => {
 			];
 
 			mockPrisma.userProjectRole.findMany.mockResolvedValue(assignments);
+			mockPrisma.userProjectRole.count.mockResolvedValue(12);
 
-			const result = await service.getRoles();
+			const result = await service.getRoles(2, 5);
 
 			expect(mockPrisma.userProjectRole.findMany).toHaveBeenCalledWith({
+				skip: 5,
+				take: 5,
 				include: {
 					user: {
 						select: {
@@ -100,7 +91,16 @@ describe("UserProjectRoleService", () => {
 				},
 			});
 
-			expect(result).toEqual(assignments);
+			expect(mockPrisma.userProjectRole.count).toHaveBeenCalled();
+
+			expect(result).toEqual({
+				data: assignments,
+				meta: {
+					page: 2,
+					limit: 5,
+					total: 12,
+				},
+			});
 		});
 	});
 
@@ -115,13 +115,9 @@ describe("UserProjectRoleService", () => {
 
 			mockPrisma.user.findUnique.mockResolvedValue({ id: 1 });
 			mockPrisma.project.findUnique.mockResolvedValue({ id: 2 });
-			mockPrisma.role.findUnique.mockResolvedValue({
-				id: 3,
-				name: "FARMER",
-			});
+			mockPrisma.role.findUnique.mockResolvedValue({ id: 3 });
 			mockPrisma.userOrganisation.findFirst.mockResolvedValue({
 				userId: 1,
-				organisationId: 4,
 			});
 			mockPrisma.userProjectRole.findUnique.mockResolvedValue(null);
 			mockPrisma.userProjectRole.create.mockResolvedValue(assignment);
@@ -212,10 +208,7 @@ describe("UserProjectRoleService", () => {
 		it("throws TENANT_002 when user is not linked to the project organisation", async () => {
 			mockPrisma.user.findUnique.mockResolvedValue({ id: 1 });
 			mockPrisma.project.findUnique.mockResolvedValue({ id: 2 });
-			mockPrisma.role.findUnique.mockResolvedValue({
-				id: 3,
-				name: "FARMER",
-			});
+			mockPrisma.role.findUnique.mockResolvedValue({ id: 3 });
 			mockPrisma.userOrganisation.findFirst.mockResolvedValue(null);
 
 			const err = customError("TENANT_002");
@@ -239,18 +232,12 @@ describe("UserProjectRoleService", () => {
 		it("throws DATA_002 when role is already assigned", async () => {
 			mockPrisma.user.findUnique.mockResolvedValue({ id: 1 });
 			mockPrisma.project.findUnique.mockResolvedValue({ id: 2 });
-			mockPrisma.role.findUnique.mockResolvedValue({
-				id: 3,
-				name: "FARMER",
-			});
+			mockPrisma.role.findUnique.mockResolvedValue({ id: 3 });
 			mockPrisma.userOrganisation.findFirst.mockResolvedValue({
 				userId: 1,
-				organisationId: 4,
 			});
 			mockPrisma.userProjectRole.findUnique.mockResolvedValue({
 				userId: 1,
-				projectId: 2,
-				roleId: 3,
 			});
 
 			const err = customError("DATA_002");

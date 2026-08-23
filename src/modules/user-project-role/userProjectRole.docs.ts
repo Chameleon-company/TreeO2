@@ -50,11 +50,26 @@
  * @swagger
  * /user-project-roles:
  *   get:
- *     summary: List all user project role assignments
- *     description: Returns all user project role assignments.
+ *     summary: List user project role assignments
+ *     description: Returns a paginated list of user project role assignments.
  *     tags: [User Project Roles]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 10
  *     responses:
  *       200:
  *         description: User project roles fetched successfully
@@ -67,9 +82,26 @@
  *                   type: boolean
  *                   example: true
  *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/UserProjectRole'
+ *                   type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/UserProjectRole'
+ *                     meta:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                           example: 1
+ *                         limit:
+ *                           type: integer
+ *                           example: 10
+ *                         total:
+ *                           type: integer
+ *                           example: 25
+ *       400:
+ *         description: Invalid pagination parameters
  *       401:
  *         description: Unauthorized
  *       500:
@@ -103,7 +135,7 @@
  *       401:
  *         description: Unauthorized
  *       403:
- *         description: User is not eligible for the project
+ *         description: User is not eligible for the selected project
  *       404:
  *         description: User, project, or role not found
  *       409:
@@ -146,6 +178,8 @@
  *     responses:
  *       200:
  *         description: User project role removed successfully
+ *       400:
+ *         description: Invalid path parameters
  *       401:
  *         description: Unauthorized
  *       404:

@@ -19,7 +19,6 @@ describe("User Project Role Integration Tests", () => {
 	let adminRoleId: number;
 
 	beforeAll(async () => {
-		// Clean up any data left from an earlier local test run.
 		const existingUser = await prisma.user.findUnique({
 			where: { email: TEST_USER_EMAIL },
 		});
@@ -126,11 +125,6 @@ describe("User Project Role Integration Tests", () => {
 
 		userId = user.id;
 
-		/*
-		 * AUTH_DEV_ADMIN_TOKEN authenticates as user id 1.
-		 * UserProjectRole.assignedBy has a foreign key to User,
-		 * so ensure user id 1 exists in the test database.
-		 */
 		const assignedByUser = await prisma.user.findUnique({
 			where: { id: 1 },
 		});
@@ -255,7 +249,7 @@ describe("User Project Role Integration Tests", () => {
 			expect(response.status).toBe(401);
 		});
 
-		it("returns user project role assignments", async () => {
+		it("returns paginated user project role assignments", async () => {
 			await prisma.userProjectRole.create({
 				data: {
 					userId,
@@ -266,12 +260,13 @@ describe("User Project Role Integration Tests", () => {
 			});
 
 			const response = await request(app)
-				.get("/user-project-roles")
+				.get("/user-project-roles?page=1&limit=5")
 				.set("Authorization", `Bearer ${ADMIN_TOKEN}`);
 
 			expect(response.status).toBe(200);
 			expect(response.body.success).toBe(true);
-			expect(response.body.data).toEqual(
+
+			expect(response.body.data.data).toEqual(
 				expect.arrayContaining([
 					expect.objectContaining({
 						userId,
@@ -280,6 +275,23 @@ describe("User Project Role Integration Tests", () => {
 					}),
 				]),
 			);
+
+			expect(response.body.data.meta).toEqual(
+				expect.objectContaining({
+					page: 1,
+					limit: 5,
+				}),
+			);
+
+			expect(typeof response.body.data.meta.total).toBe("number");
+		});
+
+		it("returns 400 for invalid pagination", async () => {
+			const response = await request(app)
+				.get("/user-project-roles?page=0&limit=10")
+				.set("Authorization", `Bearer ${ADMIN_TOKEN}`);
+
+			expect(response.status).toBe(400);
 		});
 	});
 
@@ -371,6 +383,14 @@ describe("User Project Role Integration Tests", () => {
 	});
 
 	describe("DELETE /user-project-roles/:user_id/:project_id/:role_id", () => {
+		it("returns 401 when no token is provided", async () => {
+			const response = await request(app).delete(
+				`/user-project-roles/${userId}/${projectId}/${roleId}`,
+			);
+
+			expect(response.status).toBe(401);
+		});
+
 		it("removes an existing user project role", async () => {
 			await prisma.userProjectRole.create({
 				data: {
@@ -399,6 +419,14 @@ describe("User Project Role Integration Tests", () => {
 			});
 
 			expect(assignment).toBeNull();
+		});
+
+		it("returns 400 for invalid path parameters", async () => {
+			const response = await request(app)
+				.delete(`/user-project-roles/0/${projectId}/${roleId}`)
+				.set("Authorization", `Bearer ${ADMIN_TOKEN}`);
+
+			expect(response.status).toBe(400);
 		});
 
 		it("returns 404 when the assignment does not exist", async () => {
