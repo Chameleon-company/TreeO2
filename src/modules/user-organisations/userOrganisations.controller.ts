@@ -8,17 +8,6 @@ type AddUserToOrganisationInput = {
 	organisationId: number;
 };
 
-type RemoveUserFromOrganisationInput = {
-	userId: number;
-	organisationId: number;
-};
-
-type UpdateUserOrganisationMembershipInput = {
-	userId: number;
-	orgId: number;
-	newStatus: string;
-}
-
 export class UserOrganisationsController {
 	async getUserOrganisations(req: Request, res: Response, next: NextFunction) {
 		try {
@@ -53,12 +42,14 @@ export class UserOrganisationsController {
 
 	async updateUserMembershipStatus(req: Request, res: Response, next: NextFunction) {
 		try {
-			const payload = req.body as UpdateUserOrganisationMembershipInput;
+			const userId = Number(req.params.user_id);
+			const orgId = Number(req.params.organisation_id);
+			const newStatus = req.body.newStatus;
 
 			const updatedUserOrganisation = await userOrganisationsService.updateUserMembershipStatus(
-				payload.userId,
-				payload.orgId,
-				payload.newStatus,
+				userId,
+				orgId,
+				newStatus,
 			);
 
 			return res.status(200).json({
@@ -72,11 +63,12 @@ export class UserOrganisationsController {
 
 	async removeUserMembershipStatus(req: Request, res: Response, next: NextFunction) {
 		try {
-			const payload = req.body as RemoveUserFromOrganisationInput;
+			const userId = Number(req.params.user_id);
+			const orgId = Number(req.params.organisation_id);
 
 			const removedUserOrganisation = await userOrganisationsService.removeUserMembershipStatus(
-				payload.userId,
-				payload.organisationId,
+				userId,
+				orgId,
 			);
 
 			return res.status(200).json({

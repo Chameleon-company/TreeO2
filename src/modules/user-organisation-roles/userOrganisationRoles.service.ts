@@ -25,28 +25,19 @@ const ensureOrganisationExists = async (orgId: number) => {
 	}
 };
 
-export class UserOrganisationsService {
+export class UserOrganisationRolesService {
 
-	async getUserOrganisations() {
-		try {
-			return await prisma.userOrganisation.findMany({
-				where: { },
-			});
-		} catch {
-			throw new AppError(500, customError("SYS_002"));
-		}
-	}
-
-	async addUserToOrganisation(userId: number, orgId: number) {
+	async addUserOrganisationRole(userId: number, orgId: number, roleId: number) {
 		try {
 			await ensureUserExists(userId);
 			await ensureOrganisationExists(orgId);
 
-			const existingAssignment = await prisma.userOrganisation.findUnique({
+			const existingAssignment = await prisma.userOrganisationRoles.findUnique({
 				where: {
-					userId_organisationId: {
+					userId_organisationId_roleId: {
 						userId: userId,
 						organisationId: orgId,
+						roleId: roleId
 					},
 				},
 			});
@@ -55,11 +46,11 @@ export class UserOrganisationsService {
 				throw new AppError(409, customError("DATA_002"));
 			}
 
-			return await prisma.userOrganisation.create({
+			return await prisma.userOrganisationRoles.create({
 				data: {
 					userId: userId,
 					organisationId: orgId,
-					status: "invited"
+					roleId: roleId
 				}
 			});
 
@@ -78,48 +69,17 @@ export class UserOrganisationsService {
 		}
 	}
 
-	async updateUserMembershipStatus(userId: number, orgId: number, newStatus: string) {
+	async removeUserOrganisationRole(userId: number, orgId: number, roleId: number) {
 		try {
 			await ensureUserExists(userId);
 			await ensureOrganisationExists(orgId);
 
-			return await prisma.userOrganisation.update({
+			return await prisma.userOrganisationRoles.delete({
 				where: {
-					userId_organisationId : {
+					userId_organisationId_roleId: {
 						userId: userId,
-						organisationId: orgId
-					}
-				},
-				data: {
-					status: newStatus
-				},
-			})
-
-		} catch(error) {
-			if (error instanceof AppError) {
-				throw error;
-			}
-
-			if (
-				error instanceof Prisma.PrismaClientKnownRequestError &&
-				error.code === "P2002"
-			) {
-				throw new AppError(409, customError("DATA_002"));
-			}
-			throw new AppError(500, customError("SYS_002"));
-		}
-	}
-
-	async removeUserMembershipStatus(userId: number, orgId: number) {
-		try {
-			await ensureUserExists(userId);
-			await ensureOrganisationExists(orgId);
-
-			return await prisma.userOrganisation.delete({
-				where: {
-					userId_organisationId : {
-						userId: userId,
-						organisationId: orgId
+						organisationId: orgId,
+						roleId
 					}
 				},
 			})
@@ -140,4 +100,4 @@ export class UserOrganisationsService {
 	}
 }
 
-export const userOrganisationsService = new UserOrganisationsService();
+export const userOrganisationRolesService = new UserOrganisationRolesService();
