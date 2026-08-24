@@ -17,20 +17,28 @@ export const projectScopeMiddleware = (
 	}
 
 	// AUTH04 Rule 1: SystemAdmin Override
+	// SystemAdmins can operate globally, so a project scope is optional.
+	// We extract it if provided via token (or legacy header), but allow them through if missing.
 	if (req.user.systemRole === "SystemAdmin") {
-		const inferredProjectId = Number(
-			req.params.project_id ||
-				(req.body as Record<string, unknown>)?.project_id,
-		);
-		if (!Number.isNaN(inferredProjectId) && inferredProjectId > 0) {
-			req.projectScope = { projectId: inferredProjectId };
+		let adminProjectId = "projectId" in req.user ? req.user.projectId : NaN;
+		if (!adminProjectId || Number.isNaN(adminProjectId)) {
+			const headerVal = req.get("x-project-id") || req.headers["x-project-id"];
+			adminProjectId = typeof headerVal === "string" ? Number(headerVal) : NaN;
+		}
+		if (
+			adminProjectId &&
+			Number.isInteger(adminProjectId) &&
+			adminProjectId > 0
+		) {
+			req.projectScope = { projectId: adminProjectId };
 		}
 		next();
 		return;
 	}
 
-	// Legacy tokens do not have a scope field.
 	// We allow them through to the fallback, where they must provide x-project-id.
+	// TODO (Phase 2): This MUST be changed to `!("scope" in req.user) || req.user.scope !== "project"`
+	// once all clients migrate to v1.3 tokens, otherwise tokens without a scope could dangerously bypass.
 	if ("scope" in req.user && req.user.scope !== "project") {
 		next(new AppError(403, customError("AUTH_008")));
 		return;

@@ -92,7 +92,29 @@ describe("projectScopeMiddleware - Comprehensive Unit Tests", () => {
 
 		expect(next).toHaveBeenCalledTimes(1);
 		expect(next).toHaveBeenCalledWith();
-		expect(req.projectScope).toEqual({ projectId: 99 });
+		expect(req.projectScope).toBeUndefined();
+	});
+
+	it("should attach req.projectScope for SystemAdmin if explicitly provided in token or header", () => {
+		const adminUser: IdentityJwtPayload = {
+			sub: "123",
+			userId: 123,
+			scope: "identity",
+			systemRole: "SystemAdmin",
+		};
+
+		req.user = adminUser;
+		req.headers = { "x-project-id": "88" };
+
+		projectScopeMiddleware(
+			req as unknown as Request,
+			res as unknown as Response,
+			next,
+		);
+
+		expect(next).toHaveBeenCalledTimes(1);
+		expect(next).toHaveBeenCalledWith();
+		expect(req.projectScope).toEqual({ projectId: 88 });
 	});
 
 	it("should reject unauthenticated requests (req.user undefined) with 401 (AUTH_003)", () => {
