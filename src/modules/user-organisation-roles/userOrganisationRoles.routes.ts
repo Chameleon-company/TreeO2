@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authMiddleware } from "../../middleware/auth.middleware";
 import { userOrganisationRolesController } from "./userOrganisationRoles.controller";
+import "./userOrganisationRoles.docs";
 import { validateMiddleware } from "../../middleware/validate.middleware";
 import {
 	AddUserOrganisationRoleReq,

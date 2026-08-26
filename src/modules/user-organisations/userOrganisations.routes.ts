@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authMiddleware } from "../../middleware/auth.middleware";
 import { userOrganisationsController } from "./userOrganisations.controller";
+import "./userOrganisations.docs";
 import {
 	AddUserOrganisationReq,
 	DeleteUserOrganisationReq,
