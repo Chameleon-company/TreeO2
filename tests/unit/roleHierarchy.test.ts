@@ -20,15 +20,20 @@ describe("canGrantRole", () => {
 		expect(canGrantRole("MANAGER", "FARMER")).toBe(true);
 	});
 
-	test("Inspector can only grant Farmer", () => {
-		expect(canGrantRole("INSPECTOR", "FARMER")).toBe(true);
+	test("Inspector cannot grant any role", () => {
+		expect(canGrantRole("INSPECTOR", "FARMER")).toBe(false);
+		expect(canGrantRole("INSPECTOR", "INSPECTOR")).toBe(false);
+		expect(canGrantRole("INSPECTOR", "MANAGER")).toBe(false);
+		expect(canGrantRole("INSPECTOR", "ORGANISATION_ADMIN")).toBe(false);
+		expect(canGrantRole("INSPECTOR", "SYSTEM_ADMIN")).toBe(false);
 	});
 
-	test("Farmer cannot grant any higher role", () => {
+	test("Farmer cannot grant any role", () => {
 		expect(canGrantRole("FARMER", "INSPECTOR")).toBe(false);
 		expect(canGrantRole("FARMER", "MANAGER")).toBe(false);
 		expect(canGrantRole("FARMER", "ORGANISATION_ADMIN")).toBe(false);
 		expect(canGrantRole("FARMER", "SYSTEM_ADMIN")).toBe(false);
+		expect(canGrantRole("FARMER", "FARMER")).toBe(false);
 	});
 
 	test("lower roles cannot grant higher roles", () => {

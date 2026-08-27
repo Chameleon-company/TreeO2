@@ -1,19 +1,18 @@
-export const ROLE_HIERARCHY = [
-	"FARMER",
-	"INSPECTOR",
-	"MANAGER",
-	"ORGANISATION_ADMIN",
-	"SYSTEM_ADMIN",
-] as const;
+export const ROLE_GRANTS = {
+	SYSTEM_ADMIN: ["ORGANISATION_ADMIN", "MANAGER", "INSPECTOR", "FARMER"],
+	ORGANISATION_ADMIN: ["MANAGER", "INSPECTOR", "FARMER"],
+	MANAGER: ["INSPECTOR", "FARMER"],
+	INSPECTOR: [],
+	FARMER: [],
+} as const;
 
-export type HirarchyRoleName = (typeof ROLE_HIERARCHY)[number];
+export type HierarchyRoleName = keyof typeof ROLE_GRANTS;
 
 export const canGrantRole = (
-	actorRole: HirarchyRoleName,
-	targetRole: HirarchyRoleName,
+	actorRole: HierarchyRoleName,
+	targetRole: HierarchyRoleName,
 ): boolean => {
-	const actorIndex = ROLE_HIERARCHY.indexOf(actorRole);
-	const targetIndex = ROLE_HIERARCHY.indexOf(targetRole);
-
-	return actorIndex > targetIndex;
+	return (ROLE_GRANTS[actorRole] as readonly HierarchyRoleName[]).includes(
+		targetRole,
+	);
 };
