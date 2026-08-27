@@ -242,3 +242,18 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  cleanup:
+    name: Cleanup Cache
+    needs: [tests]
+    if: always()
+    runs-on: ubuntu-slim
+
+    permissions:
+      actions: write
+      
+    steps:
+      - run: gh cache delete "node-modules-cache-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}" || true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
