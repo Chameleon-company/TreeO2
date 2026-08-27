@@ -3,9 +3,9 @@ model LocalizedString {
   cultureCode String @map("culture_code") @db.VarChar(10)
   stringKey   String @map("string_key") @db.VarChar(255)
   value       String @db.Text
-  context     String @db.VarChar(50) @map("context")
+  context     String @map("context") @db.VarChar(50)
 
-  culture     Culture @relation(fields: [cultureCode], references: [code], onDelete: Restrict)
+  culture Culture @relation(fields: [cultureCode], references: [code], onDelete: Restrict)
 
   @@unique([cultureCode, stringKey, context])
   @@map("localized_strings")
