@@ -119,10 +119,69 @@ jobs:
       - name: TypeScript format check
         run: npm run format:check
 
+  prisma-format:
+    name: Prisma Format Check
+    needs: [install]
+    runs-on: ubuntu-slim
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Fetch dependencies cache
+        uses: actions/cache@v4
+        id: cache-npm
+        with:
+          path: node_modules
+          key: node-modules-${{ github.run_id }}
+
+      - name: Install dependencies
+        if: steps.cache-npm.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Prisma format check
+        run: npm run prisma:format:check
+  
+  schema:
+    name: Schema Check
+    needs: [install]
+    runs-on: ubuntu-slim
+
+    env:
+      DATABASE_URL: postgresql://treeo2_user:treeo2_password@localhost:5432/treeo2?schema=public
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Fetch dependencies cache
+        uses: actions/cache@v4
+        id: cache-npm
+        with:
+          path: node_modules
+          key: node-modules-${{ github.run_id }}
+
+      - name: Install dependencies
+        if: steps.cache-npm.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Schema validate
+        run: npm run prisma:validate
+
   tests:
     name: Run Tests
     runs-on: ubuntu-latest
-    needs: [install, type, lint, ts-format]
+    needs: [install, type, lint, ts-format, prisma-format, schema]
     timeout-minutes: 15
 
     env:
