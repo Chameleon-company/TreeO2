@@ -100,6 +100,14 @@ prisma.config.ts    # points Prisma at the ./prisma directory
 tests/
 ├── unit/         # Unit tests for service/business logic
 └── integration/  # Integration tests for API routes/endpoints
+
+aws/              # Cloud/DevOps stream's sub repo , self-contained, see aws/README.md
+├── README.md              # AWS infrastructure reference: what exists, what the team built, key decisions
+├── docs/
+│   └── aws-scripting-guide.md   # conventions every AWS CLI script follows
+└── scripts/
+    ├── *.sh                # AWS CLI scripts (review → lead applies → logs in APPLIED.md)
+    └── APPLIED.md          # execution log, source of truth for what's actually been run against AWS
 ```
 
 ## Scripts
