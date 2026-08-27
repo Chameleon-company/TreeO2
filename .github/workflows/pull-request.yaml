@@ -30,7 +30,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: node-modules-${{ github.run_id }}
+          key: node-modules-cache-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
 
       - name: Install dependencies
         run: npm ci
@@ -54,7 +54,7 @@ jobs:
         id: cache-npm
         with:
           path: node_modules
-          key: node-modules-${{ github.run_id }}
+          key: node-modules-cache-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
 
       - name: Install dependencies
         if: steps.cache-npm.outputs.cache-hit != 'true'
@@ -82,7 +82,7 @@ jobs:
         id: cache-npm
         with:
           path: node_modules
-          key: node-modules-${{ github.run_id }}
+          key: node-modules-cache-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
 
       - name: Install dependencies
         if: steps.cache-npm.outputs.cache-hit != 'true'
@@ -110,7 +110,7 @@ jobs:
         id: cache-npm
         with:
           path: node_modules
-          key: node-modules-${{ github.run_id }}
+          key: node-modules-cache-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
 
       - name: Install dependencies
         if: steps.cache-npm.outputs.cache-hit != 'true'
@@ -138,7 +138,7 @@ jobs:
         id: cache-npm
         with:
           path: node_modules
-          key: node-modules-${{ github.run_id }}
+          key: node-modules-cache-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
 
       - name: Install dependencies
         if: steps.cache-npm.outputs.cache-hit != 'true'
@@ -169,7 +169,7 @@ jobs:
         id: cache-npm
         with:
           path: node_modules
-          key: node-modules-${{ github.run_id }}
+          key: node-modules-cache-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
 
       - name: Install dependencies
         if: steps.cache-npm.outputs.cache-hit != 'true'
@@ -218,7 +218,7 @@ jobs:
         id: cache-npm
         with:
           path: node_modules
-          key: node-modules-${{ github.run_id }}
+          key: node-modules-cache-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
 
       - name: Install dependencies
         if: steps.cache-npm.outputs.cache-hit != 'true'
