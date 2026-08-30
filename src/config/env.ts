@@ -51,6 +51,18 @@ const envSchema = z.object({
 
 	RESET_TOKEN_EXPIRY_MINUTES: z.coerce.number().default(30),
 
+	// 15 minutes
+	AUTH_LOGIN_RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000),
+	AUTH_LOGIN_RATE_LIMIT_MAX: z.coerce.number().default(5),
+
+	// 1 hour
+	AUTH_FORGOT_PASSWORD_RATE_LIMIT_WINDOW_MS: z.coerce.number().default(3600000),
+	AUTH_FORGOT_PASSWORD_RATE_LIMIT_MAX: z.coerce.number().default(3),
+
+	// 1 hour
+	AUTH_RESET_PASSWORD_RATE_LIMIT_WINDOW_MS: z.coerce.number().default(3600000),
+	AUTH_RESET_PASSWORD_RATE_LIMIT_MAX: z.coerce.number().default(3),
+
 	LOG_TO_FILE: booleanFromEnv(false),
 });
 
