@@ -30,6 +30,9 @@ describe("projectScopeMiddleware - Comprehensive Unit Tests", () => {
 			organisationId: 10,
 			organisationRole: "Member",
 			projectRoles: ["Manager"],
+			jti: "test-jti",
+			iat: 1710000000,
+			exp: 1710000900,
 		};
 
 		req.user = projectUser;

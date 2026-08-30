@@ -1,6 +1,11 @@
 import jwt from "jsonwebtoken";
 import { ZodError } from "zod";
-import { signIdentityJwt, verifyIdentityJwt } from "../../../src/lib/jwt";
+import {
+	signIdentityJwt,
+	verifyIdentityJwt,
+	signProjectJwt,
+	verifyProjectJwt,
+} from "../../../src/lib/jwt";
 
 describe("Identity JWT signing and verification", () => {
 	const basePayload = {
@@ -22,10 +27,14 @@ describe("Identity JWT signing and verification", () => {
 
 	it("includes a generated jti and expiry on the signed token", () => {
 		const token = signIdentityJwt(basePayload);
-		const decoded = jwt.decode(token) as { jti?: string; exp?: number };
+		const decoded = jwt.decode(token);
 
-		expect(decoded.jti).toEqual(expect.any(String));
-		expect(decoded.exp).toEqual(expect.any(Number));
+		expect(decoded).toEqual(
+			expect.objectContaining({
+				jti: expect.any(String),
+				exp: expect.any(Number),
+			}),
+		);
 	});
 
 	it("rejects a token that isn't scoped as identity", () => {
@@ -44,5 +53,57 @@ describe("Identity JWT signing and verification", () => {
 		);
 
 		expect(() => verifyIdentityJwt(malformedToken)).toThrow(ZodError);
+	});
+});
+
+describe("Project-Scoped JWT signing and verification", () => {
+	const basePayload = {
+		sub: "42",
+		userId: 42,
+		projectId: 7,
+		organisationId: 1,
+		organisationRole: "Member" as const,
+		projectRoles: ["Manager" as const],
+		scope: "project" as const,
+	};
+
+	it("signs a token that verifies successfully and returns the original payload", () => {
+		const token = signProjectJwt(basePayload);
+		const result = verifyProjectJwt(token);
+
+		expect(result.userId).toBe(42);
+		expect(result.projectId).toBe(7);
+		expect(result.scope).toBe("project");
+		expect(result.projectRoles).toEqual(basePayload.projectRoles);
+	});
+
+	it("includes a generated jti and expiry on the signed token", () => {
+		const token = signProjectJwt(basePayload);
+		const decoded = jwt.decode(token);
+
+		expect(decoded).toEqual(
+			expect.objectContaining({
+				jti: expect.any(String),
+				exp: expect.any(Number),
+			}),
+		);
+	});
+
+	it("rejects a token that isn't scoped as project", () => {
+		const identityScopedToken = jwt.sign(
+			{ ...basePayload, scope: "identity" },
+			process.env.JWT_SECRET as string,
+		);
+
+		expect(() => verifyProjectJwt(identityScopedToken)).toThrow(ZodError);
+	});
+
+	it("rejects a token with a malformed payload (e.g. wrong field type)", () => {
+		const malformedToken = jwt.sign(
+			{ ...basePayload, projectId: "not-a-number" },
+			process.env.JWT_SECRET as string,
+		);
+
+		expect(() => verifyProjectJwt(malformedToken)).toThrow(ZodError);
 	});
 });
