@@ -1,0 +1,9 @@
+model Permission {
+  id          Int     @id @default(autoincrement())
+  key         String  @unique @db.VarChar(100)
+  description String? @db.Text
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
