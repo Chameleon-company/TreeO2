@@ -17,6 +17,7 @@ export const projectScopeMiddleware = (
 	}
 
 	// AUTH04 Rule 1: SystemAdmin Override
+	// [AUTH-CLEANUP] Note: This bypass is a temporary migration workaround until the select-project endpoint is live.
 	// SystemAdmins can operate globally, so a project scope is optional.
 	// We extract it if provided via token (or legacy header), but allow them through if missing.
 	if (req.user.systemRole === "SystemAdmin") {

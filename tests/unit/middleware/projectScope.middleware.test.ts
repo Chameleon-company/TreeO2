@@ -27,14 +27,14 @@ describe("projectScopeMiddleware - Comprehensive Unit Tests", () => {
 			sub: "123",
 			userId: 123,
 			scope: "project",
+			jti: "test-jti",
+			iat: 123456789,
+			exp: 987654321,
 			projectId: 45,
 			systemRole: null,
 			organisationId: 10,
 			organisationRole: "Member",
 			projectRoles: ["Manager"],
-			jti: "test-jti",
-			iat: 1710000000,
-			exp: 1710000900,
 		};
 
 		req.user = projectUser;
@@ -55,6 +55,10 @@ describe("projectScopeMiddleware - Comprehensive Unit Tests", () => {
 			sub: "123",
 			userId: 1,
 			scope: "identity",
+			jti: "test-jti",
+			iat: 123456789,
+			exp: 987654321,
+			organisations: [],
 		};
 		req.user = identityUser;
 
@@ -73,11 +77,16 @@ describe("projectScopeMiddleware - Comprehensive Unit Tests", () => {
 		expect(err.message).toBe(customError("AUTH_008").message);
 	});
 
+	// [AUTH-CLEANUP] Note: This bypass is a temporary migration workaround until the select-project endpoint is live.
 	it("should allow SystemAdmin Identity tokens to bypass project scope", () => {
 		const adminUser: IdentityJwtPayload = {
 			sub: "123",
 			userId: 123,
 			scope: "identity",
+			jti: "test-jti",
+			iat: 123456789,
+			exp: 987654321,
+			organisations: [],
 			systemRole: "SystemAdmin",
 		};
 
@@ -95,16 +104,46 @@ describe("projectScopeMiddleware - Comprehensive Unit Tests", () => {
 		expect(req.projectScope).toBeUndefined();
 	});
 
-	it("should attach req.projectScope for SystemAdmin if explicitly provided in token or header", () => {
+	it("should attach req.projectScope for SystemAdmin if explicitly provided in header", () => {
 		const adminUser: IdentityJwtPayload = {
 			sub: "123",
 			userId: 123,
 			scope: "identity",
+			jti: "test-jti",
+			iat: 123456789,
+			exp: 987654321,
+			organisations: [],
 			systemRole: "SystemAdmin",
 		};
 
 		req.user = adminUser;
 		req.headers = { "x-project-id": "88" };
+
+		projectScopeMiddleware(
+			req as unknown as Request,
+			res as unknown as Response,
+			next,
+		);
+
+		expect(next).toHaveBeenCalledTimes(1);
+		expect(next).toHaveBeenCalledWith();
+		expect(req.projectScope).toEqual({ projectId: 88 });
+	});
+
+	it("should attach req.projectScope for SystemAdmin if explicitly provided in token", () => {
+		const adminUser = {
+			sub: "123",
+			userId: 123,
+			scope: "project",
+			jti: "test-jti",
+			iat: 123456789,
+			exp: 987654321,
+			systemRole: "SystemAdmin",
+			projectId: 88,
+		};
+
+		req.user = adminUser as any;
+		req.headers = {};
 
 		projectScopeMiddleware(
 			req as unknown as Request,
@@ -135,11 +174,14 @@ describe("projectScopeMiddleware - Comprehensive Unit Tests", () => {
 		expect(err.message).toBe(customError("AUTH_003").message);
 	});
 
-	it("should reject tokens with missing or non-positive projectId with 403 (AUTH_007)", () => {
+	it("should reject tokens with non-positive projectId with 403 (AUTH_007)", () => {
 		const invalidProjectUser = {
 			sub: "123",
 			userId: 123,
 			scope: "project" as const,
+			jti: "test-jti",
+			iat: 123456789,
+			exp: 987654321,
 			projectId: 0,
 			organisationId: 10,
 			organisationRole: "Member",
@@ -163,11 +205,45 @@ describe("projectScopeMiddleware - Comprehensive Unit Tests", () => {
 		expect(err.message).toBe(customError("AUTH_007").message);
 	});
 
+	it("should reject tokens with missing projectId with 403 (AUTH_007)", () => {
+		const missingProjectUser = {
+			sub: "123",
+			userId: 123,
+			scope: "project" as const,
+			jti: "test-jti",
+			iat: 123456789,
+			exp: 987654321,
+			organisationId: 10,
+			organisationRole: "Member",
+			projectRoles: ["Inspector"],
+		};
+
+		req.user = missingProjectUser as any;
+
+		projectScopeMiddleware(
+			req as unknown as Request,
+			res as unknown as Response,
+			next,
+		);
+
+		expect(next).toHaveBeenCalledTimes(1);
+		const err: unknown = next.mock.calls[0][0];
+		if (!(err instanceof AppError)) {
+			throw new Error("Expected AppError");
+		}
+		expect(err.statusCode).toBe(403);
+		expect(err.message).toBe(customError("AUTH_007").message);
+	});
+
 	it("should ignore client x-project-id HTTP header and strictly use token claims", () => {
 		const identityUser: IdentityJwtPayload = {
 			sub: "123",
 			userId: 123,
 			scope: "identity",
+			jti: "test-jti",
+			iat: 123456789,
+			exp: 987654321,
+			organisations: [],
 		};
 
 		req.user = identityUser;

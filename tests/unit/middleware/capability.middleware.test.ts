@@ -8,6 +8,17 @@ import type {
 	ProjectJwtPayload,
 } from "../../../src/modules/auth/auth.types";
 
+const MOCK_MATRIX: Record<string, readonly string[]> = {
+	Manager: ["reports:create", "tree_scans:read"],
+	Inspector: ["tree_scans:create"],
+	Farmer: ["tree_scans:read"],
+};
+
+const MOCK_LEGACY_MATRIX: Record<string, readonly string[]> = {
+	ADMIN: ["projects:create"],
+	DEVELOPER: ["localization:read"],
+};
+
 describe("requirePermission - Comprehensive Unit Tests (AUTH03 & AUTH04)", () => {
 	let req: Partial<Request>;
 	let res: Partial<Response>;
@@ -27,12 +38,20 @@ describe("requirePermission - Comprehensive Unit Tests (AUTH03 & AUTH04)", () =>
 				sub: "1",
 				userId: 1,
 				scope: "identity",
+				jti: "test-jti",
+				iat: 123456789,
+				exp: 987654321,
+				organisations: [],
 				systemRole: "SystemAdmin",
 			};
 
 			req.user = systemAdminUser;
 
-			const middleware = requirePermission("tree_scans:delete");
+			const middleware = requirePermission(
+				"tree_scans:delete",
+				MOCK_MATRIX,
+				MOCK_LEGACY_MATRIX,
+			);
 			middleware(req as unknown as Request, res as unknown as Response, next);
 
 			expect(next).toHaveBeenCalledTimes(1);
@@ -46,6 +65,9 @@ describe("requirePermission - Comprehensive Unit Tests (AUTH03 & AUTH04)", () =>
 				sub: "6",
 				userId: 6,
 				scope: "project",
+				jti: "test-jti",
+				iat: 123456789,
+				exp: 987654321,
 				projectId: 1,
 				organisationId: 1,
 				organisationRole: "OrganisationAdmin",
@@ -54,7 +76,11 @@ describe("requirePermission - Comprehensive Unit Tests (AUTH03 & AUTH04)", () =>
 
 			req.user = orgAdminUser;
 
-			const middleware = requirePermission("reports:create");
+			const middleware = requirePermission(
+				"reports:create",
+				MOCK_MATRIX,
+				MOCK_LEGACY_MATRIX,
+			);
 			middleware(req as unknown as Request, res as unknown as Response, next);
 
 			expect(next).toHaveBeenCalledTimes(1);
@@ -68,6 +94,9 @@ describe("requirePermission - Comprehensive Unit Tests (AUTH03 & AUTH04)", () =>
 				sub: "3",
 				userId: 3,
 				scope: "project",
+				jti: "test-jti",
+				iat: 123456789,
+				exp: 987654321,
 				projectId: 1,
 				organisationId: 1,
 				organisationRole: "Member",
@@ -76,7 +105,11 @@ describe("requirePermission - Comprehensive Unit Tests (AUTH03 & AUTH04)", () =>
 
 			req.user = managerUser;
 
-			const middleware = requirePermission("reports:create");
+			const middleware = requirePermission(
+				"reports:create",
+				MOCK_MATRIX,
+				MOCK_LEGACY_MATRIX,
+			);
 			middleware(req as unknown as Request, res as unknown as Response, next);
 
 			expect(next).toHaveBeenCalledTimes(1);
@@ -88,6 +121,9 @@ describe("requirePermission - Comprehensive Unit Tests (AUTH03 & AUTH04)", () =>
 				sub: "4",
 				userId: 4,
 				scope: "project",
+				jti: "test-jti",
+				iat: 123456789,
+				exp: 987654321,
 				projectId: 1,
 				organisationId: 1,
 				organisationRole: "Member",
@@ -96,7 +132,11 @@ describe("requirePermission - Comprehensive Unit Tests (AUTH03 & AUTH04)", () =>
 
 			req.user = inspectorUser;
 
-			const middleware = requirePermission("tree_scans:create");
+			const middleware = requirePermission(
+				"tree_scans:create",
+				MOCK_MATRIX,
+				MOCK_LEGACY_MATRIX,
+			);
 			middleware(req as unknown as Request, res as unknown as Response, next);
 
 			expect(next).toHaveBeenCalledTimes(1);
@@ -108,6 +148,9 @@ describe("requirePermission - Comprehensive Unit Tests (AUTH03 & AUTH04)", () =>
 				sub: "8",
 				userId: 8,
 				scope: "project",
+				jti: "test-jti",
+				iat: 123456789,
+				exp: 987654321,
 				projectId: 1,
 				organisationId: 1,
 				organisationRole: "Member",
@@ -116,7 +159,11 @@ describe("requirePermission - Comprehensive Unit Tests (AUTH03 & AUTH04)", () =>
 
 			req.user = multiRoleUser;
 
-			const middleware = requirePermission("tree_scans:create");
+			const middleware = requirePermission(
+				"tree_scans:create",
+				MOCK_MATRIX,
+				MOCK_LEGACY_MATRIX,
+			);
 			middleware(req as unknown as Request, res as unknown as Response, next);
 
 			expect(next).toHaveBeenCalledTimes(1);
@@ -128,6 +175,9 @@ describe("requirePermission - Comprehensive Unit Tests (AUTH03 & AUTH04)", () =>
 				sub: "4",
 				userId: 4,
 				scope: "project",
+				jti: "test-jti",
+				iat: 123456789,
+				exp: 987654321,
 				projectId: 1,
 				organisationId: 1,
 				organisationRole: "Member",
@@ -136,7 +186,11 @@ describe("requirePermission - Comprehensive Unit Tests (AUTH03 & AUTH04)", () =>
 
 			req.user = inspectorUser;
 
-			const middleware = requirePermission("reports:create");
+			const middleware = requirePermission(
+				"reports:create",
+				MOCK_MATRIX,
+				MOCK_LEGACY_MATRIX,
+			);
 			middleware(req as unknown as Request, res as unknown as Response, next);
 
 			expect(next).toHaveBeenCalledTimes(1);
@@ -153,6 +207,9 @@ describe("requirePermission - Comprehensive Unit Tests (AUTH03 & AUTH04)", () =>
 				sub: "2",
 				userId: 2,
 				scope: "project",
+				jti: "test-jti",
+				iat: 123456789,
+				exp: 987654321,
 				projectId: 1,
 				organisationId: 1,
 				organisationRole: "Member",
@@ -161,7 +218,11 @@ describe("requirePermission - Comprehensive Unit Tests (AUTH03 & AUTH04)", () =>
 
 			req.user = farmerUser;
 
-			const middleware = requirePermission("tree_scans:create");
+			const middleware = requirePermission(
+				"tree_scans:create",
+				MOCK_MATRIX,
+				MOCK_LEGACY_MATRIX,
+			);
 			middleware(req as unknown as Request, res as unknown as Response, next);
 
 			expect(next).toHaveBeenCalledTimes(1);
@@ -178,7 +239,11 @@ describe("requirePermission - Comprehensive Unit Tests (AUTH03 & AUTH04)", () =>
 		it("should reject unauthenticated requests (req.user undefined) with 401 (AUTH_003)", () => {
 			req.user = undefined;
 
-			const middleware = requirePermission("tree_scans:read");
+			const middleware = requirePermission(
+				"tree_scans:read",
+				MOCK_MATRIX,
+				MOCK_LEGACY_MATRIX,
+			);
 			middleware(req as unknown as Request, res as unknown as Response, next);
 
 			expect(next).toHaveBeenCalledTimes(1);
@@ -190,15 +255,24 @@ describe("requirePermission - Comprehensive Unit Tests (AUTH03 & AUTH04)", () =>
 			expect(err.message).toBe(customError("AUTH_003").message);
 		});
 
+		// [AUTH-CLEANUP] Note: These legacy tests should be removed when the legacy role string fallback is deleted from the middleware.
 		it("should allow legacy ADMIN role string via backwards compatibility fallback", () => {
 			req.user = {
 				sub: "1",
 				userId: 1,
 				scope: "identity",
+				jti: "test-jti",
+				iat: 123456789,
+				exp: 987654321,
+				organisations: [],
 				role: "ADMIN",
 			};
 
-			const middleware = requirePermission("projects:create");
+			const middleware = requirePermission(
+				"projects:create",
+				MOCK_MATRIX,
+				MOCK_LEGACY_MATRIX,
+			);
 			middleware(req as unknown as Request, res as unknown as Response, next);
 
 			expect(next).toHaveBeenCalledTimes(1);
@@ -210,10 +284,18 @@ describe("requirePermission - Comprehensive Unit Tests (AUTH03 & AUTH04)", () =>
 				sub: "5",
 				userId: 5,
 				scope: "identity",
+				jti: "test-jti",
+				iat: 123456789,
+				exp: 987654321,
+				organisations: [],
 				role: "DEVELOPER",
 			};
 
-			const middleware = requirePermission("localization:read");
+			const middleware = requirePermission(
+				"localization:read",
+				MOCK_MATRIX,
+				MOCK_LEGACY_MATRIX,
+			);
 			middleware(req as unknown as Request, res as unknown as Response, next);
 
 			expect(next).toHaveBeenCalledTimes(1);

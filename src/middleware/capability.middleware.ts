@@ -18,24 +18,29 @@ const ROLE_CAPABILITIES: Record<string, readonly string[]> = {
 		"projects:update",
 		"project_organisations:read",
 		"project_organisations:create",
-		"project_organisations:update",
 		"project_organisations:delete",
 		"users:create",
 		"users:read",
 		"users:update",
+		"users:delete",
 		"user_organisations:read",
 		"user_organisations:create",
 		"user_organisations:update",
 		"user_organisations:delete",
 		"user_organisation_roles:assign",
 		"user_organisation_roles:remove",
+		"user_project_roles:read",
 		"user_project_roles:assign",
+		"user_project_roles:remove",
 		"tree_types:read",
 		"tree_scans:create",
 		"tree_scans:read",
 		"tree_scans:correct",
 		"tree_scans:archive",
+		"tree_scans:validate",
 		"scan_batches:create",
+		"scan_batches:read",
+		"scan_batches:archive",
 		"reports:create",
 		"reports:read",
 		"dashboard:read",
@@ -45,6 +50,20 @@ const ROLE_CAPABILITIES: Record<string, readonly string[]> = {
 		"farms:archive",
 		"farm_boundaries:read",
 		"farm_boundaries:upload",
+		"localized_strings:read",
+		"localized_strings:update",
+		"partners:read",
+		"partners:create",
+		"partners:update",
+		"partners:delete",
+		"adopters:read",
+		"adopters:create",
+		"adopters:update",
+		"adopters:delete",
+		"adoptions:read",
+		"adoptions:create",
+		"adoptions:update",
+		"adoptions:delete",
 	],
 	Inspector: [
 		"projects:read",
@@ -132,7 +151,14 @@ const LEGACY_ROLE_CAPABILITIES: Record<string, readonly string[]> = {
  * @param permissionKey - Specification v1.3 Section 6.4 capability permission key (e.g., 'tree_scans:create')
  * @returns Express middleware function
  */
-export const requirePermission = (permissionKey: string) => {
+export const requirePermission = (
+	permissionKey: string,
+	customMatrix: Record<string, readonly string[]> = ROLE_CAPABILITIES,
+	customLegacyMatrix: Record<
+		string,
+		readonly string[]
+	> = LEGACY_ROLE_CAPABILITIES,
+) => {
 	return (req: Request, _res: Response, next: NextFunction): void => {
 		// 1. Ensure user is authenticated via authMiddleware
 		if (!req.user) {
@@ -161,12 +187,11 @@ export const requirePermission = (permissionKey: string) => {
 			req.user.scope === "project" && "projectRoles" in req.user
 				? req.user.projectRoles
 				: [];
-		let hasCapability = false;
 
 		for (const roleName of projectRoles) {
-			if (ROLE_CAPABILITIES[roleName]?.includes(permissionKey)) {
-				hasCapability = true;
-				break;
+			if (customMatrix[roleName]?.includes(permissionKey)) {
+				next();
+				return;
 			}
 		}
 
@@ -175,22 +200,17 @@ export const requirePermission = (permissionKey: string) => {
 		// Once the test and environment variables are fully updated and frontend clients generate
 		// v1.3 compliant JWT tokens, this entire 'if' block must be deleted along with the
 		// LEGACY_ROLE_CAPABILITIES dictionary above.
-		if (!hasCapability && req.user.role) {
+		if (req.user.role) {
 			const normalizedRole = req.user.role.toUpperCase();
 			const legacyCapabilities =
-				LEGACY_ROLE_CAPABILITIES[normalizedRole] ||
-				ROLE_CAPABILITIES[req.user.role];
+				customLegacyMatrix[normalizedRole] || customMatrix[req.user.role];
 
 			if (legacyCapabilities?.includes(permissionKey)) {
-				hasCapability = true;
+				next();
+				return;
 			}
 		}
 
-		if (!hasCapability) {
-			next(new AppError(403, customError("AUTH_004")));
-			return;
-		}
-
-		next();
+		next(new AppError(403, customError("AUTH_004")));
 	};
 };
