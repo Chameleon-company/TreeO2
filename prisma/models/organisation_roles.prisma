@@ -2,5 +2,7 @@ model OrganisationRole {
   id   Int    @id @default(autoincrement())
   name String @unique @db.VarChar(100)
 
+  userOrganisationRoles UserOrganisationRoles[]
+
   @@map("organisation_roles")
 }
