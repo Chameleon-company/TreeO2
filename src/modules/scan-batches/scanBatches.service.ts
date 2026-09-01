@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, TreeScan } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import {
@@ -10,7 +10,6 @@ import {
 	SCAN_BATCHES_AUTH_ROLES,
 	SCAN_BATCHES_DB_ROLES,
 	SCAN_BATCHES_DEFAULTS,
-	SCAN_BATCHES_LIMITS,
 	SCAN_BATCHES_MAX_TRANSACTION_RETRIES,
 	SCAN_BATCHES_MESSAGES,
 } from "./scan-batches.constants";
@@ -26,6 +25,16 @@ type CreateScanBatchServiceInput = CreateScanBatchInput & {
 	inspector_id: number;
 };
 
+// A single scan from the validated upload payload.
+type ScanInput = CreateScanBatchServiceInput["scans"][number];
+
+// A duplicate whose stored record is being overwritten under last-write-wins,
+// paired with the full stored row so its previous state can be audited.
+interface ScanOverwrite {
+	scan: ScanInput;
+	existing: TreeScan;
+}
+
 type ScanBatchWithRelations = Prisma.ScanBatchGetPayload<{
 	include: {
 		inspector: { select: { id: true; name: true; email: true } };
@@ -39,8 +48,8 @@ type ScanBatchWithRelations = Prisma.ScanBatchGetPayload<{
 interface CreateScanBatchResult {
 	batch: ScanBatchWithRelations | null;
 	summary: {
-		created: number;
-		updated: number;
+		created_count: number;
+		updated_count: number;
 		skipped: number;
 		skippedClientScanIds: string[];
 		skippedNoTimestamp: string[];
@@ -49,7 +58,7 @@ interface CreateScanBatchResult {
 
 // Field mapping shared by inserts and last-write-wins overwrites
 const toTreeScanFields = (
-	scan: CreateScanBatchServiceInput["scans"][number],
+	scan: ScanInput,
 	data: CreateScanBatchServiceInput,
 ) => ({
 	fobId: scan.fob_id,
@@ -104,6 +113,150 @@ const runWithWriteConflictRetry = async <T>(
 	// Retries exhausted: errorHandler maps P2034 to a 409 telling the client to
 	// retry the request.
 	throw lastError;
+};
+
+// Confirm the uploading inspector exists, holds the Inspector role, and has an
+// active, sign-in-capable account.
+const validateInspector = async (inspectorId: number): Promise<void> => {
+	const inspector = await prisma.user.findUnique({
+		where: { id: inspectorId },
+		include: { primaryRole: true },
+	});
+
+	if (!inspector) {
+		throw new AppError(
+			404,
+			customError("DATA_001"),
+			SCAN_BATCHES_MESSAGES.INSPECTOR_NOT_FOUND,
+		);
+	}
+
+	if (inspector.primaryRole?.name !== SCAN_BATCHES_DB_ROLES.INSPECTOR) {
+		throw new AppError(
+			403,
+			customError("AUTH_004"),
+			SCAN_BATCHES_MESSAGES.INVALID_INSPECTOR_ROLE,
+		);
+	}
+
+	if (!inspector.accountActive || !inspector.canSignIn) {
+		throw new AppError(
+			403,
+			customError("AUTH_003"),
+			"Inspector account is inactive or cannot sign in",
+		);
+	}
+};
+
+// Confirm the target project exists and is accepting uploads.
+const validateProject = async (projectId: number): Promise<void> => {
+	const project = await prisma.project.findUnique({
+		where: { id: projectId },
+	});
+
+	if (!project) {
+		throw new AppError(
+			404,
+			customError("DATA_001"),
+			SCAN_BATCHES_MESSAGES.PROJECT_NOT_FOUND,
+		);
+	}
+
+	if (!project.isActive) {
+		throw new AppError(
+			422,
+			customError("DATA_005"),
+			SCAN_BATCHES_MESSAGES.PROJECT_INACTIVE,
+		);
+	}
+};
+
+// Confirm the inspector is assigned to the project they are uploading to.
+const validateInspectorAssignment = async (
+	inspectorId: number,
+	projectId: number,
+): Promise<void> => {
+	const inspectorAssignment = await prisma.userProject.findFirst({
+		where: { userId: inspectorId, projectId },
+	});
+
+	if (!inspectorAssignment) {
+		throw new AppError(
+			403,
+			customError("DATA_001"),
+			SCAN_BATCHES_MESSAGES.INSPECTOR_NOT_ASSIGNED,
+		);
+	}
+};
+
+// Confirm a scan's farmer exists, holds the Farmer role, and is assigned to the
+// project.
+const validateFarmer = async (
+	farmerId: number,
+	projectId: number,
+): Promise<void> => {
+	const farmer = await prisma.user.findUnique({
+		where: { id: farmerId },
+		include: { primaryRole: true },
+	});
+
+	if (!farmer) {
+		throw new AppError(
+			404,
+			customError("DATA_001"),
+			SCAN_BATCHES_MESSAGES.FARMER_NOT_FOUND,
+		);
+	}
+
+	if (farmer.primaryRole?.name !== SCAN_BATCHES_DB_ROLES.FARMER) {
+		throw new AppError(
+			403,
+			customError("DATA_001"),
+			SCAN_BATCHES_MESSAGES.INVALID_FARMER_ROLE,
+		);
+	}
+
+	const farmerAssignment = await prisma.userProject.findFirst({
+		where: { userId: farmerId, projectId },
+	});
+
+	if (!farmerAssignment) {
+		throw new AppError(
+			403,
+			customError("DATA_001"),
+			SCAN_BATCHES_MESSAGES.FARMER_NOT_ASSIGNED,
+		);
+	}
+};
+
+// Confirm a scan's species exists and is assigned to the project.
+const validateSpecies = async (
+	speciesId: number,
+	projectId: number,
+): Promise<void> => {
+	const species = await prisma.treeType.findUnique({
+		where: { id: speciesId },
+	});
+
+	if (!species) {
+		throw new AppError(
+			404,
+			customError("DATA_001"),
+			SCAN_BATCHES_MESSAGES.SPECIES_NOT_FOUND,
+		);
+	}
+
+	const projectSpecies = await prisma.projectTreeType.findFirst({
+		where: { projectId, treeTypeId: speciesId },
+	});
+
+	if (!projectSpecies) {
+		throw new AppError(
+			403,
+			customError("DATA_001"),
+			SCAN_BATCHES_MESSAGES.SPECIES_NOT_IN_PROJECT,
+		);
+	}
 };
 
 // Fetch paginated scan batches with role-based access filtering
@@ -254,171 +407,23 @@ export const getScanBatchById = async (
 export const createScanBatch = async (
 	data: CreateScanBatchServiceInput,
 ): Promise<CreateScanBatchResult> => {
-	const inspector = await prisma.user.findUnique({
-		where: { id: data.inspector_id },
-		include: {
-			primaryRole: true,
-		},
-	});
+	// Batch-level checks: uploading inspector, target project, and their link.
+	await validateInspector(data.inspector_id);
+	await validateProject(data.project_id);
+	await validateInspectorAssignment(data.inspector_id, data.project_id);
 
-	if (!inspector) {
-		throw new AppError(
-			404,
-			customError("DATA_001"),
-			SCAN_BATCHES_MESSAGES.INSPECTOR_NOT_FOUND,
-		);
-	}
-
-	if (inspector.primaryRole?.name !== SCAN_BATCHES_DB_ROLES.INSPECTOR) {
-		throw new AppError(
-			403,
-			customError("AUTH_004"),
-			SCAN_BATCHES_MESSAGES.INVALID_INSPECTOR_ROLE,
-		);
-	}
-
-	if (!inspector.accountActive || !inspector.canSignIn) {
-		throw new AppError(
-			403,
-			customError("AUTH_003"),
-			"Inspector account is inactive or cannot sign in",
-		);
-	}
-
-	const project = await prisma.project.findUnique({
-		where: { id: data.project_id },
-	});
-
-	if (!project) {
-		throw new AppError(
-			404,
-			customError("DATA_001"),
-			SCAN_BATCHES_MESSAGES.PROJECT_NOT_FOUND,
-		);
-	}
-
-	if (!project.isActive) {
-		throw new AppError(
-			422,
-			customError("DATA_005"),
-			SCAN_BATCHES_MESSAGES.PROJECT_INACTIVE,
-		);
-	}
-
-	const inspectorAssignment = await prisma.userProject.findFirst({
-		where: {
-			userId: data.inspector_id,
-			projectId: data.project_id,
-		},
-	});
-
-	if (!inspectorAssignment) {
-		throw new AppError(
-			403,
-			customError("DATA_001"),
-			SCAN_BATCHES_MESSAGES.INSPECTOR_NOT_ASSIGNED,
-		);
-	}
-
+	// Per-scan reference checks. Measurement bounds are enforced by the Zod
+	// schema (createScanBatchSchema) at parse time, so they are not repeated here.
 	for (const scan of data.scans) {
-		const farmer = await prisma.user.findUnique({
-			where: { id: scan.farmer_id },
-			include: {
-				primaryRole: true,
-			},
-		});
-
-		if (!farmer) {
-			throw new AppError(
-				404,
-				customError("DATA_001"),
-				SCAN_BATCHES_MESSAGES.FARMER_NOT_FOUND,
-			);
-		}
-
-		if (farmer.primaryRole?.name !== SCAN_BATCHES_DB_ROLES.FARMER) {
-			throw new AppError(
-				403,
-				customError("DATA_001"),
-				SCAN_BATCHES_MESSAGES.INVALID_FARMER_ROLE,
-			);
-		}
-
-		const farmerAssignment = await prisma.userProject.findFirst({
-			where: {
-				userId: scan.farmer_id,
-				projectId: data.project_id,
-			},
-		});
-
-		if (!farmerAssignment) {
-			throw new AppError(
-				403,
-				customError("DATA_001"),
-
-				SCAN_BATCHES_MESSAGES.FARMER_NOT_ASSIGNED,
-			);
-		}
-
-		const species = await prisma.treeType.findUnique({
-			where: { id: scan.species_id },
-		});
-
-		if (!species) {
-			throw new AppError(
-				404,
-				customError("DATA_001"),
-				SCAN_BATCHES_MESSAGES.SPECIES_NOT_FOUND,
-			);
-		}
-
-		const projectSpecies = await prisma.projectTreeType.findFirst({
-			where: {
-				projectId: data.project_id,
-				treeTypeId: scan.species_id,
-			},
-		});
-
-		if (!projectSpecies) {
-			throw new AppError(
-				403,
-				customError("DATA_001"),
-				SCAN_BATCHES_MESSAGES.SPECIES_NOT_IN_PROJECT,
-			);
-		}
-
-		if (scan.height_m && scan.height_m > SCAN_BATCHES_LIMITS.MAX_HEIGHT_M) {
-			throw new AppError(
-				422,
-				customError("VAL_006"),
-				SCAN_BATCHES_MESSAGES.INVALID_MEASUREMENT,
-			);
-		}
-
-		if (
-			scan.diameter_cm &&
-			scan.diameter_cm > SCAN_BATCHES_LIMITS.MAX_DIAMETER_CM
-		) {
-			throw new AppError(
-				422,
-				customError("VAL_006"),
-				SCAN_BATCHES_MESSAGES.INVALID_MEASUREMENT,
-			);
-		}
-
-		if (
-			scan.circumference_cm &&
-			scan.circumference_cm > SCAN_BATCHES_LIMITS.MAX_CIRCUMFERENCE_CM
-		) {
-			throw new AppError(
-				422,
-				customError("VAL_006"),
-				SCAN_BATCHES_MESSAGES.INVALID_MEASUREMENT,
-			);
-		}
+		await validateFarmer(scan.farmer_id, data.project_id);
+		await validateSpecies(scan.species_id, data.project_id);
 	}
 
 	const clientScanIds = data.scans.map((scan) => scan.client_scan_id);
+
+	// One instant for the whole upload: the batch header and every scan it
+	// writes (inserted or overwritten) share the exact same timestamp.
+	const uploadedAt = data.uploaded_at ?? new Date();
 
 	const upload = await runWithWriteConflictRetry(() =>
 		prisma.$transaction(
@@ -438,11 +443,8 @@ export const createScanBatch = async (
 					existingScans.map((scan) => [scan.clientScanId, scan]),
 				);
 
-				const newScans: typeof data.scans = [];
-				const overwrites: {
-					scan: (typeof data.scans)[number];
-					existing: (typeof existingScans)[number];
-				}[] = [];
+				const newScans: ScanInput[] = [];
+				const overwrites: ScanOverwrite[] = [];
 				const skippedClientScanIds: string[] = [];
 				const skippedNoTimestamp: string[] = [];
 
@@ -454,19 +456,25 @@ export const createScanBatch = async (
 						continue;
 					}
 
-					// Last-write-wins is defined on scan_timestamp (V1.3 10.7/7.24), but
-					// the column is nullable (V1.2 7.20). Without it the comparison
-					// cannot be evaluated, so V1.2 10.5 idempotency applies instead: the
-					// duplicate is detected and no second record is created.
+					// Last-write-wins is decided on scan_timestamp: field-capture time
+					// vs field-capture time (V1.3 10.7/7.24). The uploaded scan is
+					// nullable (V1.2 7.20); without one there is nothing to compare, so
+					// V1.2 10.5 idempotency applies and no second record is created.
 					if (!scan.scan_timestamp) {
 						skippedNoTimestamp.push(scan.client_scan_id);
 						continue;
 					}
 
-					// The offline scan is the authoritative field observation, so it
-					// replaces the stored record unless the server record was modified
-					// after the scan was captured.
-					if (scan.scan_timestamp > existing.updatedAt) {
+					// Last-write-wins compares capture times: the upload wins when it was
+					// captured later than the stored scan's own scan_timestamp (not the
+					// server write time). A stored row with no scan_timestamp has nothing
+					// to compare, so the incoming observation is treated as newer.
+					const existingCapturedAt = existing.scanTimestamp;
+
+					if (
+						existingCapturedAt === null ||
+						scan.scan_timestamp > existingCapturedAt
+					) {
 						overwrites.push({ scan, existing });
 					} else {
 						skippedClientScanIds.push(scan.client_scan_id);
@@ -480,8 +488,8 @@ export const createScanBatch = async (
 				if (newScans.length === 0 && overwrites.length === 0) {
 					return {
 						batchId: null,
-						created: 0,
-						updated: 0,
+						created_count: 0,
+						updated_count: 0,
 						skippedClientScanIds,
 						skippedNoTimestamp,
 					};
@@ -492,7 +500,7 @@ export const createScanBatch = async (
 						inspectorId: data.inspector_id,
 						projectId: data.project_id,
 						deviceId: data.device_id,
-						uploadedAt: data.uploaded_at ?? new Date(),
+						uploadedAt,
 					},
 				});
 
@@ -502,6 +510,7 @@ export const createScanBatch = async (
 								data: newScans.map((scan) => ({
 									...toTreeScanFields(scan, data),
 									batchId: scanBatch.id,
+									uploadTimestamp: uploadedAt,
 								})),
 							})
 						: { count: 0 };
@@ -512,7 +521,7 @@ export const createScanBatch = async (
 						data: {
 							...toTreeScanFields(scan, data),
 							batchId: scanBatch.id,
-							uploadTimestamp: new Date(),
+							uploadTimestamp: uploadedAt,
 						},
 					});
 
@@ -530,8 +539,8 @@ export const createScanBatch = async (
 
 				return {
 					batchId: scanBatch.id,
-					created: inserted.count,
-					updated: overwrites.length,
+					created_count: inserted.count,
+					updated_count: overwrites.length,
 					skippedClientScanIds,
 					skippedNoTimestamp,
 				};
@@ -568,8 +577,8 @@ export const createScanBatch = async (
 	return {
 		batch,
 		summary: {
-			created: upload.created,
-			updated: upload.updated,
+			created_count: upload.created_count,
+			updated_count: upload.updated_count,
 			skipped:
 				upload.skippedClientScanIds.length + upload.skippedNoTimestamp.length,
 			skippedClientScanIds: upload.skippedClientScanIds,

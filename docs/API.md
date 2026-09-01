@@ -4345,17 +4345,21 @@ on the device and cannot be in the future.
 ##### Conflict Resolution (Last-Write-Wins)
 
 When a submitted `client_scan_id` already exists, the offline scan is treated
-as the authoritative field observation. If the stored record has not been
-modified since the scan was captured, the uploaded scan replaces it. If the
-stored record was modified after the scan was captured, the more recent
-modification wins and the upload is skipped. Either way the previous state of
-an overwritten record is preserved in `tree_scan_audit`.
+as the authoritative field observation. Last-write-wins compares capture times:
+the uploaded scan replaces the stored record when its `scan_timestamp` is later
+than the stored scan's own `scan_timestamp`, and is otherwise skipped. (The
+comparison is against the stored scan's capture time, not its server write time,
+so a genuinely newer field observation always wins.) A stored record that has no
+`scan_timestamp` of its own has no comparable capture time, so the incoming
+observation overwrites it. Either way the previous state of an overwritten
+record is preserved in `tree_scan_audit`.
 
-A duplicate submitted without a `scan_timestamp` cannot be compared, so it is
-skipped and reported under `skippedNoTimestamp` rather than overwriting.
+A duplicate whose upload carries no `scan_timestamp` cannot be compared, so it
+is skipped and reported under `skippedNoTimestamp` rather than overwriting.
 
-Each response includes a `summary` reporting how many scans were `created`,
-`updated` (overwritten under last-write-wins) and `skipped`.
+Each response includes a `summary` reporting how many scans were inserted
+(`created_count`), overwritten under last-write-wins (`updated_count`) and
+`skipped`.
 
 ##### Response
 
@@ -4373,8 +4377,8 @@ New scans created (some may be skipped duplicates):
     "treeScans": []
   },
   "summary": {
-    "created": 1,
-    "updated": 0,
+    "created_count": 1,
+    "updated_count": 0,
     "skipped": 0,
     "skippedClientScanIds": [],
     "skippedNoTimestamp": []
@@ -4391,8 +4395,8 @@ created):
   "message": "All submitted scans already exist. No new scans were created.",
   "data": null,
   "summary": {
-    "created": 0,
-    "updated": 0,
+    "created_count": 0,
+    "updated_count": 0,
     "skipped": 1,
     "skippedClientScanIds": ["7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c"],
     "skippedNoTimestamp": []

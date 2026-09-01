@@ -11,7 +11,8 @@ export const TREE_SCAN_LIMITS = {
 	MAX_LIMIT: 100,
 } as const;
 
-// change_type values for tree_scan_audit (V1.2 7.21)
+// change_type values for tree_scan_audit (V1.2 7.21); mirrors the
+// TreeScanAuditChangeType Prisma enum one-to-one.
 export const TREE_SCAN_AUDIT_CHANGE_TYPES = {
 	CREATED: "created",
 	CORRECTED: "corrected",

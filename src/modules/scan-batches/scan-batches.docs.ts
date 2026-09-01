@@ -212,18 +212,18 @@
  *       200:
  *         description: >
  *           Idempotent no-op. No submitted scan was created or overwritten, so no
- *           batch was created. Response body includes a summary with created (0),
- *           updated (0) and skipped counts.
+ *           batch was created. Response body includes a summary with created_count
+ *           (0), updated_count (0) and skipped counts.
  *       201:
  *         description: >
  *           Scan batch uploaded successfully. Response body includes a summary of
- *           created, updated and skipped scan counts. A scan whose client_scan_id
- *           already exists for this device is resolved by last-write-wins: it
- *           overwrites the stored record when its scan_timestamp is later than the
- *           stored record's last modification, and is otherwise skipped. Overwritten
- *           states are preserved in tree_scan_audit. A duplicate submitted without a
- *           scan_timestamp cannot be compared and is reported under
- *           skippedNoTimestamp.
+ *           created_count, updated_count and skipped scan counts. A scan whose
+ *           client_scan_id already exists for this device is resolved by
+ *           last-write-wins: it overwrites the stored record when its scan_timestamp
+ *           is later than the stored scan's own scan_timestamp, and is otherwise
+ *           skipped. Overwritten states are preserved in tree_scan_audit. A duplicate
+ *           submitted without a scan_timestamp cannot be compared and is reported
+ *           under skippedNoTimestamp.
  *       400:
  *         description: Validation failed
  *       401:

@@ -10,6 +10,7 @@ import {
 	SCAN_BATCHES_DB_ROLES,
 	SCAN_BATCHES_MESSAGES,
 } from "../../src/modules/scan-batches/scan-batches.constants";
+import { createScanBatchSchema } from "../../src/modules/scan-batches/scan-batches.schema";
 import { customError } from "../../src/utils/errorCodes";
 import { Prisma } from "@prisma/client";
 
@@ -438,8 +439,8 @@ describe("ScanBatchesService", () => {
 			expect(result).toEqual({
 				batch: scanBatchRecord,
 				summary: {
-					created: 1,
-					updated: 0,
+					created_count: 1,
+					updated_count: 0,
 					skipped: 0,
 					skippedClientScanIds: [],
 					skippedNoTimestamp: [],
@@ -447,13 +448,15 @@ describe("ScanBatchesService", () => {
 			});
 		});
 
-		// Tests idempotent no-op when the stored record was modified after capture
+		// Tests idempotent no-op when the stored scan was captured after the upload
 		it("should skip batch creation when all scans lose last-write-wins", async () => {
 			mockPrisma.treeScan.findMany.mockResolvedValue([
 				{
 					id: 50,
 					clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
-					// Server record modified after the scan was captured, so it wins.
+					// Stored scan captured AFTER the uploaded one, so it wins. Compared
+					// on capture time (scan_timestamp), not the server write time.
+					scanTimestamp: new Date("2024-05-21T00:00:00.000Z"),
 					updatedAt: new Date("2024-05-21T00:00:00.000Z"),
 				},
 			]);
@@ -467,8 +470,8 @@ describe("ScanBatchesService", () => {
 			expect(result).toEqual({
 				batch: null,
 				summary: {
-					created: 0,
-					updated: 0,
+					created_count: 0,
+					updated_count: 0,
 					skipped: 1,
 					skippedClientScanIds: ["7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c"],
 					skippedNoTimestamp: [],
@@ -482,8 +485,10 @@ describe("ScanBatchesService", () => {
 				id: 50,
 				fobId: "OLD-001",
 				clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
-				// Server record last modified before the scan was captured.
-				updatedAt: new Date("2024-05-19T00:00:00.000Z"),
+				// Stored scan captured BEFORE the uploaded one, so the upload wins.
+				scanTimestamp: new Date("2024-05-19T00:00:00.000Z"),
+				// updatedAt is ~now on every write; it must NOT decide the comparison.
+				updatedAt: new Date("2025-01-01T00:00:00.000Z"),
 			};
 
 			mockPrisma.treeScan.findMany.mockResolvedValue([storedScan]);
@@ -515,16 +520,45 @@ describe("ScanBatchesService", () => {
 			});
 
 			expect(result.summary).toEqual({
-				created: 0,
-				updated: 1,
+				created_count: 0,
+				updated_count: 1,
 				skipped: 0,
 				skippedClientScanIds: [],
 				skippedNoTimestamp: [],
 			});
 		});
 
-		// A duplicate with no scan_timestamp cannot be compared, so v1.2 10.5
-		// idempotency applies and no second record is created.
+		// A stored row that has no capture time of its own cannot lose the
+		// comparison, so the incoming field observation overwrites it.
+		it("should overwrite when the stored scan has no scan_timestamp", async () => {
+			const storedScan = {
+				id: 51,
+				fobId: "OLD-002",
+				clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+				scanTimestamp: null,
+				updatedAt: new Date("2025-01-01T00:00:00.000Z"),
+			};
+
+			mockPrisma.treeScan.findMany.mockResolvedValue([storedScan]);
+			mockPrisma.treeScan.update.mockResolvedValue({
+				...storedScan,
+				fobId: "SWAGGER-001",
+			});
+
+			const result = await createScanBatch(validCreateInput);
+
+			expect(mockPrisma.treeScan.update).toHaveBeenCalledWith({
+				where: { id: 51 },
+				data: expect.objectContaining({
+					clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+				}),
+			});
+			expect(result.summary.updated_count).toBe(1);
+			expect(result.summary.skipped).toBe(0);
+		});
+
+		// A duplicate whose UPLOAD has no scan_timestamp cannot be compared, so
+		// v1.2 10.5 idempotency applies and no second record is created.
 		it("should skip a duplicate scan that has no scan_timestamp", async () => {
 			const inputWithoutScanTimestamp = {
 				...validCreateInput,
@@ -535,6 +569,7 @@ describe("ScanBatchesService", () => {
 				{
 					id: 50,
 					clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+					scanTimestamp: new Date("2024-05-19T00:00:00.000Z"),
 					updatedAt: new Date("2024-05-19T00:00:00.000Z"),
 				},
 			]);
@@ -545,8 +580,8 @@ describe("ScanBatchesService", () => {
 			expect(mockPrisma.treeScan.createMany).not.toHaveBeenCalled();
 
 			expect(result.summary).toEqual({
-				created: 0,
-				updated: 0,
+				created_count: 0,
+				updated_count: 0,
 				skipped: 1,
 				skippedClientScanIds: [],
 				skippedNoTimestamp: ["7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c"],
@@ -573,12 +608,13 @@ describe("ScanBatchesService", () => {
 				.mockResolvedValueOnce(farmerRecord)
 				.mockResolvedValueOnce(farmerRecord);
 
-			// Only the first scan already exists, and the stored record is newer, so
-			// it wins last-write-wins. The second scan is new.
+			// Only the first scan already exists, and the stored scan was captured
+			// later, so it wins last-write-wins. The second scan is new.
 			mockPrisma.treeScan.findMany.mockResolvedValue([
 				{
 					id: 50,
 					clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+					scanTimestamp: new Date("2024-05-21T00:00:00.000Z"),
 					updatedAt: new Date("2024-05-21T00:00:00.000Z"),
 				},
 			]);
@@ -596,8 +632,8 @@ describe("ScanBatchesService", () => {
 			});
 
 			expect(result.summary).toEqual({
-				created: 1,
-				updated: 0,
+				created_count: 1,
+				updated_count: 0,
 				skipped: 1,
 				skippedClientScanIds: ["7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c"],
 				skippedNoTimestamp: [],
@@ -621,9 +657,54 @@ describe("ScanBatchesService", () => {
 			const result = await createScanBatch(validCreateInput);
 
 			expect(mockPrisma.$transaction).toHaveBeenCalledTimes(2);
-			expect(result.summary.created).toBe(1);
+			expect(result.summary.created_count).toBe(1);
 
 			mockPrisma.$transaction = runTransaction;
+		});
+
+		// All scan writes in one upload — the batch header, inserted scans, and
+		// overwritten scans — must share the exact same upload timestamp.
+		it("should stamp the batch and every scan with the same upload timestamp", async () => {
+			const storedScan = {
+				id: 60,
+				fobId: "OLD-003",
+				clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+				scanTimestamp: new Date("2024-05-19T00:00:00.000Z"),
+				updatedAt: new Date("2024-05-19T00:00:00.000Z"),
+			};
+
+			const newScan = {
+				...validCreateInput.scans[0],
+				fob_id: "SWAGGER-NEW",
+				client_scan_id: "1c2d3e4f-5a6b-7c8d-9e0f-1a2b3c4d5e6f",
+			};
+
+			const mixedInput = {
+				...validCreateInput,
+				scans: [validCreateInput.scans[0], newScan],
+			};
+
+			mockPrisma.user.findUnique.mockReset();
+			mockPrisma.user.findUnique
+				.mockResolvedValueOnce(inspectorRecord)
+				.mockResolvedValueOnce(farmerRecord)
+				.mockResolvedValueOnce(farmerRecord);
+
+			mockPrisma.treeScan.findMany.mockResolvedValue([storedScan]);
+			mockPrisma.treeScan.update.mockResolvedValue(storedScan);
+			mockPrisma.treeScan.createMany.mockResolvedValue({ count: 1 });
+
+			await createScanBatch(mixedInput);
+
+			const batchTimestamp =
+				mockPrisma.scanBatch.create.mock.calls[0][0].data.uploadedAt;
+			const insertedTimestamp =
+				mockPrisma.treeScan.createMany.mock.calls[0][0].data[0].uploadTimestamp;
+			const overwriteTimestamp =
+				mockPrisma.treeScan.update.mock.calls[0][0].data.uploadTimestamp;
+
+			expect(insertedTimestamp).toEqual(batchTimestamp);
+			expect(overwriteTimestamp).toEqual(batchTimestamp);
 		});
 
 		// Tests default upload timestamp when uploaded_at is omitted
@@ -829,69 +910,6 @@ describe("ScanBatchesService", () => {
 			});
 		});
 
-		// Tests height measurement upper-limit validation
-		it("should throw invalid measurement when height exceeds limit", async () => {
-			const err = customError("VAL_006");
-			await expect(
-				createScanBatch({
-					...validCreateInput,
-					scans: [
-						{
-							...validCreateInput.scans[0],
-							height_m: 101,
-						},
-					],
-				}),
-			).rejects.toMatchObject({
-				statusCode: 422,
-				detail: SCAN_BATCHES_MESSAGES.INVALID_MEASUREMENT,
-				code: err.code,
-				message: err.message,
-			});
-		});
-
-		// Tests diameter measurement upper-limit validation
-		it("should throw invalid measurement when diameter exceeds limit", async () => {
-			const err = customError("VAL_006");
-			await expect(
-				createScanBatch({
-					...validCreateInput,
-					scans: [
-						{
-							...validCreateInput.scans[0],
-							diameter_cm: 1001,
-						},
-					],
-				}),
-			).rejects.toMatchObject({
-				statusCode: 422,
-				detail: SCAN_BATCHES_MESSAGES.INVALID_MEASUREMENT,
-				code: err.code,
-				message: err.message,
-			});
-		});
-
-		// Tests circumference measurement upper-limit validation
-		it("should throw invalid measurement when circumference exceeds limit", async () => {
-			const err = customError("VAL_006");
-			await expect(
-				createScanBatch({
-					...validCreateInput,
-					scans: [
-						{
-							...validCreateInput.scans[0],
-							circumference_cm: 4001,
-						},
-					],
-				}),
-			).rejects.toMatchObject({
-				statusCode: 422,
-				detail: SCAN_BATCHES_MESSAGES.INVALID_MEASUREMENT,
-				code: err.code,
-				message: err.message,
-			});
-		});
-
 		// Tests that each scan in a multi-scan batch is validated
 		it("should validate every scan in a multi-scan batch", async () => {
 			const multiScanInput = {
@@ -919,6 +937,57 @@ describe("ScanBatchesService", () => {
 				code: err.code,
 				message: err.message,
 			});
+		});
+	});
+
+	// Measurement bounds are enforced at the schema-parsing layer (Pon's review),
+	// not re-checked inside the service. These assert the Zod schema rejects
+	// out-of-range measurements before the service is ever reached.
+	describe("createScanBatchSchema measurement bounds", () => {
+		const validBody = () => ({
+			project_id: 1,
+			device_id: "MOB-001",
+			uploaded_at: "2024-05-20T10:35:00.000Z",
+			scans: [
+				{
+					fob_id: "SWAGGER-001",
+					farmer_id: 16,
+					species_id: 1,
+					estimated_planted_year: 2024,
+					estimated_planted_month: 5,
+					planted_date: "2024-05-20",
+					height_m: 2.5,
+					circumference_cm: 45.3,
+					diameter_cm: 14.4,
+					latitude: -8.5569,
+					longitude: 125.5603,
+					photo_id: "550e8400-e29b-41d4-a716-446655440000",
+					client_scan_id: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+					scan_timestamp: "2024-05-20T10:30:00.000Z",
+				},
+			],
+		});
+
+		it("should accept measurements within range", () => {
+			expect(createScanBatchSchema.safeParse(validBody()).success).toBe(true);
+		});
+
+		it("should reject height above the maximum", () => {
+			const body = validBody();
+			body.scans[0].height_m = 101;
+			expect(createScanBatchSchema.safeParse(body).success).toBe(false);
+		});
+
+		it("should reject diameter above the maximum", () => {
+			const body = validBody();
+			body.scans[0].diameter_cm = 1001;
+			expect(createScanBatchSchema.safeParse(body).success).toBe(false);
+		});
+
+		it("should reject circumference above the maximum", () => {
+			const body = validBody();
+			body.scans[0].circumference_cm = 4001;
+			expect(createScanBatchSchema.safeParse(body).success).toBe(false);
 		});
 	});
 

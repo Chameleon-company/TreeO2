@@ -828,7 +828,7 @@ describe("Scan Batches Integration Tests", () => {
 				.send(payload);
 
 			expect(first.status).toBe(201);
-			expect(first.body.summary.created).toBe(1);
+			expect(first.body.summary.created_count).toBe(1);
 			expect(first.body.summary.skipped).toBe(0);
 
 			const retry = await request(app)
@@ -838,7 +838,7 @@ describe("Scan Batches Integration Tests", () => {
 
 			expect(retry.status).toBe(200);
 			expect(retry.body.data).toBeNull();
-			expect(retry.body.summary.created).toBe(0);
+			expect(retry.body.summary.created_count).toBe(0);
 			expect(retry.body.summary.skipped).toBe(1);
 		});
 
@@ -872,8 +872,8 @@ describe("Scan Batches Integration Tests", () => {
 				.send(newer);
 
 			expect(response.status).toBe(201);
-			expect(response.body.summary.created).toBe(0);
-			expect(response.body.summary.updated).toBe(1);
+			expect(response.body.summary.created_count).toBe(0);
+			expect(response.body.summary.updated_count).toBe(1);
 			expect(response.body.summary.skipped).toBe(0);
 
 			// The stored row is updated in place, not duplicated
@@ -911,7 +911,7 @@ describe("Scan Batches Integration Tests", () => {
 				.send(withoutTimestamp);
 
 			expect(response.status).toBe(200);
-			expect(response.body.summary.updated).toBe(0);
+			expect(response.body.summary.updated_count).toBe(0);
 			expect(response.body.summary.skippedNoTimestamp).toEqual([
 				payload.scans[0].client_scan_id,
 			]);
@@ -943,7 +943,7 @@ describe("Scan Batches Integration Tests", () => {
 				.send(mixed);
 
 			expect(response.status).toBe(201);
-			expect(response.body.summary.created).toBe(1);
+			expect(response.body.summary.created_count).toBe(1);
 			expect(response.body.summary.skipped).toBe(1);
 			expect(response.body.data.treeScans.length).toBe(1);
 		});

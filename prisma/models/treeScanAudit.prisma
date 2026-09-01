@@ -1,9 +1,20 @@
+// Closed set of audit change types (V1.2 7.21). Modelled as an enum so the DB
+// rejects any value outside the spec, rather than accepting an arbitrary string.
+enum TreeScanAuditChangeType {
+  created
+  corrected
+  archived
+  validated
+
+  @@map("tree_scan_audit_change_type")
+}
+
 model TreeScanAudit {
-  id           Int      @id @default(autoincrement())
-  treeScanId   Int      @map("tree_scan_id")
-  changedBy    Int      @map("changed_by")
-  changeType   String   @map("change_type") @db.VarChar(50)
-  changeReason String?  @map("change_reason") @db.Text
+  id           Int                     @id @default(autoincrement())
+  treeScanId   Int                     @map("tree_scan_id")
+  changedBy    Int                     @map("changed_by")
+  changeType   TreeScanAuditChangeType @map("change_type")
+  changeReason String?                 @map("change_reason") @db.Text
   oldData      Json?    @map("old_data") @db.JsonB
   newData      Json     @map("new_data") @db.JsonB
   changedAt    DateTime @default(now()) @map("changed_at")
