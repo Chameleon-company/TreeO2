@@ -4,8 +4,6 @@ import request from "supertest";
 import { PrismaClient } from "@prisma/client";
 import { customError } from "../../src/utils/errorCodes";
 
-process.env.NODE_ENV = "development";
-
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const app = require("../../src/app").default;
 
