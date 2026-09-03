@@ -39,7 +39,6 @@ describe("Scan Batches Integration Tests", () => {
 	const validPayload = () => ({
 		project_id: projectId,
 		device_id: "MOB-001",
-		uploaded_at: "2024-05-20T10:35:00.000Z",
 		scans: [
 			{
 				fob_id: `SCAN-BATCH-${Date.now()}-${Math.random()}`,
@@ -828,7 +827,7 @@ describe("Scan Batches Integration Tests", () => {
 				.send(payload);
 
 			expect(first.status).toBe(201);
-			expect(first.body.summary.created).toBe(1);
+			expect(first.body.summary.created_count).toBe(1);
 			expect(first.body.summary.skipped).toBe(0);
 
 			const retry = await request(app)
@@ -838,8 +837,83 @@ describe("Scan Batches Integration Tests", () => {
 
 			expect(retry.status).toBe(200);
 			expect(retry.body.data).toBeNull();
-			expect(retry.body.summary.created).toBe(0);
+			expect(retry.body.summary.created_count).toBe(0);
 			expect(retry.body.summary.skipped).toBe(1);
+		});
+
+		it("should overwrite a stored scan when the uploaded scan is the newer write", async () => {
+			const payload = validPayload();
+
+			const first = await request(app)
+				.post("/scan-batches")
+				.set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
+				.send(payload);
+
+			expect(first.status).toBe(201);
+			const originalScanId = first.body.data.treeScans[0].id;
+
+			// Same client_scan_id, captured after the stored record was written, so
+			// the offline scan is the more recent write and replaces it.
+			const newer = {
+				...payload,
+				scans: [
+					{
+						...payload.scans[0],
+						height_m: 9.9,
+						scan_timestamp: new Date().toISOString(),
+					},
+				],
+			};
+
+			const response = await request(app)
+				.post("/scan-batches")
+				.set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
+				.send(newer);
+
+			expect(response.status).toBe(201);
+			expect(response.body.summary.created_count).toBe(0);
+			expect(response.body.summary.updated_count).toBe(1);
+			expect(response.body.summary.skipped).toBe(0);
+
+			// The stored row is updated in place, not duplicated
+			const stored = await prisma.treeScan.findMany({
+				where: { clientScanId: payload.scans[0].client_scan_id },
+			});
+			expect(stored.length).toBe(1);
+			expect(stored[0].id).toBe(originalScanId);
+			expect(Number(stored[0].heightM)).toBe(9.9);
+
+			// Overwritten state is preserved for audit (V1.3 10.7/7.24)
+			const audits = await prisma.treeScanAudit.findMany({
+				where: { treeScanId: originalScanId },
+			});
+			expect(audits.length).toBe(1);
+			expect(audits[0].changeType).toBe("corrected");
+		});
+
+		it("should skip a duplicate scan submitted without a scan_timestamp", async () => {
+			const payload = validPayload();
+
+			await request(app)
+				.post("/scan-batches")
+				.set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
+				.send(payload);
+
+			const withoutTimestamp = {
+				...payload,
+				scans: [{ ...payload.scans[0], scan_timestamp: null }],
+			};
+
+			const response = await request(app)
+				.post("/scan-batches")
+				.set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
+				.send(withoutTimestamp);
+
+			expect(response.status).toBe(200);
+			expect(response.body.summary.updated_count).toBe(0);
+			expect(response.body.summary.skippedNoTimestamp).toEqual([
+				payload.scans[0].client_scan_id,
+			]);
 		});
 
 		it("should return 201 and insert only new scans when a batch mixes new and duplicate scans", async () => {
@@ -868,7 +942,7 @@ describe("Scan Batches Integration Tests", () => {
 				.send(mixed);
 
 			expect(response.status).toBe(201);
-			expect(response.body.summary.created).toBe(1);
+			expect(response.body.summary.created_count).toBe(1);
 			expect(response.body.summary.skipped).toBe(1);
 			expect(response.body.data.treeScans.length).toBe(1);
 		});
@@ -899,7 +973,6 @@ describe("Scan Batches Integration Tests", () => {
 				.set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
 				.send({
 					project_id: projectId,
-					uploaded_at: "2024-05-20T10:35:00.000Z",
 					scans: validPayload().scans,
 				});
 

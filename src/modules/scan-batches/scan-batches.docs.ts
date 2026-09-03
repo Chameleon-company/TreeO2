@@ -108,10 +108,6 @@
  *                 maxLength: 100
  *                 description: Identifier of the device uploading the batch. Forms part of the offline idempotency key.
  *                 example: MOB-001
- *               uploaded_at:
- *                 type: string
- *                 format: date-time
- *                 example: 2024-05-20T10:35:00.000Z
  *               scans:
  *                 type: array
  *                 minItems: 1
@@ -193,7 +189,6 @@
  *           example:
  *             project_id: 1
  *             device_id: MOB-001
- *             uploaded_at: 2024-05-20T10:35:00.000Z
  *             scans:
  *               - fob_id: NFC-001
  *                 farmer_id: 10
@@ -210,9 +205,20 @@
  *                 scan_timestamp: 2024-05-20T10:30:00.000Z
  *     responses:
  *       200:
- *         description: Idempotent no-op. Every submitted scan already existed for this device, so no new records were created. Response body includes a summary with created (0) and skipped counts.
+ *         description: >
+ *           Idempotent no-op. No submitted scan was created or overwritten, so no
+ *           batch was created. Response body includes a summary with created_count
+ *           (0), updated_count (0) and skipped counts.
  *       201:
- *         description: Scan batch uploaded successfully. Response body includes a summary of created and skipped (duplicate) scan counts.
+ *         description: >
+ *           Scan batch uploaded successfully. Response body includes a summary of
+ *           created_count, updated_count and skipped scan counts. A scan whose
+ *           client_scan_id already exists for this device is resolved by
+ *           last-write-wins: it overwrites the stored record when its scan_timestamp
+ *           is later than the stored scan's own scan_timestamp, and is otherwise
+ *           skipped. Overwritten states are preserved in tree_scan_audit. A duplicate
+ *           submitted without a scan_timestamp cannot be compared and is reported
+ *           under skippedNoTimestamp.
  *       400:
  *         description: Validation failed
  *       401:
@@ -221,6 +227,8 @@
  *         description: User is not allowed to upload this scan batch
  *       404:
  *         description: Inspector, project, farmer, or species not found
+ *       409:
+ *         description: Write conflict between concurrent uploads could not be resolved after retrying. The client may retry the request.
  *       422:
  *         description: Business rule validation failed, such as inactive project, farmer not assigned, species not assigned to project, or invalid measurement/date values
  */

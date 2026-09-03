@@ -4301,7 +4301,6 @@ Create a new scan batch and associate uploaded tree scans.
 {
   "project_id": 1,
   "device_id": "MOB-001",
-  "uploaded_at": "2024-05-20T10:35:00.000Z",
   "scans": [
     {
       "fob_id": "SWAGGER-001",
@@ -4338,13 +4337,28 @@ Create a new scan batch and associate uploaded tree scans.
 Offline scan uploads are idempotent. Each scan carries a device-generated
 `client_scan_id` (UUID), and the pair is stored under the unique key
 `(project_id, inspector_id, device_id, client_scan_id)`. If a batch is
-re-sent — for example after a network timeout or reconnect — scans that
-already exist are detected and skipped, so no duplicate scan records are
-created. `scan_timestamp` records when the scan was captured on the device
-and cannot be in the future.
+re-sent — for example after a network timeout or reconnect — no duplicate
+scan record is created. `scan_timestamp` records when the scan was captured
+on the device and cannot be in the future.
 
-Each response includes a `summary` reporting how many scans were `created`
-versus `skipped`.
+##### Conflict Resolution (Last-Write-Wins)
+
+When a submitted `client_scan_id` already exists, the offline scan is treated
+as the authoritative field observation. Last-write-wins compares capture times:
+the uploaded scan replaces the stored record when its `scan_timestamp` is later
+than the stored scan's own `scan_timestamp`, and is otherwise skipped. (The
+comparison is against the stored scan's capture time, not its server write time,
+so a genuinely newer field observation always wins.) A stored record that has no
+`scan_timestamp` of its own has no comparable capture time, so the incoming
+observation overwrites it. Either way the previous state of an overwritten
+record is preserved in `tree_scan_audit`.
+
+A duplicate whose upload carries no `scan_timestamp` cannot be compared, so it
+is skipped and reported under `skippedNoTimestamp` rather than overwriting.
+
+Each response includes a `summary` reporting how many scans were inserted
+(`created_count`), overwritten under last-write-wins (`updated_count`) and
+`skipped`.
 
 ##### Response
 
@@ -4362,9 +4376,11 @@ New scans created (some may be skipped duplicates):
     "treeScans": []
   },
   "summary": {
-    "created": 1,
+    "created_count": 1,
+    "updated_count": 0,
     "skipped": 0,
-    "skippedClientScanIds": []
+    "skippedClientScanIds": [],
+    "skippedNoTimestamp": []
   }
 }
 ```
@@ -4378,22 +4394,26 @@ created):
   "message": "All submitted scans already exist. No new scans were created.",
   "data": null,
   "summary": {
-    "created": 0,
+    "created_count": 0,
+    "updated_count": 0,
     "skipped": 1,
-    "skippedClientScanIds": ["7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c"]
+    "skippedClientScanIds": ["7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c"],
+    "skippedNoTimestamp": []
   }
 }
 ```
 
 ##### Status Codes
-- `201` Created (one or more new scans inserted)
-- `200` Idempotent no-op (all submitted scans already existed)
+- `201` Created (one or more scans inserted or overwritten)
+- `200` Idempotent no-op (no scan was created or overwritten)
 - `400` Validation failed (includes missing/invalid `client_scan_id` or
   `device_id`, future `scan_timestamp`, or duplicate `client_scan_id` within
   the batch)
 - `401` Authentication required
 - `403` Insufficient permissions
 - `404` Related entity not found
+- `409` Write conflict between concurrent uploads could not be resolved after
+  retrying; the client may retry the request
 - `422` Invalid project or measurement values
 
 ---

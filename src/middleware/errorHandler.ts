@@ -84,6 +84,20 @@ export const errorHandler = (
 			});
 			return;
 		}
+
+		// Serializable transaction aborted by a write conflict or deadlock, and
+		// the operation exhausted its retries. Safe for the client to retry.
+		if (err.code === "P2034") {
+			const error = customError("DATA_006");
+			res.status(409).json({
+				success: false,
+				error: {
+					code: error.code,
+					message: error.message,
+				},
+			});
+			return;
+		}
 	}
 
 	// Postgres unique violation

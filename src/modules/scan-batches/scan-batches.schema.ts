@@ -100,12 +100,6 @@ export const createScanBatchSchema = z
 			.min(1, SCAN_BATCHES_MESSAGES.DEVICE_ID_REQUIRED)
 			.max(SCAN_BATCHES_LIMITS.DEVICE_ID_MAX_LENGTH),
 
-		uploaded_at: z.coerce
-			.date()
-			.refine(futureDateValidator, "Uploaded date cannot be in the future")
-			.optional()
-			.nullable(),
-
 		scans: z
 			.array(scanSchema)
 			.min(1, SCAN_BATCHES_MESSAGES.INVALID_SCANS_ARRAY)
