@@ -149,7 +149,7 @@ describe("TreeScansService", () => {
 				}),
 			);
 
-expect(result).toEqual({
+			expect(result).toEqual({
 				success: true,
 				data: [treeScanRecord],
 				pagination: {
