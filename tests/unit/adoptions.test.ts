@@ -127,7 +127,10 @@ describe("AdoptionsService - Unit Tests", () => {
 			});
 
 			expect(result.data.length).toBe(1);
-			expect(result.meta.total).toBe(1);
+			expect(result.pagination.total).toBe(1);
+			expect(result.pagination.page).toBe(1);
+			expect(result.pagination.limit).toBe(10);
+			expect(result.pagination.totalPages).toBe(1);
 			expect(mockedPrismaAdoption.findMany).toHaveBeenCalled();
 		});
 

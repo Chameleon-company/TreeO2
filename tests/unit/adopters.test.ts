@@ -93,7 +93,10 @@ describe("AdoptersService - Unit Tests", () => {
 			const result = await adoptersService.listAdopters(1, 10);
 
 			expect(result.data.length).toBe(1);
-			expect(result.meta.total).toBe(1);
+			expect(result.pagination.total).toBe(1);
+			expect(result.pagination.page).toBe(1);
+			expect(result.pagination.limit).toBe(10);
+			expect(result.pagination.totalPages).toBe(1);
 			expect(mockedPrismaAdopter.findMany).toHaveBeenCalled();
 		});
 	});

@@ -1,6 +1,8 @@
+import type { Adopter } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { customError } from "../../utils/errorCodes";
+import type { PaginatedResponse } from "../../types";
 
 interface CreateAdopterInput {
 	name: string;
@@ -80,7 +82,10 @@ const assertUpdatePayload = (data: UpdateAdopterInput) => {
 // -----------------------------
 
 export class AdoptersService {
-	async listAdopters(page = 1, limit = 10) {
+	async listAdopters(
+		page = 1,
+		limit = 10,
+	): Promise<PaginatedResponse<Adopter>> {
 		assertValidPagination(page, limit);
 
 		const skip = (page - 1) * limit;
@@ -95,15 +100,16 @@ export class AdoptersService {
 		]);
 
 		return {
+			success: true,
 			data,
-			meta: {
+			pagination: {
 				page,
 				limit,
 				total,
+				totalPages: Math.ceil(total / limit),
 			},
 		};
 	}
-
 	async createAdopter(data: CreateAdopterInput) {
 		assertCreatePayload(data);
 

@@ -100,8 +100,8 @@ describe("Adoptions API Integration Tests", () => {
 
 		expect(res.status).toBe(200);
 		expect(res.body.success).toBe(true);
-		expect(res.body.data).toHaveProperty("data");
-		expect(res.body.data).toHaveProperty("meta");
+		expect(Array.isArray(res.body.data)).toBe(true);
+		expect(res.body).toHaveProperty("pagination");
 	});
 
 	it("GET /adoptions - should filter by fob_id", async () => {
@@ -110,7 +110,7 @@ describe("Adoptions API Integration Tests", () => {
 			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
 
 		expect(res.status).toBe(200);
-		expect(res.body.data.data.length).toBeGreaterThanOrEqual(1);
+		expect(res.body.data.length).toBeGreaterThanOrEqual(1);
 	});
 
 	it("GET /adoptions - should filter by adopter_id", async () => {
@@ -119,7 +119,7 @@ describe("Adoptions API Integration Tests", () => {
 			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
 
 		expect(res.status).toBe(200);
-		expect(res.body.data.data.length).toBeGreaterThanOrEqual(1);
+		expect(res.body.data.length).toBeGreaterThanOrEqual(1);
 	});
 
 	it("GET /adoptions - should filter by adopter name", async () => {
@@ -128,7 +128,7 @@ describe("Adoptions API Integration Tests", () => {
 			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
 
 		expect(res.status).toBe(200);
-		expect(res.body.data.data.length).toBeGreaterThanOrEqual(1);
+		expect(res.body.data.length).toBeGreaterThanOrEqual(1);
 	});
 
 	it("GET /adoptions - should filter by year", async () => {
@@ -137,7 +137,7 @@ describe("Adoptions API Integration Tests", () => {
 			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
 
 		expect(res.status).toBe(200);
-		expect(res.body.data.data.length).toBeGreaterThanOrEqual(1);
+		expect(res.body.data.length).toBeGreaterThanOrEqual(1);
 	});
 
 	it("GET /adoptions - should return 400 for invalid page query", async () => {
