@@ -77,7 +77,6 @@ describe("ScanBatchesService", () => {
 		inspector_id: inspectorUser.id,
 		project_id: 1,
 		device_id: "MOB-001",
-		uploaded_at: new Date("2024-05-20T10:35:00.000Z"),
 		scans: [
 			{
 				fob_id: "SWAGGER-001",
@@ -178,7 +177,7 @@ describe("ScanBatchesService", () => {
 			id: 1,
 			inspectorId: inspectorUser.id,
 			projectId: 1,
-			uploadedAt: validCreateInput.uploaded_at,
+			uploadedAt: new Date("2024-05-20T10:35:00.000Z"),
 		});
 
 		mockPrisma.treeScan.createMany.mockResolvedValue({
@@ -415,7 +414,7 @@ describe("ScanBatchesService", () => {
 					inspectorId: inspectorUser.id,
 					projectId: 1,
 					deviceId: "MOB-001",
-					uploadedAt: validCreateInput.uploaded_at,
+					uploadedAt: expect.any(Date),
 				},
 			});
 
@@ -454,10 +453,11 @@ describe("ScanBatchesService", () => {
 				{
 					id: 50,
 					clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
-					// Stored scan captured AFTER the uploaded one, so it wins. Compared
-					// on capture time (scan_timestamp), not the server write time.
+					// Stored scan captured AFTER the uploaded one, so it wins. Never
+					// modified server-side, so createdAt and updatedAt match.
 					scanTimestamp: new Date("2024-05-21T00:00:00.000Z"),
-					updatedAt: new Date("2024-05-21T00:00:00.000Z"),
+					createdAt: new Date("2024-05-21T01:00:00.000Z"),
+					updatedAt: new Date("2024-05-21T01:00:00.000Z"),
 				},
 			]);
 
@@ -487,8 +487,10 @@ describe("ScanBatchesService", () => {
 				clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
 				// Stored scan captured BEFORE the uploaded one, so the upload wins.
 				scanTimestamp: new Date("2024-05-19T00:00:00.000Z"),
-				// updatedAt is ~now on every write; it must NOT decide the comparison.
-				updatedAt: new Date("2025-01-01T00:00:00.000Z"),
+				// Never modified server-side, so the insert time must not decide the
+				// comparison: createdAt and updatedAt match.
+				createdAt: new Date("2024-05-19T01:00:00.000Z"),
+				updatedAt: new Date("2024-05-19T01:00:00.000Z"),
 			};
 
 			mockPrisma.treeScan.findMany.mockResolvedValue([storedScan]);
@@ -536,7 +538,8 @@ describe("ScanBatchesService", () => {
 				fobId: "OLD-002",
 				clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
 				scanTimestamp: null,
-				updatedAt: new Date("2025-01-01T00:00:00.000Z"),
+				createdAt: new Date("2024-05-19T01:00:00.000Z"),
+				updatedAt: new Date("2024-05-19T01:00:00.000Z"),
 			};
 
 			mockPrisma.treeScan.findMany.mockResolvedValue([storedScan]);
@@ -555,6 +558,31 @@ describe("ScanBatchesService", () => {
 			});
 			expect(result.summary.updated_count).toBe(1);
 			expect(result.summary.skipped).toBe(0);
+		});
+
+		// The case the policy exists for: the server record was modified after the
+		// scan was captured, so the modification is the more recent authoritative
+		// write and the upload does not overwrite it (V1.3 10.7/7.24).
+		it("should skip when the server record was modified after the scan was captured", async () => {
+			mockPrisma.treeScan.findMany.mockResolvedValue([
+				{
+					id: 52,
+					clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+					// Captured before the upload, so on capture time alone the upload
+					// would win, but the record was corrected server-side afterwards.
+					scanTimestamp: new Date("2024-05-19T00:00:00.000Z"),
+					createdAt: new Date("2024-05-19T01:00:00.000Z"),
+					updatedAt: new Date("2024-06-01T00:00:00.000Z"),
+				},
+			]);
+
+			const result = await createScanBatch(validCreateInput);
+
+			expect(mockPrisma.treeScan.update).not.toHaveBeenCalled();
+			expect(result.summary.updated_count).toBe(0);
+			expect(result.summary.skippedClientScanIds).toEqual([
+				"7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+			]);
 		});
 
 		// A duplicate whose UPLOAD has no scan_timestamp cannot be compared, so
@@ -615,7 +643,8 @@ describe("ScanBatchesService", () => {
 					id: 50,
 					clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
 					scanTimestamp: new Date("2024-05-21T00:00:00.000Z"),
-					updatedAt: new Date("2024-05-21T00:00:00.000Z"),
+					createdAt: new Date("2024-05-21T01:00:00.000Z"),
+					updatedAt: new Date("2024-05-21T01:00:00.000Z"),
 				},
 			]);
 			mockPrisma.treeScan.createMany.mockResolvedValue({ count: 1 });
@@ -670,7 +699,8 @@ describe("ScanBatchesService", () => {
 				fobId: "OLD-003",
 				clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
 				scanTimestamp: new Date("2024-05-19T00:00:00.000Z"),
-				updatedAt: new Date("2024-05-19T00:00:00.000Z"),
+				createdAt: new Date("2024-05-19T01:00:00.000Z"),
+				updatedAt: new Date("2024-05-19T01:00:00.000Z"),
 			};
 
 			const newScan = {
@@ -707,14 +737,9 @@ describe("ScanBatchesService", () => {
 			expect(overwriteTimestamp).toEqual(batchTimestamp);
 		});
 
-		// Tests default upload timestamp when uploaded_at is omitted
-		it("should use current date when uploaded_at is not provided", async () => {
-			const inputWithoutUploadedAt = {
-				...validCreateInput,
-				uploaded_at: null,
-			};
-
-			await createScanBatch(inputWithoutUploadedAt);
+		// Upload time is defined by the server, not the client (V1.3 10.6)
+		it("should stamp the batch with a server-defined upload timestamp", async () => {
+			await createScanBatch(validCreateInput);
 
 			expect(mockPrisma.scanBatch.create).toHaveBeenCalledWith({
 				data: expect.objectContaining({

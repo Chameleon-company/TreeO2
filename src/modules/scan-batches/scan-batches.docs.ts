@@ -108,10 +108,6 @@
  *                 maxLength: 100
  *                 description: Identifier of the device uploading the batch. Forms part of the offline idempotency key.
  *                 example: MOB-001
- *               uploaded_at:
- *                 type: string
- *                 format: date-time
- *                 example: 2024-05-20T10:35:00.000Z
  *               scans:
  *                 type: array
  *                 minItems: 1
@@ -193,7 +189,6 @@
  *           example:
  *             project_id: 1
  *             device_id: MOB-001
- *             uploaded_at: 2024-05-20T10:35:00.000Z
  *             scans:
  *               - fob_id: NFC-001
  *                 farmer_id: 10

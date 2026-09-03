@@ -39,7 +39,6 @@ describe("Scan Batches Integration Tests", () => {
 	const validPayload = () => ({
 		project_id: projectId,
 		device_id: "MOB-001",
-		uploaded_at: "2024-05-20T10:35:00.000Z",
 		scans: [
 			{
 				fob_id: `SCAN-BATCH-${Date.now()}-${Math.random()}`,
@@ -974,7 +973,6 @@ describe("Scan Batches Integration Tests", () => {
 				.set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
 				.send({
 					project_id: projectId,
-					uploaded_at: "2024-05-20T10:35:00.000Z",
 					scans: validPayload().scans,
 				});
 

@@ -421,9 +421,10 @@ export const createScanBatch = async (
 
 	const clientScanIds = data.scans.map((scan) => scan.client_scan_id);
 
-	// One instant for the whole upload: the batch header and every scan it
-	// writes (inserted or overwritten) share the exact same timestamp.
-	const uploadedAt = data.uploaded_at ?? new Date();
+	// Server-defined upload time (V1.3 10.6). One instant for the whole upload:
+	// the batch header and every scan it writes (inserted or overwritten) share
+	// the exact same timestamp.
+	const uploadedAt = new Date();
 
 	const upload = await runWithWriteConflictRetry(() =>
 		prisma.$transaction(
@@ -456,25 +457,31 @@ export const createScanBatch = async (
 						continue;
 					}
 
-					// Last-write-wins is decided on scan_timestamp: field-capture time
-					// vs field-capture time (V1.3 10.7/7.24). The uploaded scan is
-					// nullable (V1.2 7.20); without one there is nothing to compare, so
-					// V1.2 10.5 idempotency applies and no second record is created.
+					// Last-write-wins is decided on scan_timestamp (V1.3 10.7/7.24), but
+					// the column is nullable (V1.2 7.20). Without one there is nothing to
+					// compare, so V1.2 10.5 idempotency applies and no second record is
+					// created.
 					if (!scan.scan_timestamp) {
 						skippedNoTimestamp.push(scan.client_scan_id);
 						continue;
 					}
 
-					// Last-write-wins compares capture times: the upload wins when it was
-					// captured later than the stored scan's own scan_timestamp (not the
-					// server write time). A stored row with no scan_timestamp has nothing
-					// to compare, so the incoming observation is treated as newer.
-					const existingCapturedAt = existing.scanTimestamp;
+					// A stored row is only "modified" once it has been written again after
+					// insert; until then updatedAt just records when it was posted.
+					const serverModified =
+						existing.updatedAt.getTime() > existing.createdAt.getTime();
 
-					if (
-						existingCapturedAt === null ||
-						scan.scan_timestamp > existingCapturedAt
-					) {
+					// V1.3 10.7/7.24. Unmodified server record: the offline scan is the
+					// authoritative field observation and replaces it, provided it is a
+					// later observation than the stored one. Modified server record: the
+					// most recent authoritative modification wins, so the scan must have
+					// been captured after that modification.
+					const overwrite = serverModified
+						? scan.scan_timestamp > existing.updatedAt
+						: existing.scanTimestamp === null ||
+							scan.scan_timestamp > existing.scanTimestamp;
+
+					if (overwrite) {
 						overwrites.push({ scan, existing });
 					} else {
 						skippedClientScanIds.push(scan.client_scan_id);
