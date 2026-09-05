@@ -50,10 +50,7 @@ export class TreeScansController {
 
 			const result = await treeScansService.listTreeScans(query, user);
 
-			return res.status(200).json({
-				success: true,
-				data: result,
-			});
+			return res.status(200).json(result);
 		} catch (error) {
 			return next(error);
 		}

@@ -1,7 +1,8 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type Adoption } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { customError } from "../../utils/errorCodes";
+import type { PaginatedResponse } from "../../types";
 
 interface CreateAdoptionInput {
 	adopter_id: number;
@@ -136,7 +137,9 @@ const assertUpdatePayload = (data: UpdateAdoptionInput) => {
 };
 
 export class AdoptionsService {
-	async listAdoptions(filters: ListAdoptionsFilters = {}) {
+	async listAdoptions(
+		filters: ListAdoptionsFilters = {},
+	): Promise<PaginatedResponse<Adoption>> {
 		const page = filters.page === undefined ? 1 : Number(filters.page);
 
 		const limit = filters.limit === undefined ? 10 : Number(filters.limit);
@@ -211,11 +214,13 @@ export class AdoptionsService {
 		]);
 
 		return {
+			success: true,
 			data,
-			meta: {
+			pagination: {
 				page,
 				limit,
 				total,
+				totalPages: Math.ceil(total / limit),
 			},
 		};
 	}

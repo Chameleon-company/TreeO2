@@ -36,13 +36,19 @@ export interface ApiResponse<T = unknown> {
 	errors?: Record<string, string[]>;
 }
 
-export interface PaginatedResponse<T> extends ApiResponse<T[]> {
-	pagination: {
-		page: number;
-		limit: number;
-		total: number;
-		totalPages: number;
-	};
+export interface Pagination {
+	page: number;
+	limit: number;
+	total: number;
+	totalPages: number;
+}
+
+// Standalone (does not extend ApiResponse) so paginated responses only carry
+// success, data and pagination — not the message/errors fields
+export interface PaginatedResponse<T> {
+	success: boolean;
+	data: T[];
+	pagination: Pagination;
 }
 
 export interface PaginationQuery {
