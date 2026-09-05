@@ -146,10 +146,11 @@ export class UserProjectRoleService {
 
 		return {
 			data,
-			meta: {
+			pagination: {
 				page,
 				limit,
 				total,
+				totalPages: Math.ceil(total / limit),
 			},
 		};
 	}

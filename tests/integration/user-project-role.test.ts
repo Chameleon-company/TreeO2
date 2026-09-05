@@ -266,7 +266,7 @@ describe("User Project Role Integration Tests", () => {
 			expect(response.status).toBe(200);
 			expect(response.body.success).toBe(true);
 
-			expect(response.body.data.data).toEqual(
+			expect(response.body.data).toEqual(
 				expect.arrayContaining([
 					expect.objectContaining({
 						userId,
@@ -276,19 +276,28 @@ describe("User Project Role Integration Tests", () => {
 				]),
 			);
 
-			expect(response.body.data.meta).toEqual(
+			expect(response.body.pagination).toEqual(
 				expect.objectContaining({
 					page: 1,
 					limit: 5,
 				}),
 			);
 
-			expect(typeof response.body.data.meta.total).toBe("number");
+			expect(typeof response.body.pagination.total).toBe("number");
+			expect(typeof response.body.pagination.totalPages).toBe("number");
 		});
 
 		it("returns 400 for invalid pagination", async () => {
 			const response = await request(app)
 				.get("/user-project-roles?page=0&limit=10")
+				.set("Authorization", `Bearer ${ADMIN_TOKEN}`);
+
+			expect(response.status).toBe(400);
+		});
+
+		it("returns 400 when pagination limit exceeds the maximum", async () => {
+			const response = await request(app)
+				.get("/user-project-roles?page=1&limit=101")
 				.set("Authorization", `Bearer ${ADMIN_TOKEN}`);
 
 			expect(response.status).toBe(400);

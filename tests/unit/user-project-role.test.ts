@@ -1,5 +1,5 @@
-import { customError } from "../../src/utils/errorCodes";
 import { UserProjectRoleService } from "../../src/modules/user-project-role/userProjectRole.service";
+import { customError } from "../../src/utils/errorCodes";
 
 jest.mock("@prisma/client", () => {
 	const mockPrisma = {
@@ -95,10 +95,11 @@ describe("UserProjectRoleService", () => {
 
 			expect(result).toEqual({
 				data: assignments,
-				meta: {
+				pagination: {
 					page: 2,
 					limit: 5,
 					total: 12,
+					totalPages: 3,
 				},
 			});
 		});

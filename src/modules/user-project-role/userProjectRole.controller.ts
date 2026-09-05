@@ -1,5 +1,4 @@
-import type { NextFunction, Request, Response } from "express";
-import type { ParamsDictionary } from "express-serve-static-core";
+import type { NextFunction, Response } from "express";
 import { userProjectRoleService } from "./userProjectRole.service";
 import type {
 	UserProjectRoleDeleteReq,
@@ -7,24 +6,9 @@ import type {
 	UserProjectRoleReq,
 } from "./userProjectRole.schema";
 
-type ListUserProjectRolesRequest = Request<
-	ParamsDictionary,
-	unknown,
-	unknown,
-	UserProjectRoleListReq["query"]
->;
-
-type AssignUserProjectRoleRequest = Request<
-	ParamsDictionary,
-	unknown,
-	UserProjectRoleReq["body"]
->;
-
-type DeleteUserProjectRoleRequest = Request<UserProjectRoleDeleteReq["params"]>;
-
 export class UserProjectRoleController {
 	async getRoles(
-		req: ListUserProjectRolesRequest,
+		req: UserProjectRoleListReq,
 		res: Response,
 		next: NextFunction,
 	) {
@@ -35,7 +19,8 @@ export class UserProjectRoleController {
 
 			return res.status(200).json({
 				success: true,
-				data: result,
+				data: result.data,
+				pagination: result.pagination,
 			});
 		} catch (error) {
 			return next(error);
@@ -43,13 +28,13 @@ export class UserProjectRoleController {
 	}
 
 	async assignRole(
-		req: AssignUserProjectRoleRequest,
+		req: UserProjectRoleReq,
+		assignedBy: number,
 		res: Response,
 		next: NextFunction,
 	) {
 		try {
 			const { userId, projectId, roleId } = req.body;
-			const assignedBy = Number(req.user?.sub);
 
 			const assignment = await userProjectRoleService.assignRole({
 				userId,
@@ -68,7 +53,7 @@ export class UserProjectRoleController {
 	}
 
 	async removeRole(
-		req: DeleteUserProjectRoleRequest,
+		req: UserProjectRoleDeleteReq,
 		res: Response,
 		next: NextFunction,
 	) {

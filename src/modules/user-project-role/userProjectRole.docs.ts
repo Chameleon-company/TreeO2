@@ -69,6 +69,7 @@
  *         schema:
  *           type: integer
  *           minimum: 1
+ *           maximum: 100
  *           default: 10
  *     responses:
  *       200:
@@ -82,24 +83,24 @@
  *                   type: boolean
  *                   example: true
  *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/UserProjectRole'
+ *                 pagination:
  *                   type: object
  *                   properties:
- *                     data:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/UserProjectRole'
- *                     meta:
- *                       type: object
- *                       properties:
- *                         page:
- *                           type: integer
- *                           example: 1
- *                         limit:
- *                           type: integer
- *                           example: 10
- *                         total:
- *                           type: integer
- *                           example: 25
+ *                     page:
+ *                       type: integer
+ *                       example: 1
+ *                     limit:
+ *                       type: integer
+ *                       example: 10
+ *                     total:
+ *                       type: integer
+ *                       example: 25
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 3
  *       400:
  *         description: Invalid pagination parameters
  *       401:
