@@ -11,5 +11,6 @@ model UserProjectRole {
   assignedByUser User  @relation("AssignedByUser", fields: [assignedBy], references: [id])
 
   @@id([userId, projectId, roleId])
+  @@index([projectId])
   @@map("user_project_roles")
 }

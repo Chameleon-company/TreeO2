@@ -43,5 +43,8 @@ model TreeScan {
   @@index([speciesId])
   @@index([batchId])
   @@index([clientScanId])
+  @@index([inspectorId])
+  @@index([fobId, estimatedPlantedYear])
+  @@index([projectId, estimatedPlantedYear])
   @@map("tree_scans")
 }

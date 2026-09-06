@@ -16,5 +16,6 @@ model UserOrganisation {
   roles UserOrganisationRoles[]
 
   @@id([userId, organisationId])
+  @@index([organisationId])
   @@map("user_organisations")
 }

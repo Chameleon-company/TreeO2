@@ -10,5 +10,7 @@ model Report {
 
   user        User?    @relation("UserReports", fields: [requestedBy], references: [id], onDelete: SetNull)
 
+  @@index([requestedBy])
+  @@index([status])
   @@map("reports")
 }
