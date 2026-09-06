@@ -36,9 +36,9 @@ model User {
   inspectorTreeScans TreeScan[]       @relation("InspectorTreeScans")
   correctedTreeScans TreeScan[]       @relation("CorrectedTreeScans")
   treeScanAudits     TreeScanAudit[]  @relation("TreeScanAuditChangedBy")
-  userOrganisations UserOrganisation[]
+  userOrganisations  UserOrganisation[]
 
-userProjectRoles        UserProjectRole[] @relation("UserProjectRoles")
+  userProjectRoles        UserProjectRole[] @relation("UserProjectRoles")
   assignedProjectRoles    UserProjectRole[] @relation("AssignedByUser")
 
   @@index([roleId])
