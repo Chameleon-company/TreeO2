@@ -527,7 +527,7 @@ describe("Tree Scans Integration Tests", () => {
 
 			expect(response.status).toBe(200);
 			expect(response.body.success).toBe(true);
-			expect(Array.isArray(response.body.data.data)).toBe(true);
+			expect(Array.isArray(response.body.data)).toBe(true);
 		});
 
 		it("should return 200 for MANAGER token and only return assigned project scans", async () => {
@@ -537,9 +537,9 @@ describe("Tree Scans Integration Tests", () => {
 
 			expect(response.status).toBe(200);
 			expect(response.body.success).toBe(true);
-			expect(Array.isArray(response.body.data.data)).toBe(true);
+			expect(Array.isArray(response.body.data)).toBe(true);
 			expect(
-				response.body.data.data.every(
+				response.body.data.every(
 					(scan: { projectId: number }) => scan.projectId === projectId,
 				),
 			).toBe(true);
@@ -567,9 +567,9 @@ describe("Tree Scans Integration Tests", () => {
 				.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
 
 			expect(response.status).toBe(200);
-			expect(response.body.data.data.length).toBeGreaterThanOrEqual(1);
+			expect(response.body.data.length).toBeGreaterThanOrEqual(1);
 			expect(
-				response.body.data.data.every(
+				response.body.data.every(
 					(scan: { projectId: number }) => scan.projectId === projectId,
 				),
 			).toBe(true);
