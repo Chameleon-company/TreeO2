@@ -4344,14 +4344,28 @@ on the device and cannot be in the future.
 ##### Conflict Resolution (Last-Write-Wins)
 
 When a submitted `client_scan_id` already exists, the offline scan is treated
-as the authoritative field observation. Last-write-wins compares capture times:
-the uploaded scan replaces the stored record when its `scan_timestamp` is later
-than the stored scan's own `scan_timestamp`, and is otherwise skipped. (The
-comparison is against the stored scan's capture time, not its server write time,
-so a genuinely newer field observation always wins.) A stored record that has no
-`scan_timestamp` of its own has no comparable capture time, so the incoming
-observation overwrites it. Either way the previous state of an overwritten
-record is preserved in `tree_scan_audit`.
+as the authoritative field observation, and what it is compared against depends
+on whether the stored record has been modified since it was inserted.
+
+If the stored record has **not** been modified since insert, last-write-wins
+compares capture times: the uploaded scan replaces the stored record when its
+`scan_timestamp` is later than the stored scan's own `scan_timestamp`, and is
+otherwise skipped. A stored record with no `scan_timestamp` of its own has no
+comparable capture time, so the incoming observation overwrites it.
+
+If the stored record **has** been modified since insert — corrected, archived,
+validated, or previously overwritten — that modification is the more recent
+authoritative write, so the comparison is against the modification time
+instead: the uploaded scan replaces the record only when it was captured after
+that modification.
+
+Either way the previous state of an overwritten record is preserved in
+`tree_scan_audit`, and an overwrite clears any correction attribution
+(`is_corrected`, `corrected_by`, `correction_reason`) from the record it
+replaces, since those describe a correction to values that no longer exist.
+
+An archived record is never overwritten. It stays frozen and is reported under
+`skippedClientScanIds`.
 
 A duplicate whose upload carries no `scan_timestamp` cannot be compared, so it
 is skipped and reported under `skippedNoTimestamp` rather than overwriting.

@@ -466,6 +466,13 @@ export const createScanBatch = async (
 						continue;
 					}
 
+					// An archived record stays frozen, as its flag implies, so it is
+					// never an overwrite target.
+					if (existing.isArchived) {
+						skippedClientScanIds.push(scan.client_scan_id);
+						continue;
+					}
+
 					// A stored row is only "modified" once it has been written again after
 					// insert; until then updatedAt just records when it was posted.
 					const serverModified =
@@ -529,6 +536,12 @@ export const createScanBatch = async (
 							...toTreeScanFields(scan, data),
 							batchId: scanBatch.id,
 							uploadTimestamp: uploadedAt,
+							// A fresh field observation replaces the stored values, so it
+							// must not inherit the previous correction attribution. The
+							// cleared values are preserved in the audit row's old_data.
+							isCorrected: false,
+							correctedBy: null,
+							correctionReason: null,
 						},
 					});
 

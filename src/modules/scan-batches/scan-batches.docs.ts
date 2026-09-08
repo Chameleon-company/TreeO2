@@ -215,8 +215,11 @@
  *           created_count, updated_count and skipped scan counts. A scan whose
  *           client_scan_id already exists for this device is resolved by
  *           last-write-wins: it overwrites the stored record when its scan_timestamp
- *           is later than the stored scan's own scan_timestamp, and is otherwise
- *           skipped. Overwritten states are preserved in tree_scan_audit. A duplicate
+ *           is later than the stored scan's own scan_timestamp, or, if that record
+ *           has been modified since insert, later than that modification time.
+ *           Otherwise it is skipped. Overwritten states are preserved in
+ *           tree_scan_audit, and an overwrite clears the record's correction
+ *           attribution. An archived record is never overwritten. A duplicate
  *           submitted without a scan_timestamp cannot be compared and is reported
  *           under skippedNoTimestamp.
  *       400:

@@ -560,6 +560,59 @@ describe("ScanBatchesService", () => {
 			expect(result.summary.skipped).toBe(0);
 		});
 
+		// An archived record stays frozen, as its flag implies, so it is never an
+		// overwrite target even when the upload is the newer observation.
+		it("should skip an archived scan rather than overwrite it", async () => {
+			mockPrisma.treeScan.findMany.mockResolvedValue([
+				{
+					id: 53,
+					clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+					scanTimestamp: new Date("2024-05-19T00:00:00.000Z"),
+					createdAt: new Date("2024-05-19T01:00:00.000Z"),
+					updatedAt: new Date("2024-05-19T01:00:00.000Z"),
+					isArchived: true,
+				},
+			]);
+
+			const result = await createScanBatch(validCreateInput);
+
+			expect(mockPrisma.treeScan.update).not.toHaveBeenCalled();
+			expect(result.summary.updated_count).toBe(0);
+			expect(result.summary.skippedClientScanIds).toEqual([
+				"7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+			]);
+		});
+
+		// A fresh field observation replaces the stored values, so it must not
+		// inherit the correction attribution of the record it overwrites.
+		it("should clear correction attribution when overwriting a corrected scan", async () => {
+			const storedScan = {
+				id: 54,
+				clientScanId: "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+				scanTimestamp: new Date("2024-05-19T00:00:00.000Z"),
+				createdAt: new Date("2024-05-19T01:00:00.000Z"),
+				updatedAt: new Date("2024-05-19T01:00:00.000Z"),
+				isArchived: false,
+				isCorrected: true,
+				correctedBy: 3,
+				correctionReason: "Height mis-entered, corrected after photo review",
+			};
+
+			mockPrisma.treeScan.findMany.mockResolvedValue([storedScan]);
+			mockPrisma.treeScan.update.mockResolvedValue(storedScan);
+
+			await createScanBatch(validCreateInput);
+
+			expect(mockPrisma.treeScan.update).toHaveBeenCalledWith({
+				where: { id: 54 },
+				data: expect.objectContaining({
+					isCorrected: false,
+					correctedBy: null,
+					correctionReason: null,
+				}),
+			});
+		});
+
 		// The case the policy exists for: the server record was modified after the
 		// scan was captured, so the modification is the more recent authoritative
 		// write and the upload does not overwrite it (V1.3 10.7/7.24).
