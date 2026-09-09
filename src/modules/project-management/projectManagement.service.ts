@@ -325,14 +325,14 @@ export class ProjectManagementService {
 
 			const [
 				dependentScans,
-				dependentUserProjects,
+				dependentProjectOrganisation,
 				dependentProjectTreeTypes,
 				dependentScanBatches,
 			] = await Promise.all([
 				prisma.treeScan.count({
 					where: { projectId: id },
 				}),
-				prisma.userProject.count({
+				prisma.projectOrganisation.count({
 					where: { projectId: id },
 				}),
 				prisma.projectTreeType.count({
@@ -345,7 +345,7 @@ export class ProjectManagementService {
 
 			if (
 				dependentScans > 0 ||
-				dependentUserProjects > 0 ||
+				dependentProjectOrganisation > 0 ||
 				dependentProjectTreeTypes > 0 ||
 				dependentScanBatches > 0
 			) {
