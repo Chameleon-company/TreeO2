@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { projectManagementController } from "./projectManagement.controller";
 import { authMiddleware } from "../../middleware/auth.middleware";
-import { roleMiddleware } from "../../middleware/role.middleware";
 import "./projectManagement.docs";
 
 const router = Router();
@@ -10,7 +9,6 @@ const router = Router();
 router.get(
 	"/",
 	authMiddleware,
-	roleMiddleware(["ADMIN", "MANAGER"]),
 	(req, res, next) => {
 		void projectManagementController.getAllProjects(req, res, next);
 	},
@@ -20,7 +18,6 @@ router.get(
 router.get(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN", "MANAGER"]),
 	(req, res, next) => {
 		void projectManagementController.getProjectById(req, res, next);
 	},
@@ -30,7 +27,6 @@ router.get(
 router.post(
 	"/",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
 	(req, res, next) => {
 		void projectManagementController.createProject(req, res, next);
 	},
@@ -40,7 +36,6 @@ router.post(
 router.put(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
 	(req, res, next) => {
 		void projectManagementController.updateProject(req, res, next);
 	},
@@ -50,7 +45,6 @@ router.put(
 router.delete(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
 	(req, res, next) => {
 		void projectManagementController.deleteProject(req, res, next);
 	},

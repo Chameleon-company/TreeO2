@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { authMiddleware } from "../../middleware/auth.middleware";
-import { roleMiddleware } from "../../middleware/role.middleware";
 import { validateMiddleware } from "../../middleware/validate.middleware";
 import { TreeTypesController } from "./treeTypes.controller";
 import "./treeTypes.docs";
@@ -30,7 +29,6 @@ router.get(
 router.post(
 	"/",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
 	validateMiddleware(createTreeTypeSchema),
 	(req, res, next) => {
 		void treeTypesController.createTreeType(req, res).catch(next);
@@ -40,7 +38,6 @@ router.post(
 router.put(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
 	validateMiddleware(updateTreeTypeSchema),
 	(req, res, next) => {
 		void treeTypesController.updateTreeType(req, res).catch(next);
@@ -50,7 +47,6 @@ router.put(
 router.delete(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
 	validateMiddleware(deleteTreeTypeSchema),
 	(req, res, next) => {
 		void treeTypesController.deleteTreeType(req, res).catch(next);

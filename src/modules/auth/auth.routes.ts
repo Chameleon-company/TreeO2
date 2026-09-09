@@ -7,7 +7,6 @@ import {
 } from "../../middleware/authRateLimit.middleware";
 import { authMiddleware } from "../../middleware/auth.middleware";
 import { projectScopeMiddleware } from "../../middleware/projectScope.middleware";
-import { roleMiddleware } from "../../middleware/role.middleware";
 import { validateMiddleware } from "../../middleware/validate.middleware";
 import { AuthController } from "./auth.controller";
 import "./auth.docs";
@@ -64,10 +63,11 @@ if (env.NODE_ENV === "development" && env.AUTH_DEV_MODE) {
 		authController.getProtectedTest(req, res);
 	});
 
+	// TODO: scope this to admin
+	// this used to have roleMiddleware(["ADMIN"])
 	router.get(
 		"/test/admin",
 		authMiddleware,
-		roleMiddleware(["ADMIN"]),
 		(req, res) => {
 			authController.getAdminTest(req, res);
 		},
