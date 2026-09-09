@@ -1,15 +1,5 @@
 import { z } from "zod";
 
-export const ROLE_NAMES = [
-	"FARMER",
-	"INSPECTOR",
-	"MANAGER",
-	"ADMIN",
-	"DEVELOPER",
-] as const;
-
-export type RoleName = (typeof ROLE_NAMES)[number];
-
 export type TokenScope = "identity" | "project";
 
 export const OrganisationRolePayloadSchema = z.object({
@@ -52,7 +42,6 @@ const IdentityJwtInfoSchema = z.object({
 			organisationRole: z.enum(ORGANISATION_ROLE_NAMES),
 		}),
 	),
-	role: z.enum(ROLE_NAMES).optional(),
 });
 export type IdentityJwtInfo = z.infer<typeof IdentityJwtInfoSchema>;
 
@@ -72,7 +61,6 @@ const ProjectJwtInfoSchema = z.object({
 	organisationId: z.number(),
 	organisationRole: z.enum(ORGANISATION_ROLE_NAMES),
 	projectRoles: z.array(z.enum(PROJECT_ROLE_NAMES)),
-	role: z.enum(ROLE_NAMES).optional(),
 });
 export type ProjectJwtInfo = z.infer<typeof ProjectJwtInfoSchema>;
 
@@ -93,7 +81,6 @@ export const LegacyJwtPayloadSchema = z.object({
 	id: z.number().optional(),
 	sub: z.string().optional(),
 	userId: z.number().optional(),
-	role: z.enum(ROLE_NAMES).optional(),
 	systemRole: z.string().nullable().optional(),
 	scope: z.enum(["identity", "project"]).optional(),
 	projectIds: z.array(z.number()).optional(),

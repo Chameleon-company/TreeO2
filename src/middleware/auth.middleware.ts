@@ -23,7 +23,6 @@ const getDevTokenUsers = (): Map<string, JwtPayload> => {
 			userId: 1,
 			scope: "identity",
 			systemRole: "SystemAdmin",
-			role: "ADMIN",
 		});
 	}
 
@@ -36,7 +35,6 @@ const getDevTokenUsers = (): Map<string, JwtPayload> => {
 			organisationId: 1,
 			organisationRole: "Member",
 			projectRoles: ["Farmer"],
-			role: "FARMER",
 		});
 	}
 
@@ -49,7 +47,6 @@ const getDevTokenUsers = (): Map<string, JwtPayload> => {
 			organisationId: 1,
 			organisationRole: "Member",
 			projectRoles: ["Manager"],
-			role: "MANAGER",
 		});
 	}
 
@@ -62,7 +59,6 @@ const getDevTokenUsers = (): Map<string, JwtPayload> => {
 			organisationId: 1,
 			organisationRole: "Member",
 			projectRoles: ["Inspector"],
-			role: "INSPECTOR",
 		});
 	}
 
@@ -75,7 +71,6 @@ const getDevTokenUsers = (): Map<string, JwtPayload> => {
 			organisationId: 1,
 			organisationRole: "Member",
 			projectRoles: ["Developer"],
-			role: "DEVELOPER",
 		});
 	}
 
