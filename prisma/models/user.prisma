@@ -27,7 +27,6 @@ model User {
   country            Country?             @relation("UserCountry", fields: [countryId], references: [id], onDelete: Restrict)
   adminLocation      Location?            @relation("UserAdminLocation", fields: [adminLocationId], references: [id], onDelete: Restrict)
   roleAssignments    UserRoleAssignment[]
-  userProjects       UserProject[]
   reports            Report[]         @relation("UserReports")
   scanBatches        ScanBatch[]      @relation("ScanBatchInspector")
   farmerTreeScans    TreeScan[]       @relation("FarmerTreeScans")

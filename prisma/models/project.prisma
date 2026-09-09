@@ -12,7 +12,6 @@ model Project {
   country              Country?              @relation("ProjectCountry", fields: [countryId], references: [id], onDelete: Restrict)
   adminLocation        Location?             @relation("ProjectAdminLocation", fields: [adminLocationId], references: [id], onDelete: Restrict)
   ownerOrganisation    Organisation          @relation(fields: [ownerOrganisationId], references: [id], onDelete: Restrict)
-  userProjects         UserProject[]
   projectTreeTypes     ProjectTreeType[]
   projectOrganisations ProjectOrganisation[]
   scanBatches          ScanBatch[]           @relation("ProjectScanBatches")
