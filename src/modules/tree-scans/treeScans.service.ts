@@ -11,7 +11,7 @@ import type {
 
 type AuthUser = {
 	id: number;
-	role: string;
+	// role: string;
 };
 
 // Ensure project exists and is active
@@ -136,66 +136,79 @@ const applyTreeScanAccessScope = (
 	where: Prisma.TreeScanWhereInput,
 	user: AuthUser,
 ): Prisma.TreeScanWhereInput => {
-	if (user.role === "ADMIN") {
-		return where;
-	}
 
-	if (user.role === "MANAGER") {
+	// TODO: integerate role hierarchy check for operation
 		return {
-			...where,
-			project: {
-				userProjects: {
-					some: {
-						userId: user.id,
-					},
-				},
-			},
-		};
-	}
-
-	if (user.role === "INSPECTOR") {
-		return {
-			...where,
-			inspectorId: user.id,
-		};
-	}
-
-	return {
 		...where,
-		id: -1,
+		id: user.id,
 	};
+
+	// if (user.role === "ADMIN") {
+	// 	return where;
+	// }
+
+	// if (user.role === "MANAGER") {
+	// 	return {
+	// 		...where,
+	// 		project: {
+	// 			userProjects: {
+	// 				some: {
+	// 					userId: user.id,
+	// 				},
+	// 			},
+	// 		},
+	// 	};
+	// }
+
+	// if (user.role === "INSPECTOR") {
+	// 	return {
+	// 		...where,
+	// 		inspectorId: user.id,
+	// 	};
+	// }
+
+	// return {
+	// 	...where,
+	// 	id: -1,
+	// };
 };
 
 const assertCanAccessScan = async (
-	scan: Awaited<ReturnType<typeof ensureScanExists>>,
-	user: AuthUser,
+	_scan: Awaited<ReturnType<typeof ensureScanExists>>,
+	_user: AuthUser,
+// eslint-disable-next-line @typescript-eslint/require-await
 ) => {
-	if (user.role === "ADMIN") {
-		return;
-	}
+	// TODO: implement role check, also remove the lint skip above
+	return;
 
-	if (user.role === "INSPECTOR" && scan.inspectorId === user.id) {
-		return;
-	}
+	// if (user.role === "ADMIN") {
+	// 	return;
+	// }
 
-	if (user.role === "MANAGER") {
-		await ensureUserAssignedToProject(
-			user.id,
-			scan.projectId,
-			"Insufficient permissions",
-		);
-		return;
-	}
+	// if (user.role === "INSPECTOR" && scan.inspectorId === user.id) {
+	// 	return;
+	// }
 
-	throw new AppError(403, customError("AUTH_004"), "Insufficient permissions");
+	// if (user.role === "MANAGER") {
+	// 	await ensureUserAssignedToProject(
+	// 		user.id,
+	// 		scan.projectId,
+	// 		"Insufficient permissions",
+	// 	);
+	// 	return;
+	// }
+
+	// throw new AppError(403, customError("AUTH_004"), "Insufficient permissions");
 };
 
-const assertCanUpdateScan = (user: AuthUser) => {
-	if (user.role === "ADMIN") {
-		return;
-	}
+const assertCanUpdateScan = (_user: AuthUser) => {
+	// TODO: implement role check
+	return;
+	// if (user.role === "ADMIN") {
+	// 	return;
+	// }
 
-	throw new AppError(403, customError("AUTH_004"), "Insufficient permissions");
+	// throw new AppError(403, customError("AUTH_004"), "Insufficient permissions");
 };
 
 // Service layer for managing tree scan operations
@@ -448,17 +461,17 @@ export class TreeScansService {
 			const where: Prisma.TreeScanWhereInput = {
 				fobId,
 				isArchived: false,
-				...(user.role === "MANAGER"
-					? {
-							project: {
-								userProjects: {
-									some: {
-										userId: user.id,
-									},
-								},
-							},
-						}
-					: {}),
+				// ...(user.role === "MANAGER"
+				// 	? {
+				// 			project: {
+				// 				userProjects: {
+				// 					some: {
+				// 						userId: user.id,
+				// 					},
+				// 				},
+				// 			},
+				// 		}
+				// 	: {}),
 			};
 
 			const result = await prisma.treeScan.updateMany({

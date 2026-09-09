@@ -10,15 +10,18 @@ import type {
 
 const getAuthUser = (req: Request) => {
 	const id = Number(req.user?.sub);
-	const role = req.user?.role;
+	// const role = req.user?.role;
 
-	if (!Number.isInteger(id) || !role) {
+	if (
+		!Number.isInteger(id)
+		// || !role
+	) {
 		throw new AppError(401, customError("AUTH_003"));
 	}
 
 	return {
 		id,
-		role: String(role),
+		// role: String(role),
 	};
 };
 
