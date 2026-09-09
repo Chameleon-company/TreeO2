@@ -8,7 +8,6 @@ model User {
   resetToken         String?   @unique @map("reset_token") @db.VarChar(500)
   resetTokenExpires  DateTime? @map("reset_token_expires")
   canSignIn          Boolean   @default(true) @map("can_sign_in")
-  roleId             Int       @map("role")
   cardId             String?   @unique @map("card_id") @db.VarChar(80)
   governmentId       String?   @map("government_id") @db.VarChar(80)
   gender             String?   @default("Male") @db.VarChar(10)
@@ -25,7 +24,6 @@ model User {
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  primaryRole        Role      @relation("PrimaryRole", fields: [roleId], references: [id], onDelete: Restrict)
   country            Country?             @relation("UserCountry", fields: [countryId], references: [id], onDelete: Restrict)
   adminLocation      Location?            @relation("UserAdminLocation", fields: [adminLocationId], references: [id], onDelete: Restrict)
   roleAssignments    UserRoleAssignment[]
@@ -41,7 +39,6 @@ model User {
   userProjectRoles        UserProjectRole[] @relation("UserProjectRoles")
   assignedProjectRoles    UserProjectRole[] @relation("AssignedByUser")
 
-  @@index([roleId])
   @@index([countryId])
   @@index([adminLocationId])
   @@map("users")
