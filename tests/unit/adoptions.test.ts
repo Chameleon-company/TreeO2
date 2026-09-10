@@ -305,20 +305,26 @@ describe("AdoptionsService - Unit Tests", () => {
 				id: 1,
 			});
 
-			const result = await adoptionsService.deleteAdoption(1);
+			const result = await adoptionsService.deleteAdoption(1, {
+				cancellationReason: undefined,
+			});
 
 			expect(result.message).toBe("Adoption deleted successfully");
-			expect(mockedPrismaAdoption.delete).toHaveBeenCalledWith({
+			expect(mockedPrismaAdoption.update).toHaveBeenCalledWith({
 				where: { id: 1 },
+				data: {
+					cancelledAt: new Date(),
+					cancellationReason: null,
+				},
 			});
 		});
 
 		it("should throw 404 when deleting non-existing adoption", async () => {
 			mockedPrismaAdoption.findUnique.mockResolvedValue(null);
 
-			await expect(adoptionsService.deleteAdoption(999)).rejects.toThrow(
-				AppError,
-			);
+			await expect(
+				adoptionsService.deleteAdoption(999, { cancellationReason: undefined }),
+			).rejects.toThrow(AppError);
 		});
 	});
 });

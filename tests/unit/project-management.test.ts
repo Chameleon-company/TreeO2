@@ -34,6 +34,9 @@ jest.mock("@prisma/client", () => {
 		projectOrganisation: {
 			create: jest.fn(),
 		},
+		adoption: {
+			count: jest.fn(),
+		},
 		$transaction: jest.fn(),
 	};
 
@@ -474,6 +477,7 @@ describe("ProjectManagementService", () => {
 			mockPrisma.userProject.count.mockResolvedValue(0);
 			mockPrisma.projectTreeType.count.mockResolvedValue(0);
 			mockPrisma.scanBatch.count.mockResolvedValue(0);
+			mockPrisma.adoption.count.mockResolvedValue(0);
 			mockPrisma.project.delete.mockResolvedValue(existingProject);
 
 			const result = await service.deleteProject(1);
@@ -491,6 +495,10 @@ describe("ProjectManagementService", () => {
 			});
 
 			expect(mockPrisma.scanBatch.count).toHaveBeenCalledWith({
+				where: { projectId: 1 },
+			});
+
+			expect(mockPrisma.adoption.count).toHaveBeenCalledWith({
 				where: { projectId: 1 },
 			});
 
@@ -526,6 +534,7 @@ describe("ProjectManagementService", () => {
 			mockPrisma.userProject.count.mockResolvedValue(0);
 			mockPrisma.projectTreeType.count.mockResolvedValue(0);
 			mockPrisma.scanBatch.count.mockResolvedValue(0);
+			mockPrisma.adoption.count.mockResolvedValue(0);
 
 			const err = customError("DATA_004");
 			await expect(service.deleteProject(1)).rejects.toMatchObject({
