@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import request from "supertest";
 import { prisma } from "../../src/lib/prisma";
 import app from "../../src/app";
+import { Decimal } from "@prisma/client/runtime/library";
 
 jest.mock("../../src/config/logger", () => ({
 	logger: {
@@ -40,7 +41,11 @@ describe("Tree Types API", () => {
 			name?: string;
 			key?: string | null;
 			scientificName?: string | null;
-			dryWeightDensity?: number;
+			dryWeightDensity?: number | null;
+			minHeightM?: number | null;
+			maxHeightM?: number | null;
+			minDiameterCm?: number | null;
+			maxDiameterCm?: number | null;
 		} = {},
 	) => {
 		const treeType = await prisma.treeType.create({
@@ -379,7 +384,7 @@ describe("Tree Types API", () => {
 					name,
 					key: null,
 					scientific_name: null,
-					dry_weight_density: 595,
+					dry_weight_density: null,
 				}),
 			);
 
@@ -390,28 +395,7 @@ describe("Tree Types API", () => {
 			expect(createdTreeType).not.toBeNull();
 			if (createdTreeType) {
 				treeTypeIds.push(createdTreeType.id);
-				expect(createdTreeType.dryWeightDensity.toNumber()).toBe(595);
-			}
-		});
-
-		it("should apply default dry_weight_density when omitted", async () => {
-			const response = await request(app)
-				.post("/tree-types")
-				.set(adminAuthHeader)
-				.send({
-					name: nextUnique("Acacia"),
-				});
-
-			expect(response.status).toBe(201);
-			expect(response.body.data.dry_weight_density).toBe(595);
-
-			const createdTreeType = await prisma.treeType.findUnique({
-				where: { id: response.body.data.id },
-			});
-
-			if (createdTreeType) {
-				treeTypeIds.push(createdTreeType.id);
-				expect(createdTreeType.dryWeightDensity.toNumber()).toBe(595);
+				expect(createdTreeType.dryWeightDensity?.toNumber()).toBe(undefined);
 			}
 		});
 
@@ -546,7 +530,9 @@ describe("Tree Types API", () => {
 				where: { id: treeType.id },
 			});
 
-			expect(updatedTreeType?.dryWeightDensity.toNumber()).toBe(640.5);
+			expect(updatedTreeType).not.toBeNull();
+			expect(updatedTreeType?.dryWeightDensity).toBeInstanceOf(Decimal);
+			expect(updatedTreeType?.dryWeightDensity?.toNumber()).toBe(640.5);
 		});
 
 		it("should return 400 for an invalid id param", async () => {
