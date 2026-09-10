@@ -169,6 +169,14 @@ const validateProject = async (projectId: number): Promise<void> => {
 			SCAN_BATCHES_MESSAGES.PROJECT_INACTIVE,
 		);
 	}
+
+	if (!project.scansEnabled) {
+		throw new AppError(
+			400,
+			customError("VAL_002"),
+			SCAN_BATCHES_MESSAGES.PROJECT_DISABLED_SCANS,
+		);
+	}
 };
 
 // Confirm the inspector is assigned to the project they are uploading to.

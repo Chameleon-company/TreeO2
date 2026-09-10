@@ -18,6 +18,8 @@ export const SCAN_BATCHES_MESSAGES = {
 	INSPECTOR_NOT_FOUND: "Inspector not found",
 	PROJECT_NOT_FOUND: "Project not found",
 	PROJECT_INACTIVE: "Project is not active and cannot accept scan uploads",
+	PROJECT_DISABLED_SCANS:
+		"Project has scans disabled and cannot accept scan uploads.",
 
 	INVALID_INSPECTOR_ROLE: "User must have Inspector role",
 	INVALID_FARMER_ROLE: "Selected farmer_id must belong to a Farmer user",
