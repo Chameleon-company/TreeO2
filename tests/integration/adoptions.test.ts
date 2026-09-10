@@ -203,7 +203,8 @@ describe("Adoptions API Integration Tests", () => {
 			.get(`/adoptions/${created.body.data.id}`)
 			.set("Authorization", `Bearer ${TOKENS.ADMIN}`);
 
-		expect(checkDeleted.status).toBe(404);
+		expect(checkDeleted.body.data.cancelledAt).toBeDefined();
+		expect(checkDeleted.body.data.cancelledAt).not.toBeNull();
 	});
 
 	it("POST /adoptions - should return 401 when no token", async () => {
