@@ -10,6 +10,9 @@ jest.mock("@prisma/client", () => {
 			update: jest.fn(),
 			delete: jest.fn(),
 		},
+		adopter: {
+			count: jest.fn(),
+		},
 	};
 
 	class PrismaClientKnownRequestError extends Error {
@@ -259,6 +262,7 @@ describe("PartnersService", () => {
 
 			mockPrisma.partner.findUnique.mockResolvedValue(existingPartner);
 			mockPrisma.partner.delete.mockResolvedValue(existingPartner);
+			mockPrisma.adopter.count.mockResolvedValue(0);
 
 			const result = await service.deletePartner(1);
 
