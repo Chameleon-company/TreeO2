@@ -154,6 +154,7 @@ describe("ScanBatchesService", () => {
 		mockPrisma.project.findUnique.mockResolvedValue({
 			id: 1,
 			isActive: true,
+			scansEnabled: true,
 		});
 
 		mockPrisma.userProject.findFirst.mockResolvedValue({

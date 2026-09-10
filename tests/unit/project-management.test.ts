@@ -182,6 +182,7 @@ describe("ProjectManagementService", () => {
 					countryId: 1,
 					adminLocationId: 1,
 					isActive: true,
+					scansEnabled: true,
 				},
 			});
 
@@ -258,6 +259,7 @@ describe("ProjectManagementService", () => {
 					countryId: 1,
 					adminLocationId: 1,
 					isActive: true,
+					scansEnabled: true,
 				},
 			});
 		});

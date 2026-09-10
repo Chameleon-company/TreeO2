@@ -313,6 +313,7 @@ describe("TreeScansService", () => {
 			mockPrisma.project.findUnique.mockResolvedValue({
 				id: 1,
 				isActive: true,
+				scansEnabled: true,
 			});
 
 			mockPrisma.user.findUnique
@@ -355,7 +356,6 @@ describe("TreeScansService", () => {
 
 			expect(mockPrisma.project.findUnique).toHaveBeenCalledWith({
 				where: { id: 1 },
-				select: { id: true, isActive: true },
 			});
 
 			expect(mockPrisma.treeScan.create).toHaveBeenCalledWith(
@@ -682,7 +682,6 @@ describe("TreeScansService", () => {
 
 			expect(mockPrisma.project.findUnique).toHaveBeenCalledWith({
 				where: { id: 2 },
-				select: { id: true, isActive: true },
 			});
 
 			expect(mockPrisma.projectTreeType.findUnique).toHaveBeenCalledWith({
