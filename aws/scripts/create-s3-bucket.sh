@@ -4,6 +4,10 @@
 # Region: ap-southeast-2
 # Creates: 1 S3 bucket (treeo2-reports)
 # Re-runnable: yes, checks for an existing bucket first
+# Rollback: aws s3api delete-bucket --bucket treeo2-reports --region ap-southeast-2
+#           (only safe while the bucket is empty, versioning is enabled, so once
+#           real objects exist, all versions and delete markers must be emptied
+#           first; a plain `aws s3 rb --force` won't clean those up on its own)
 
 set -euo pipefail
 
@@ -21,20 +25,26 @@ else
     --region "$REGION" \
     --create-bucket-configuration LocationConstraint="$REGION"
 
-  aws s3api put-bucket-versioning \
-    --bucket "$BUCKET_NAME" \
-    --versioning-configuration Status=Enabled
-
-  aws s3api put-bucket-encryption \
-    --bucket "$BUCKET_NAME" \
-    --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
-
-  aws s3api put-public-access-block \
-    --bucket "$BUCKET_NAME" \
-    --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
-
-  echo "Created $BUCKET_NAME with versioning, encryption, and public access blocked"
+  echo "Created $BUCKET_NAME"
 fi
+
+# These three are idempotent PUTs, so they run on every pass rather than only on
+# a fresh create. A run that created the bucket but failed partway would
+# otherwise leave it permanently half-configured, with the existence check above
+# skipping the settings on every later run.
+aws s3api put-bucket-versioning \
+  --bucket "$BUCKET_NAME" \
+  --versioning-configuration Status=Enabled
+
+aws s3api put-bucket-encryption \
+  --bucket "$BUCKET_NAME" \
+  --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
+
+aws s3api put-public-access-block \
+  --bucket "$BUCKET_NAME" \
+  --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+
+echo "Applied versioning, encryption, and public access block to $BUCKET_NAME"
 
 # Print the bucket's actual configuration, so whoever runs this can confirm the
 # settings landed rather than trusting the create calls above. Runs on both
