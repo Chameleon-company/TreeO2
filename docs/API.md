@@ -882,7 +882,8 @@ Retrieve all projects ordered by newest first.
       "description": "Tree planting initiative",
       "countryId": 1,
       "adminLocationId": 10,
-      "isActive": true
+      "isActive": true,
+      "scansEnabled": true
     }
   ]
 }
@@ -914,7 +915,8 @@ Retrieve a single project by ID.
     "description": "Tree planting initiative",
     "countryId": 1,
     "adminLocationId": 10,
-    "isActive": true
+    "isActive": true,
+    "scansEnabled": true
   }
 }
 ```
@@ -938,7 +940,8 @@ Create a new project. Also creates a project-organisation link to determine "own
   "description": "Tree planting initiative",
   "countryId": 1,
   "adminLocationId": 10,
-  "isActive": true
+  "isActive": true,
+  "scansEnabled": true
 }
 ```
 
@@ -986,7 +989,8 @@ Any subset of fields may be provided.
   "description": "Expanded planting scope",
   "countryId": 1,
   "adminLocationId": 12,
-  "isActive": false
+  "isActive": false,
+  "scansEnabled": true
 }
 ```
 
@@ -1362,7 +1366,7 @@ localization.routes.ts (Router + middleware)
 - Reads and writes localized strings via Prisma
 - Returns data or throws handled errors
 
-### 12.3 Security
+### 13.3 Security
 
 All endpoints are protected using Bearer Token authentication.
 
@@ -1370,7 +1374,7 @@ Middleware used:
 - `authMiddleware`
 - `roleMiddleware`
 
-### 12.4 Access Control Matrix
+### 13.4 Access Control Matrix
 
 | Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
 |---|---|---|---|---|---|
@@ -1379,7 +1383,7 @@ Middleware used:
 | PUT /localized-strings/{id} | Yes | No | No | No | No |
 | DELETE /localized-strings/{id} | Yes | No | No | No | No |
 
-### 12.5 Endpoints
+### 13.5 Endpoints
 
 #### GET /localized-strings
 
@@ -1524,7 +1528,7 @@ Delete a localized string.
 - `403` Insufficient permissions
 - `404` Localized string not found
 
-### 12.6 Validation Rules
+### 13.6 Validation Rules
 
 #### List Validation
 - `preferredLanguage` / `preferred_language` must be non-empty strings (max 10).
@@ -1548,7 +1552,7 @@ Delete a localized string.
 - `id` must be a positive integer
 - Target localized string must exist
 
-### 12.7 Error Handling
+### 13.7 Error Handling
 
 Uses centralised error middleware.
 
@@ -1568,7 +1572,7 @@ Uses centralised error middleware.
 - Resource not found (`DATA_001`)
 - Internal server error (`SYS_001`)
 
-### 12.8 Swagger Documentation
+### 13.8 Swagger Documentation
 
 All endpoints are documented in:
 
@@ -1584,7 +1588,7 @@ Swagger supports:
 - Response definitions
 - Security schemas
 
-### 12.9 Testing
+### 13.9 Testing
 
 #### Test Files
 - `tests/unit/localization.test.ts`
@@ -1621,7 +1625,7 @@ Swagger supports:
 - Valid delete succeeds
 - Missing target rejected
 
-### 12.10 Summary
+### 13.10 Summary
 
 The Localization API follows the TreeO2 backend engineering standard:
 
