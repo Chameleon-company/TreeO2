@@ -1,4 +1,7 @@
 -- CreateIndex
+CREATE INDEX "projects_owner_organisation_id_idx" ON "projects"("owner_organisation_id");
+
+-- CreateIndex
 CREATE INDEX "reports_requested_by_idx" ON "reports"("requested_by");
 
 -- CreateIndex
