@@ -356,6 +356,7 @@ export class ProjectManagementService {
 				dependentUserProjects,
 				dependentProjectTreeTypes,
 				dependentScanBatches,
+				dependentAdoptions,
 			] = await Promise.all([
 				prisma.treeScan.count({
 					where: { projectId: id },
@@ -369,13 +370,17 @@ export class ProjectManagementService {
 				prisma.scanBatch.count({
 					where: { projectId: id },
 				}),
+				prisma.adoption.count({
+					where: { projectId: id },
+				}),
 			]);
 
 			if (
 				dependentScans > 0 ||
 				dependentUserProjects > 0 ||
 				dependentProjectTreeTypes > 0 ||
-				dependentScanBatches > 0
+				dependentScanBatches > 0 ||
+				dependentAdoptions > 0
 			) {
 				throw new AppError(
 					409,
