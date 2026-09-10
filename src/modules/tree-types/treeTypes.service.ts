@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, TreeType } from "@prisma/client";
 import { logger } from "../../config/logger";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
@@ -13,7 +13,11 @@ interface TreeTypeResponse {
 	name: string;
 	key: string | null;
 	scientific_name: string | null;
-	dry_weight_density: number;
+	dry_weight_density: number | null;
+	min_height_m: number | null;
+	max_height_m: number | null;
+	min_diameter_cm: number | null;
+	max_diameter_cm: number | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -57,7 +61,11 @@ export class TreeTypesService {
 					name: payload.name,
 					key: payload.key,
 					scientificName: payload.scientific_name,
-					dryWeightDensity: payload.dry_weight_density ?? 595,
+					dryWeightDensity: payload.dry_weight_density,
+					minHeightM: payload.min_height_m,
+					maxHeightM: payload.max_height_m,
+					minDiameterCm: payload.min_diameter_cm,
+					maxDiameterCm: payload.max_diameter_cm,
 				},
 			});
 
@@ -105,6 +113,10 @@ export class TreeTypesService {
 					key: payload.key,
 					scientificName: payload.scientific_name,
 					dryWeightDensity: payload.dry_weight_density,
+					minHeightM: payload.min_height_m,
+					maxHeightM: payload.max_height_m,
+					minDiameterCm: payload.min_diameter_cm,
+					maxDiameterCm: payload.max_diameter_cm,
 				},
 			});
 
@@ -230,21 +242,17 @@ export class TreeTypesService {
 		throw error;
 	}
 
-	private toResponse(treeType: {
-		id: number;
-		name: string;
-		key: string | null;
-		scientificName: string | null;
-		dryWeightDensity: unknown;
-		createdAt: Date;
-		updatedAt: Date;
-	}): TreeTypeResponse {
+	private toResponse(treeType: TreeType): TreeTypeResponse {
 		return {
 			id: treeType.id,
 			name: treeType.name,
 			key: treeType.key,
 			scientific_name: treeType.scientificName,
-			dry_weight_density: Number(treeType.dryWeightDensity),
+			dry_weight_density: treeType.dryWeightDensity?.toNumber() ?? null,
+			min_height_m: treeType.minHeightM?.toNumber() ?? null,
+			max_height_m: treeType.maxHeightM?.toNumber() ?? null,
+			min_diameter_cm: treeType.minDiameterCm?.toNumber() ?? null,
+			max_diameter_cm: treeType.maxDiameterCm?.toNumber() ?? null,
 			created_at: treeType.createdAt.toISOString(),
 			updated_at: treeType.updatedAt.toISOString(),
 		};
