@@ -29,6 +29,7 @@ jest.mock("../../src/config/logger", () => ({
 	logger: loggerMock,
 }));
 
+import { Decimal } from "@prisma/client/runtime/library";
 import { TreeTypesService } from "../../src/modules/tree-types/treeTypes.service";
 
 const makeTreeTypeRecord = (
@@ -38,7 +39,7 @@ const makeTreeTypeRecord = (
 	name: "Eucalyptus",
 	key: "eucalyptus",
 	scientificName: "Eucalyptus globulus",
-	dryWeightDensity: 650,
+	dryWeightDensity: Decimal(650),
 	createdAt: new Date("2026-01-28T10:00:00.000Z"),
 	updatedAt: new Date("2026-01-28T10:00:00.000Z"),
 	...overrides,
@@ -75,6 +76,10 @@ describe("TreeTypesService", () => {
 					key: "acacia",
 					scientific_name: "Eucalyptus globulus",
 					dry_weight_density: 650,
+					max_diameter_cm: null,
+					max_height_m: null,
+					min_diameter_cm: null,
+					min_height_m: null,
 					created_at: "2026-01-28T10:00:00.000Z",
 					updated_at: "2026-01-28T10:00:00.000Z",
 				},
@@ -102,6 +107,10 @@ describe("TreeTypesService", () => {
 				key: "eucalyptus",
 				scientific_name: "Eucalyptus globulus",
 				dry_weight_density: 650,
+				max_diameter_cm: null,
+				max_height_m: null,
+				min_diameter_cm: null,
+				min_height_m: null,
 				created_at: "2026-01-28T10:00:00.000Z",
 				updated_at: "2026-01-28T10:00:00.000Z",
 			});
@@ -157,7 +166,7 @@ describe("TreeTypesService", () => {
 				makeTreeTypeRecord({
 					key: null,
 					scientificName: null,
-					dryWeightDensity: 595,
+					dryWeightDensity: null,
 				}),
 			);
 
@@ -170,27 +179,11 @@ describe("TreeTypesService", () => {
 					name: "Acacia",
 					key: undefined,
 					scientificName: undefined,
-					dryWeightDensity: 595,
+					dryWeightDensity: undefined,
 				},
 			});
-			expect(result.dry_weight_density).toBe(595);
-		});
 
-		it("should apply the default density when omitted", async () => {
-			prismaMock.treeType.findFirst.mockResolvedValue(null);
-			prismaMock.treeType.create.mockResolvedValue(
-				makeTreeTypeRecord({ dryWeightDensity: 595 }),
-			);
-
-			await service.createTreeType({
-				name: "Acacia",
-			});
-
-			expect(prismaMock.treeType.create).toHaveBeenCalledWith({
-				data: expect.objectContaining({
-					dryWeightDensity: 595,
-				}),
-			});
+			expect(result.dry_weight_density).toBe(null);
 		});
 
 		it("should throw a conflict for a duplicate key", async () => {
@@ -227,7 +220,7 @@ describe("TreeTypesService", () => {
 		it("should update only the provided fields", async () => {
 			prismaMock.treeType.findUnique.mockResolvedValue(makeTreeTypeRecord());
 			prismaMock.treeType.update.mockResolvedValue(
-				makeTreeTypeRecord({ dryWeightDensity: 640.5 }),
+				makeTreeTypeRecord({ dryWeightDensity: Decimal(640.5) }),
 			);
 
 			const result = await service.updateTreeType(1, {

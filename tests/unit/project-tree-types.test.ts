@@ -26,6 +26,7 @@ jest.mock("../../src/config/logger", () => ({
 	logger: loggerMock,
 }));
 
+import { Decimal } from "@prisma/client/runtime/library";
 import { ProjectTreeTypesService } from "../../src/modules/project-tree-types/projectTreeTypes.service";
 
 const makeProjectRecord = (
@@ -43,7 +44,7 @@ const makeTreeTypeRecord = (
 	name: "Mahogany",
 	key: "mahogany",
 	scientificName: "Swietenia macrophylla",
-	dryWeightDensity: 550,
+	dryWeightDensity: Decimal(550),
 	...overrides,
 });
 
@@ -82,15 +83,7 @@ describe("ProjectTreeTypesService", () => {
 							name: true,
 						},
 					},
-					treeType: {
-						select: {
-							id: true,
-							name: true,
-							key: true,
-							scientificName: true,
-							dryWeightDensity: true,
-						},
-					},
+					treeType: true,
 				},
 				orderBy: [{ projectId: "asc" }, { treeTypeId: "asc" }],
 			});
@@ -109,6 +102,10 @@ describe("ProjectTreeTypesService", () => {
 						key: "mahogany",
 						scientific_name: "Swietenia macrophylla",
 						dry_weight_density: 550,
+						max_diameter_cm: null,
+						max_height_m: null,
+						min_diameter_cm: null,
+						min_height_m: null,
 					},
 				},
 			]);
@@ -163,15 +160,7 @@ describe("ProjectTreeTypesService", () => {
 							name: true,
 						},
 					},
-					treeType: {
-						select: {
-							id: true,
-							name: true,
-							key: true,
-							scientificName: true,
-							dryWeightDensity: true,
-						},
-					},
+					treeType: true,
 				},
 			});
 
@@ -188,6 +177,10 @@ describe("ProjectTreeTypesService", () => {
 					key: "mahogany",
 					scientific_name: "Swietenia macrophylla",
 					dry_weight_density: 550,
+					max_diameter_cm: null,
+					max_height_m: null,
+					min_diameter_cm: null,
+					min_height_m: null,
 				},
 			});
 
