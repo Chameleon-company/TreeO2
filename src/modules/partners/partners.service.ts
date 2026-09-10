@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Partner, Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { customError } from "../../utils/errorCodes";
@@ -62,6 +62,20 @@ const ensurePartnerExists = async (id: number) => {
 	}
 
 	return partner;
+};
+
+const ensureNoAdopters = async (partner: Partner) => {
+	const adopterCount = await prisma.adopter.count({
+		where: { partnerId: partner.id },
+	});
+
+	if (adopterCount > 0) {
+		throw new AppError(
+			409,
+			customError("DATA_004"),
+			"Partner has dependent adopters",
+		);
+	}
 };
 
 // All the business logic for partner operations lives here.
@@ -170,7 +184,8 @@ export class PartnersService {
 		}
 
 		try {
-			await ensurePartnerExists(id);
+			const partner = await ensurePartnerExists(id);
+			await ensureNoAdopters(partner);
 
 			await prisma.partner.delete({
 				where: { id },
