@@ -17,5 +17,6 @@ model UserOrganisation {
 
   @@id([userId, organisationId])
   @@index([organisationId])
+  @@index([userId])
   @@map("user_organisations")
 }

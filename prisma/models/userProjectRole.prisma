@@ -12,5 +12,6 @@ model UserProjectRole {
 
   @@id([userId, projectId, roleId])
   @@index([projectId])
+  @@index([userId])
   @@map("user_project_roles")
 }

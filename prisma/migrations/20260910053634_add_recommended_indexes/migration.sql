@@ -20,4 +20,10 @@ CREATE INDEX "tree_scans_project_id_estimated_planted_year_idx" ON "tree_scans"(
 CREATE INDEX "user_organisations_organisation_id_idx" ON "user_organisations"("organisation_id");
 
 -- CreateIndex
+CREATE INDEX "user_organisations_user_id_idx" ON "user_organisations"("user_id");
+
+-- CreateIndex
 CREATE INDEX "user_project_roles_project_id_idx" ON "user_project_roles"("project_id");
+
+-- CreateIndex
+CREATE INDEX "user_project_roles_user_id_idx" ON "user_project_roles"("user_id");
