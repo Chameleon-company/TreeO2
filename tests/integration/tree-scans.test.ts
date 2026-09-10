@@ -27,6 +27,7 @@ describe("Tree Scans Integration Tests", () => {
 	let adminLocationId: number;
 	let projectId: number;
 	let inactiveProjectId: number;
+	let scansDisabledProjectId: number;
 	let farmerId: number;
 	let managerId: number;
 	let inspectorId: number;
@@ -202,6 +203,19 @@ describe("Tree Scans Integration Tests", () => {
 		});
 
 		inactiveProjectId = inactiveProject.id;
+
+		const scansDisabledProject = await prisma.project.create({
+			data: {
+				ownerOrganisationId: org.id,
+				name: "Tree Scan Test Inactive Project",
+				description: "Inactive project used for tree scan tests",
+				countryId,
+				adminLocationId,
+				isActive: true,
+				scansEnabled: false,
+			},
+		});
+		scansDisabledProjectId = scansDisabledProject.id;
 
 		await prisma.user.upsert({
 			where: { id: DEV_USER_IDS.ADMIN },
@@ -463,7 +477,7 @@ describe("Tree Scans Integration Tests", () => {
 		await prisma.project.deleteMany({
 			where: {
 				id: {
-					in: [projectId, inactiveProjectId].filter(
+					in: [projectId, inactiveProjectId, scansDisabledProjectId].filter(
 						(id): id is number => id !== undefined,
 					),
 				},
@@ -704,6 +718,18 @@ describe("Tree Scans Integration Tests", () => {
 				.send({
 					...validPayload(),
 					projectId: inactiveProjectId,
+				});
+
+			expect(response.status).toBe(400);
+		});
+
+		it("should return 400 for project with scans disabled", async () => {
+			const response = await request(app)
+				.post("/tree-scans")
+				.set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
+				.send({
+					...validPayload(),
+					projectId: scansDisabledProjectId,
 				});
 
 			expect(response.status).toBe(400);

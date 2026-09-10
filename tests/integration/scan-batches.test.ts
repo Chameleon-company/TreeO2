@@ -27,6 +27,7 @@ describe("Scan Batches Integration Tests", () => {
 	let adminLocationId: number;
 	let projectId: number;
 	let inactiveProjectId: number;
+	let scansDisabledProjectId: number;
 	let farmerId: number;
 	let unassignedFarmerId: number;
 	let managerId: number;
@@ -206,6 +207,20 @@ describe("Scan Batches Integration Tests", () => {
 		});
 
 		inactiveProjectId = inactiveProject.id;
+
+		const scansDisabledProject = await prisma.project.create({
+			data: {
+				ownerOrganisationId: org.id,
+				name: "Scan Batch Test Inactive Project",
+				description: "Inactive project used for scan batch tests",
+				countryId,
+				adminLocationId,
+				isActive: true,
+				scansEnabled: false,
+			},
+		});
+
+		scansDisabledProjectId = scansDisabledProject.id;
 
 		await prisma.user.upsert({
 			where: { id: DEV_USER_IDS.ADMIN },
@@ -477,7 +492,7 @@ describe("Scan Batches Integration Tests", () => {
 		await prisma.project.deleteMany({
 			where: {
 				id: {
-					in: [projectId, inactiveProjectId].filter(
+					in: [projectId, inactiveProjectId, scansDisabledProjectId].filter(
 						(id): id is number => id !== undefined,
 					),
 				},
@@ -731,6 +746,18 @@ describe("Scan Batches Integration Tests", () => {
 				});
 
 			expect(response.status).toBe(422);
+		});
+
+		it("should return 400 for project with scans disabled", async () => {
+			const response = await request(app)
+				.post("/scan-batches")
+				.set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
+				.send({
+					...validPayload(),
+					project_id: scansDisabledProjectId,
+				});
+
+			expect(response.status).toBe(400);
 		});
 
 		it("should return 403 when farmer is not assigned to project", async () => {

@@ -448,6 +448,26 @@ describe("ScanBatchesService", () => {
 			});
 		});
 
+		// Tests project scans disabled validation
+		it("should throw when project has scans disabled", async () => {
+			mockPrisma.user.findUnique.mockReset();
+			mockPrisma.user.findUnique.mockResolvedValueOnce(inspectorRecord);
+			mockPrisma.project.findUnique.mockResolvedValueOnce({
+				id: 1,
+				name: "Reforestation Project",
+				isActive: true,
+				scansEnabled: false,
+			});
+
+			const err = customError("VAL_002");
+			await expect(createScanBatch(validCreateInput)).rejects.toMatchObject({
+				statusCode: 400,
+				detail: SCAN_BATCHES_MESSAGES.PROJECT_DISABLED_SCANS,
+				code: err.code,
+				message: err.message,
+			});
+		});
+
 		// Tests idempotent no-op when the stored scan was captured after the upload
 		it("should skip batch creation when all scans lose last-write-wins", async () => {
 			mockPrisma.treeScan.findMany.mockResolvedValue([

@@ -405,6 +405,24 @@ describe("TreeScansService", () => {
 			});
 		});
 
+		it("should throw when project has scans disabled", async () => {
+			mockPrisma.project.findUnique.mockResolvedValue({
+				id: 1,
+				isActive: true,
+				scansEnabled: false,
+			});
+			const err = customError("VAL_002");
+
+			await expect(
+				service.createTreeScan(validCreateInput, inspectorUser),
+			).rejects.toMatchObject({
+				statusCode: 400,
+				code: err.code,
+				message: err.message,
+				detail: "Project has scans disabled",
+			});
+		});
+
 		it("should throw DATA_001 when farmer does not exist", async () => {
 			mockPrisma.user.findUnique.mockReset();
 			mockPrisma.user.findUnique.mockResolvedValueOnce(null);
