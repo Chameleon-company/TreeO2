@@ -6,8 +6,6 @@ import {
 	GetScanBatchesQueryInput,
 } from "./scan-batches.schema";
 import {
-	SCAN_BATCHES_AUTH_ROLES,
-	SCAN_BATCHES_DB_ROLES,
 	SCAN_BATCHES_DEFAULTS,
 	SCAN_BATCHES_LIMITS,
 	SCAN_BATCHES_MESSAGES,
@@ -16,7 +14,7 @@ import { customError } from "../../utils/errorCodes";
 
 interface CurrentUser {
 	id: number;
-	role: string;
+	// role: string;
 }
 
 type CreateScanBatchServiceInput = CreateScanBatchInput & {
@@ -61,19 +59,19 @@ export const getScanBatches = async (
 		where.inspectorId = query.inspector_id;
 	}
 
-	if (currentUser.role === SCAN_BATCHES_AUTH_ROLES.INSPECTOR) {
-		where.inspectorId = currentUser.id;
-	}
+	// if (currentUser.role === SCAN_BATCHES_AUTH_ROLES.INSPECTOR) {
+	// 	where.inspectorId = currentUser.id;
+	// }
 
-	if (currentUser.role === SCAN_BATCHES_AUTH_ROLES.MANAGER) {
-		where.project = {
-			userProjects: {
-				some: {
-					userId: currentUser.id,
-				},
-			},
-		};
-	}
+	// if (currentUser.role === SCAN_BATCHES_AUTH_ROLES.MANAGER) {
+	// 	where.project = {
+	// 		userProjects: {
+	// 			some: {
+	// 				userId: currentUser.id,
+	// 			},
+	// 		},
+	// 	};
+	// }
 
 	const [scanBatches, total] = await Promise.all([
 		prisma.scanBatch.findMany({

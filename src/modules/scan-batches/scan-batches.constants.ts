@@ -59,20 +59,6 @@ export const SCAN_BATCHES_DEFAULTS = {
 	MAX_LIMIT: 100,
 } as const;
 
-export const SCAN_BATCHES_AUTH_ROLES = {
-	ADMIN: "ADMIN",
-	MANAGER: "MANAGER",
-	INSPECTOR: "INSPECTOR",
-	FARMER: "FARMER",
-} as const;
-
-export const SCAN_BATCHES_DB_ROLES = {
-	ADMIN: "Admin",
-	MANAGER: "Manager",
-	INSPECTOR: "Inspector",
-	FARMER: "Farmer",
-} as const;
-
 export const SCAN_BATCHES_LIMITS = {
 	MAX_SCANS_PER_BATCH: 500,
 

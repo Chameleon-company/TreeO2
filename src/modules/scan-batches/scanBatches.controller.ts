@@ -16,7 +16,7 @@ import { SCAN_BATCHES_MESSAGES } from "./scan-batches.constants";
 
 const getCurrentUser = (req: Request) => ({
 	id: Number(req.user?.sub),
-	role: req.user?.role ?? "",
+	// role: req.user?.role ?? "",
 });
 
 // Handle request to fetch paginated scan batches
