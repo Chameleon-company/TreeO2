@@ -535,6 +535,10 @@ Current API response shape:
   "key": "eucalyptus",
   "scientific_name": "Eucalyptus globulus",
   "dry_weight_density": 650,
+  "min_height_m": 10,
+  "max_height_m": 150,
+  "min_diameter_cm": 10,
+  "max_diameter_cm": 150,
   "created_at": "2026-01-28T10:00:00.000Z",
   "updated_at": "2026-01-28T10:00:00.000Z"
 }
@@ -545,7 +549,10 @@ Current business rules:
 - `key` is optional
 - `scientific_name` is optional
 - `dry_weight_density` is optional
-- when omitted on create, `dry_weight_density` defaults to `595`
+- `min_height_m` is optional
+- `max_height_m` is optional
+- `min_diameter_cm` is optional
+- `max_diameter_cm` is optional
 - delete is blocked when referenced by dependent records
 
 ---
@@ -1851,7 +1858,11 @@ Current API response shape:
     "name": "Mahogany",
     "key": "mahogany",
     "scientific_name": "Swietenia macrophylla",
-    "dry_weight_density": 550
+    "dry_weight_density": 550,
+    "min_height_m": 10,
+    "max_height_m": 150,
+    "min_diameter_cm": 10,
+    "max_diameter_cm": 150,
   }
 }
 ```
@@ -3743,9 +3754,12 @@ The Adoptions API is responsible for managing adoption records linked to adopter
 
 An adoption record stores:
 - the adopter linked to the adoption
+- the project linked to the adoption
 - the tree FOB ID
 - the adoption date
 - the creation timestamp
+- the cancelled timestamp
+- the cancellation reason
 
 ### 18.2 Architecture Flow
 
@@ -3815,8 +3829,11 @@ Retrieve paginated adoption records.
     {
       "id": 1,
       "adopter_id": 1,
+      "project_id": 2,
       "fob_id": "NFC-001",
-      "adopted_at": "2026-05-14T00:00:00.000Z"
+      "adopted_at": "2026-05-14T00:00:00.000Z",
+      "cancelled_at": "2026-05-14T00:00:00.000Z",
+      "cancellation_reason": "Remove adoption"
     }
   ]
 }
@@ -3848,8 +3865,11 @@ Retrieve a single adoption by ID.
   "data": {
     "id": 1,
     "adopter_id": 1,
+    "project_id": 2,
     "fob_id": "NFC-001",
-    "adopted_at": "2026-05-14T00:00:00.000Z"
+    "adopted_at": "2026-05-14T00:00:00.000Z",
+    "cancelled_at": "2026-05-14T00:00:00.000Z",
+    "cancellation_reason": "Remove adoption"
   }
 }
 ```
@@ -3872,8 +3892,9 @@ Create a new adoption record.
 ```json
 {
   "adopter_id": 1,
+  "project_id": 2,
   "fob_id": "NFC-001",
-  "adopted_at": "2026-05-14"
+  "adopted_at": "2026-05-14",
 }
 ```
 
@@ -3890,8 +3911,9 @@ Create a new adoption record.
   "data": {
     "id": 1,
     "adopter_id": 1,
+    "project_id": 2,
     "fob_id": "NFC-001",
-    "adopted_at": "2026-05-14T00:00:00.000Z"
+    "adopted_at": "2026-05-14T00:00:00.000Z",
   }
 }
 ```
@@ -3933,6 +3955,7 @@ Any subset of fields may be provided.
   "data": {
     "id": 1,
     "adopter_id": 1,
+    "project_id": 2,
     "fob_id": "NFC-UPDATED",
     "adopted_at": "2026-05-14T00:00:00.000Z"
   }
@@ -3950,7 +3973,7 @@ Any subset of fields may be provided.
 
 #### DELETE /adoptions/{id}
 
-Delete an adoption record.
+Cancels an adoption record.
 
 ##### Path Parameters
 
