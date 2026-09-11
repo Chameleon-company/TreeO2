@@ -34,12 +34,12 @@ const envSchema = z.object({
 	DB_USER: z.string().default("treeo2_user"),
 	DB_PASSWORD: z.string().default("treeo2_password"),
 
-	// ⚠️ relax strict requirement in test
+	// relax strict requirement in test
 	DATABASE_URL: isTest
 		? z.string().optional()
 		: z.string().url("DATABASE_URL must be a valid URL"),
 
-	// ⚠️ relax JWT in test
+	// relax JWT in test
 	JWT_SECRET: isTest
 		? z.string().optional()
 		: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
@@ -81,12 +81,12 @@ if (!parsed.success) {
 	console.error("Invalid environment variables:");
 	console.error(parsed.error.flatten().fieldErrors);
 
-	// ✅ DO NOT EXIT DURING TESTS
+	// DO NOT EXIT DURING TESTS
 	if (!isTest) {
 		process.exit(1);
 	}
 
-	// ✅ throw instead so Jest can handle it
+	// throw instead so Jest can handle it
 	throw new Error("Invalid environment configuration");
 }
 
