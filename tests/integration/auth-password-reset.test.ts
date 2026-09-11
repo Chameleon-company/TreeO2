@@ -1,4 +1,3 @@
-import "dotenv/config";
 import request from "supertest";
 import { PrismaClient } from "@prisma/client";
 import { createHash } from "crypto";

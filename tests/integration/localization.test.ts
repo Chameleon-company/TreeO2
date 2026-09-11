@@ -1,5 +1,4 @@
 import { afterAll, afterEach, describe, expect, it } from "@jest/globals";
-import "dotenv/config";
 import request from "supertest";
 import { PrismaClient } from "@prisma/client";
 import { customError } from "../../src/utils/errorCodes";
