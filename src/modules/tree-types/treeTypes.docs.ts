@@ -25,6 +25,18 @@
  *         dry_weight_density:
  *           type: number
  *           example: 650
+ *         min_height_m:
+ *           type: number
+ *           example: 10
+ *         max_height_m:
+ *           type: number
+ *           example: 150
+ *         min_diameter_cm:
+ *           type: number
+ *           example: 10
+ *         max_diameter_cm:
+ *           type: number
+ *           example: 150
  *         created_at:
  *           type: string
  *           format: date-time
@@ -50,6 +62,18 @@
  *         dry_weight_density:
  *           type: number
  *           example: 650
+ *         min_height_m:
+ *           type: number
+ *           example: 10
+ *         max_height_m:
+ *           type: number
+ *           example: 150
+ *         min_diameter_cm:
+ *           type: number
+ *           example: 10
+ *         max_diameter_cm:
+ *           type: number
+ *           example: 150
  *     UpdateTreeTypeInput:
  *       type: object
  *       properties:
@@ -65,6 +89,18 @@
  *         dry_weight_density:
  *           type: number
  *           example: 640.5
+ *         min_height_m:
+ *           type: number
+ *           example: 10
+ *         max_height_m:
+ *           type: number
+ *           example: 150
+ *         min_diameter_cm:
+ *           type: number
+ *           example: 10
+ *         max_diameter_cm:
+ *           type: number
+ *           example: 150
  */
 
 /**
