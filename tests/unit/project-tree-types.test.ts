@@ -132,6 +132,29 @@ describe("ProjectTreeTypesService", () => {
 
 			expect(result).toEqual([]);
 		});
+
+		it("should return tree types with height and diameter values when present", async () => {
+			prismaMock.projectTreeType.findMany.mockResolvedValue([
+				makeProjectTreeTypeRecord({
+					treeType: makeTreeTypeRecord({
+						dryWeightDensity: Decimal(600),
+						minHeightM: Decimal(10.0),
+						maxHeightM: Decimal(50.0),
+						minDiameterCm: Decimal(20.0),
+						maxDiameterCm: Decimal(100.0),
+					}),
+				}),
+			]);
+
+			const result = await service.listProjectTreeTypes({});
+
+			expect(result).toHaveLength(1);
+			expect(result[0].tree_type.dry_weight_density).toBe(600);
+			expect(result[0].tree_type.min_height_m).toBe(10.0);
+			expect(result[0].tree_type.max_height_m).toBe(50.0);
+			expect(result[0].tree_type.min_diameter_cm).toBe(20.0);
+			expect(result[0].tree_type.max_diameter_cm).toBe(100.0);
+		});
 	});
 
 	describe("addProjectTreeType", () => {
