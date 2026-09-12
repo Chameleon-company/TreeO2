@@ -3,6 +3,7 @@
 // corrected and the correction is attributed to them.
 import { randomUUID } from "crypto";
 import { prisma } from "./client";
+import { TREE_SCAN_AUDIT_CHANGE_TYPES } from "../../src/modules/tree-scans/treeScans.constants";
 
 export const seedScans = async (
 	projectId: number,
@@ -83,6 +84,7 @@ export const seedScans = async (
 			data: {
 				treeScanId: correctedScan.id,
 				changedBy: managerId,
+				changeType: TREE_SCAN_AUDIT_CHANGE_TYPES.CORRECTED,
 				changeReason:
 					"Corrected mis-entered height (21.0m -> 2.10m, decimal-place error) after photo review.",
 				oldData: { heightM: "21.0" },
