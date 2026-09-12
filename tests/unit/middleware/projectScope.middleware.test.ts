@@ -1,4 +1,3 @@
-import "dotenv/config";
 import type { Request, Response, NextFunction } from "express";
 import { projectScopeMiddleware } from "../../../src/middleware/projectScope.middleware";
 import { AppError } from "../../../src/middleware/errorHandler";
