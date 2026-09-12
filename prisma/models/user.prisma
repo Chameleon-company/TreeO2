@@ -22,24 +22,26 @@ model User {
   notes              String?
   accountActive      Boolean   @default(true) @map("account_active")
   dateJoined         DateTime? @map("date_joined")
+  systemRoleId       Int?      @map("system_role_id")
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  primaryRole        Role      @relation("PrimaryRole", fields: [roleId], references: [id], onDelete: Restrict)
-  country            Country?             @relation("UserCountry", fields: [countryId], references: [id], onDelete: Restrict)
-  adminLocation      Location?            @relation("UserAdminLocation", fields: [adminLocationId], references: [id], onDelete: Restrict)
-  roleAssignments    UserRoleAssignment[]
-  userProjects       UserProject[]
-  reports            Report[]         @relation("UserReports")
-  scanBatches        ScanBatch[]      @relation("ScanBatchInspector")
-  farmerTreeScans    TreeScan[]       @relation("FarmerTreeScans")
-  inspectorTreeScans TreeScan[]       @relation("InspectorTreeScans")
-  correctedTreeScans TreeScan[]       @relation("CorrectedTreeScans")
-  treeScanAudits     TreeScanAudit[]  @relation("TreeScanAuditChangedBy")
-  userOrganisations  UserOrganisation[]
-
-  userProjectRoles        UserProjectRole[] @relation("UserProjectRoles")
-  assignedProjectRoles    UserProjectRole[] @relation("AssignedByUser")
+  primaryRole          Role                 @relation("PrimaryRole", fields: [roleId], references: [id], onDelete: Restrict)
+  country              Country?             @relation("UserCountry", fields: [countryId], references: [id], onDelete: Restrict)
+  adminLocation        Location?            @relation("UserAdminLocation", fields: [adminLocationId], references: [id], onDelete: Restrict)
+  roleAssignments      UserRoleAssignment[]
+  userProjects         UserProject[]
+  reports              Report[]             @relation("UserReports")
+  scanBatches          ScanBatch[]          @relation("ScanBatchInspector")
+  farmerTreeScans      TreeScan[]           @relation("FarmerTreeScans")
+  inspectorTreeScans   TreeScan[]           @relation("InspectorTreeScans")
+  correctedTreeScans   TreeScan[]           @relation("CorrectedTreeScans")
+  treeScanAudits       TreeScanAudit[]      @relation("TreeScanAuditChangedBy")
+  userOrganisations    UserOrganisation[]
+  userProjectRoles     UserProjectRole[]    @relation("UserProjectRoles")
+  assignedProjectRoles UserProjectRole[]    @relation("AssignedByUser")
+  systemRole           SystemRole?          @relation(fields: [systemRoleId], references: [id])
+  refreshTokens        RefreshToken[]
 
   @@index([roleId])
   @@index([countryId])
