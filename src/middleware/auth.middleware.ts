@@ -124,7 +124,10 @@ export const authMiddleware = (
 	const token = authHeader.slice("Bearer ".length).trim();
 
 	// 2. Development Bypass Token Engine (AUTH_DEV_MODE=true)
-	if (env.NODE_ENV === "development" && env.AUTH_DEV_MODE) {
+	if (
+		(env.NODE_ENV === "development" || env.NODE_ENV === "test") &&
+		env.AUTH_DEV_MODE
+	) {
 		const devUser = getDevTokenUsers().get(token);
 
 		if (devUser) {
