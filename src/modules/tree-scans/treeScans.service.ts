@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type TreeScan } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { customError } from "../../utils/errorCodes";
@@ -8,6 +8,7 @@ import type {
 	ListTreeScansQuery,
 	UpdateTreeScanInput,
 } from "./treeScans.schemas";
+import type { PaginatedResponse } from "../../types";
 
 type AuthUser = {
 	id: number;
@@ -201,7 +202,10 @@ const assertCanUpdateScan = (user: AuthUser) => {
 // Service layer for managing tree scan operations
 export class TreeScansService {
 	// List tree scans with pagination and filtering
-	async listTreeScans(query: ListTreeScansQuery, user: AuthUser) {
+	async listTreeScans(
+		query: ListTreeScansQuery,
+		user: AuthUser,
+	): Promise<PaginatedResponse<TreeScan>> {
 		const page = query.page;
 		const limit = query.limit;
 		const skip = (page - 1) * limit;
@@ -235,8 +239,9 @@ export class TreeScansService {
 			]);
 
 			return {
+				success: true,
 				data,
-				meta: {
+				pagination: {
 					page,
 					limit,
 					total,
