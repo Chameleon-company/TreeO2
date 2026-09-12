@@ -15,7 +15,11 @@ const app = express();
 
 // Security
 app.use(helmet());
-app.use(cors({ origin: env.NODE_ENV === "production" ? false : "*" }));
+app.use(
+	cors({
+		origin: env.NODE_ENV === "development" ? "*" : env.CORS_ORIGIN,
+	}),
+);
 app.use(securityAuditMiddleware);
 
 // Rate limiting
