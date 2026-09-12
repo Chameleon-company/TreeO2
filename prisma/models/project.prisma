@@ -22,5 +22,6 @@ model Project {
 
   @@index([countryId])
   @@index([adminLocationId])
+  @@index([ownerOrganisationId])
   @@map("projects")
 }
