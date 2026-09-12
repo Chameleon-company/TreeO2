@@ -184,10 +184,9 @@ jobs:
     needs: [install, type, lint, ts-format, prisma-format, schema]
     timeout-minutes: 15
 
+    # required by step "Setup test database" and "Test"
     env:
       DATABASE_URL: postgresql://treeo2_user:treeo2_password@localhost:5432/treeo2?schema=public
-      JWT_SECRET: test-secret-test-secret-test-secret-123456
-      CORS_ORIGIN: http://localhost:3000
 
     services:
       postgres:
@@ -239,6 +238,7 @@ jobs:
           AUTH_DEV_DEVELOPER_TOKEN: dev-developer-token
           AUTH_DEV_ORG_ADMIN_TOKEN: dev-org-admin-token
           AUTH_DEV_SUPPORT_ADMIN_TOKEN: dev-support-admin-token
+          JWT_SECRET: test-secret-test-secret-test-secret-123456
 
       - name: Build
         run: npm run build
