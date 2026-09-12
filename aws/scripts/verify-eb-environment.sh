@@ -29,6 +29,14 @@
 #     itself needs s3:ListBucket on the account's EB-managed bucket.
 #   - `psql` must be on PATH, and this machine must actually be able to
 #     reach RDS (PIA VPN + whitelisted static IP per aws/README.md)
+#
+# Security note on step 4 (eb setenv): the EB CLI only accepts env var
+# values as command-line arguments, so DATABASE_URL (with its password)
+# briefly appears in this process's argv while `eb setenv` runs - visible
+# to other users on the same machine via `ps aux` / `/proc/<pid>/cmdline`
+# for that moment. This is inherent to how `eb setenv` works, not something
+# this script can avoid while still using it. Run this step only on your
+# own trusted machine, never a shared one.
 
 set -euo pipefail
 
@@ -297,7 +305,10 @@ set_eb_env_vars() {
     record_result "DATABASE_URL set on EB" "PASS"
   else
     echo "FAIL - eb use/eb setenv did not complete successfully:"
-    echo "$eb_output"
+    # Strip DATABASE_URL's own value out of whatever eb printed before
+    # showing it - defensive, regardless of whether eb actually echoes
+    # env values back on a failed setenv.
+    echo "${eb_output//$DATABASE_URL/[DATABASE_URL REDACTED]}"
     record_result "DATABASE_URL set on EB" "FAIL"
   fi
   echo

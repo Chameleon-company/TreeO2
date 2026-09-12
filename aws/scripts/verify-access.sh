@@ -22,14 +22,21 @@ set -euo pipefail
 REGION="ap-southeast-2"
 EB_ENV_NAME="treeo2-platform-api-test"
 
-# service -> result, for the final summary table
-declare -A RESULTS
-declare -A ERRORS
+# Three parallel indexed arrays (name/status/error, matched by position)
+# instead of an associative array (`declare -A`) - associative arrays need
+# bash 4+, and whoever applies this script as a Cloud Lead isn't guaranteed
+# to be on one (macOS still ships bash 3.2 by default). Indexed arrays also
+# preserve insertion order, so the summary prints in the order checks ran
+# without having to repeat the service name list separately.
+CHECK_NAMES=()
+CHECK_RESULTS=()
+CHECK_ERRORS=()
 
 record_result() {
   local service="$1" status="$2" detail="${3:-}"
-  RESULTS["$service"]="$status"
-  ERRORS["$service"]="$detail"
+  CHECK_NAMES+=("$service")
+  CHECK_RESULTS+=("$status")
+  CHECK_ERRORS+=("$detail")
 }
 
 # Runs an AWS CLI command, captures stderr, and
@@ -142,12 +149,12 @@ check_cloudwatch
 
 echo "== Summary =="
 overall_status=0
-for service in "EC2 security groups" "Elastic Beanstalk" "S3" "SQS" "CloudWatch alarms" "CloudWatch logs"; do
-  printf "%-25s %s\n" "$service" "${RESULTS[$service]}"
-  if [[ "${RESULTS[$service]}" == "FAIL" ]]; then
+for i in "${!CHECK_NAMES[@]}"; do
+  printf "%-25s %s\n" "${CHECK_NAMES[$i]}" "${CHECK_RESULTS[$i]}"
+  if [[ "${CHECK_RESULTS[$i]}" == "FAIL" ]]; then
     overall_status=1
-    if [[ -n "${ERRORS[$service]}" ]]; then
-      echo "  error: ${ERRORS[$service]}"
+    if [[ -n "${CHECK_ERRORS[$i]}" ]]; then
+      echo "  error: ${CHECK_ERRORS[$i]}"
     fi
   fi
 done
