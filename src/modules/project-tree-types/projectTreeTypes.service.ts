@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, TreeType } from "@prisma/client";
 import { logger } from "../../config/logger";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
@@ -20,7 +20,11 @@ interface ProjectTreeTypeResponse {
 		name: string;
 		key: string | null;
 		scientific_name: string | null;
-		dry_weight_density: number;
+		dry_weight_density: number | null;
+		min_height_m: number | null;
+		max_height_m: number | null;
+		min_diameter_cm: number | null;
+		max_diameter_cm: number | null;
 	};
 }
 
@@ -48,15 +52,7 @@ export class ProjectTreeTypesService {
 						name: true,
 					},
 				},
-				treeType: {
-					select: {
-						id: true,
-						name: true,
-						key: true,
-						scientificName: true,
-						dryWeightDensity: true,
-					},
-				},
+				treeType: true,
 			},
 			orderBy: [{ projectId: "asc" }, { treeTypeId: "asc" }],
 		});
@@ -130,15 +126,7 @@ export class ProjectTreeTypesService {
 							name: true,
 						},
 					},
-					treeType: {
-						select: {
-							id: true,
-							name: true,
-							key: true,
-							scientificName: true,
-							dryWeightDensity: true,
-						},
-					},
+					treeType: true,
 				},
 			});
 
@@ -227,13 +215,7 @@ export class ProjectTreeTypesService {
 			id: number;
 			name: string;
 		};
-		treeType: {
-			id: number;
-			name: string;
-			key: string | null;
-			scientificName: string | null;
-			dryWeightDensity: unknown;
-		};
+		treeType: TreeType;
 	}): ProjectTreeTypeResponse {
 		return {
 			project_id: mapping.projectId,
@@ -247,7 +229,12 @@ export class ProjectTreeTypesService {
 				name: mapping.treeType.name,
 				key: mapping.treeType.key,
 				scientific_name: mapping.treeType.scientificName,
-				dry_weight_density: Number(mapping.treeType.dryWeightDensity),
+				dry_weight_density:
+					mapping.treeType.dryWeightDensity?.toNumber() ?? null,
+				min_height_m: mapping.treeType.minHeightM?.toNumber() ?? null,
+				max_height_m: mapping.treeType.maxHeightM?.toNumber() ?? null,
+				min_diameter_cm: mapping.treeType.minDiameterCm?.toNumber() ?? null,
+				max_diameter_cm: mapping.treeType.maxDiameterCm?.toNumber() ?? null,
 			},
 		};
 	}

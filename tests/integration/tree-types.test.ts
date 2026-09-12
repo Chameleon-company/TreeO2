@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import request from "supertest";
 import { prisma } from "../../src/lib/prisma";
 import app from "../../src/app";
+import { Decimal } from "@prisma/client/runtime/library";
 
 jest.mock("../../src/config/logger", () => ({
 	logger: {
@@ -40,7 +41,11 @@ describe("Tree Types API", () => {
 			name?: string;
 			key?: string | null;
 			scientificName?: string | null;
-			dryWeightDensity?: number;
+			dryWeightDensity?: number | null;
+			minHeightM?: number | null;
+			maxHeightM?: number | null;
+			minDiameterCm?: number | null;
+			maxDiameterCm?: number | null;
 		} = {},
 	) => {
 		const treeType = await prisma.treeType.create({
@@ -51,7 +56,11 @@ describe("Tree Types API", () => {
 					overrides.scientificName === undefined
 						? `${nextUnique("scientific-name")}`
 						: overrides.scientificName,
-				dryWeightDensity: overrides.dryWeightDensity ?? 650,
+				dryWeightDensity: overrides.dryWeightDensity,
+				minHeightM: overrides.minHeightM,
+				maxHeightM: overrides.maxHeightM,
+				minDiameterCm: overrides.minDiameterCm,
+				maxDiameterCm: overrides.maxDiameterCm,
 			},
 		});
 
@@ -307,6 +316,54 @@ describe("Tree Types API", () => {
 			expect(response.status).toBe(404);
 			expect(response.body.error.detail).toBe("Tree type not found");
 		});
+
+		it("should return 200 with height and diameter fields when they are set", async () => {
+			const treeType = await createTreeType({
+				name: nextUnique("Tall Tree"),
+				dryWeightDensity: 550,
+				minHeightM: 10.0,
+				maxHeightM: 50.0,
+				minDiameterCm: 20.0,
+				maxDiameterCm: 100.0,
+			});
+
+			const response = await request(app)
+				.get(`/tree-types/${treeType.id}`)
+				.set(managerAuthHeader);
+
+			expect(response.status).toBe(200);
+			expect(response.body.data).toEqual(
+				expect.objectContaining({
+					id: treeType.id,
+					name: treeType.name,
+					dry_weight_density: 550,
+					min_height_m: 10.0,
+					max_height_m: 50.0,
+					min_diameter_cm: 20.0,
+					max_diameter_cm: 100.0,
+				}),
+			);
+		});
+
+		it("should return 200 with null height and diameter fields when not set", async () => {
+			const treeType = await createTreeType({
+				name: nextUnique("Basic Tree"),
+				minHeightM: null,
+				maxHeightM: null,
+				minDiameterCm: null,
+				maxDiameterCm: null,
+			});
+
+			const response = await request(app)
+				.get(`/tree-types/${treeType.id}`)
+				.set(managerAuthHeader);
+
+			expect(response.status).toBe(200);
+			expect(response.body.data.min_height_m).toBe(null);
+			expect(response.body.data.max_height_m).toBe(null);
+			expect(response.body.data.min_diameter_cm).toBe(null);
+			expect(response.body.data.max_diameter_cm).toBe(null);
+		});
 	});
 
 	describe("POST /tree-types", () => {
@@ -379,7 +436,7 @@ describe("Tree Types API", () => {
 					name,
 					key: null,
 					scientific_name: null,
-					dry_weight_density: 595,
+					dry_weight_density: null,
 				}),
 			);
 
@@ -390,28 +447,7 @@ describe("Tree Types API", () => {
 			expect(createdTreeType).not.toBeNull();
 			if (createdTreeType) {
 				treeTypeIds.push(createdTreeType.id);
-				expect(createdTreeType.dryWeightDensity.toNumber()).toBe(595);
-			}
-		});
-
-		it("should apply default dry_weight_density when omitted", async () => {
-			const response = await request(app)
-				.post("/tree-types")
-				.set(adminAuthHeader)
-				.send({
-					name: nextUnique("Acacia"),
-				});
-
-			expect(response.status).toBe(201);
-			expect(response.body.data.dry_weight_density).toBe(595);
-
-			const createdTreeType = await prisma.treeType.findUnique({
-				where: { id: response.body.data.id },
-			});
-
-			if (createdTreeType) {
-				treeTypeIds.push(createdTreeType.id);
-				expect(createdTreeType.dryWeightDensity.toNumber()).toBe(595);
+				expect(createdTreeType.dryWeightDensity?.toNumber()).toBe(undefined);
 			}
 		});
 
@@ -507,6 +543,139 @@ describe("Tree Types API", () => {
 			expect(response.status).toBe(409);
 			expect(response.body.error.detail).toBe("Tree type key already exists");
 		});
+
+		it("should return 201 when creating with all density, height, and diameter fields", async () => {
+			const payload = {
+				name: nextUnique("Tall Eucalyptus"),
+				dry_weight_density: 600,
+				min_height_m: 10.0,
+				max_height_m: 40.0,
+				min_diameter_cm: 15.0,
+				max_diameter_cm: 100.0,
+			};
+
+			const response = await request(app)
+				.post("/tree-types")
+				.set(adminAuthHeader)
+				.send(payload);
+
+			expect(response.status).toBe(201);
+			expect(response.body.success).toBe(true);
+			expect(response.body.data.dry_weight_density).toBe(600);
+			expect(response.body.data.min_height_m).toBe(10.0);
+			expect(response.body.data.max_height_m).toBe(40.0);
+			expect(response.body.data.min_diameter_cm).toBe(15.0);
+			expect(response.body.data.max_diameter_cm).toBe(100.0);
+
+			const createdTreeType = await prisma.treeType.findUnique({
+				where: { id: response.body.data.id },
+			});
+			if (createdTreeType) {
+				treeTypeIds.push(createdTreeType.id);
+			}
+		});
+
+		it("should return 201 when creating with only some height/diameter fields", async () => {
+			const payload = {
+				name: nextUnique("Young Tree"),
+				min_height_m: 3.0,
+			};
+
+			const response = await request(app)
+				.post("/tree-types")
+				.set(adminAuthHeader)
+				.send(payload);
+
+			expect(response.status).toBe(201);
+			expect(response.body.success).toBe(true);
+			expect(response.body.data.min_height_m).toBe(3.0);
+			expect(response.body.data.max_height_m).toBe(null);
+
+			const createdTreeType = await prisma.treeType.findUnique({
+				where: { id: response.body.data.id },
+			});
+			if (createdTreeType) {
+				treeTypeIds.push(createdTreeType.id);
+			}
+		});
+
+		it("should return 400 when min_height_m is negative", async () => {
+			const response = await request(app)
+				.post("/tree-types")
+				.set(adminAuthHeader)
+				.send({
+					name: nextUnique("Eucalyptus"),
+					min_height_m: -5.0,
+				});
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should return 400 when max_height_m is negative", async () => {
+			const response = await request(app)
+				.post("/tree-types")
+				.set(adminAuthHeader)
+				.send({
+					name: nextUnique("Eucalyptus"),
+					max_height_m: -30.0,
+				});
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should return 400 when min_diameter_cm is negative", async () => {
+			const response = await request(app)
+				.post("/tree-types")
+				.set(adminAuthHeader)
+				.send({
+					name: nextUnique("Eucalyptus"),
+					min_diameter_cm: -10.0,
+				});
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should return 400 when max_diameter_cm is negative", async () => {
+			const response = await request(app)
+				.post("/tree-types")
+				.set(adminAuthHeader)
+				.send({
+					name: nextUnique("Eucalyptus"),
+					max_diameter_cm: -80.0,
+				});
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should return 400 when min_height_m is zero", async () => {
+			const response = await request(app)
+				.post("/tree-types")
+				.set(adminAuthHeader)
+				.send({
+					name: nextUnique("Eucalyptus"),
+					min_height_m: 0,
+				});
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should return 400 when max_diameter_cm is zero", async () => {
+			const response = await request(app)
+				.post("/tree-types")
+				.set(adminAuthHeader)
+				.send({
+					name: nextUnique("Eucalyptus"),
+					max_diameter_cm: 0,
+				});
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
 	});
 
 	describe("PUT /tree-types/:id", () => {
@@ -546,7 +715,9 @@ describe("Tree Types API", () => {
 				where: { id: treeType.id },
 			});
 
-			expect(updatedTreeType?.dryWeightDensity.toNumber()).toBe(640.5);
+			expect(updatedTreeType).not.toBeNull();
+			expect(updatedTreeType?.dryWeightDensity).toBeInstanceOf(Decimal);
+			expect(updatedTreeType?.dryWeightDensity?.toNumber()).toBe(640.5);
 		});
 
 		it("should return 400 for an invalid id param", async () => {
@@ -647,6 +818,85 @@ describe("Tree Types API", () => {
 
 			expect(response.status).toBe(409);
 			expect(response.body.error.detail).toBe("Tree type key already exists");
+		});
+
+		it("should return 200 when updating with density, height, and diameter fields", async () => {
+			const treeType = await createTreeType();
+
+			const response = await request(app)
+				.put(`/tree-types/${treeType.id}`)
+				.set(adminAuthHeader)
+				.send({
+					dry_weight_density: 700,
+					min_height_m: 12.0,
+					max_height_m: 45.0,
+					min_diameter_cm: 20.0,
+					max_diameter_cm: 90.0,
+				});
+
+			expect(response.status).toBe(200);
+			expect(response.body.success).toBe(true);
+			expect(response.body.data.dry_weight_density).toBe(700);
+			expect(response.body.data.min_height_m).toBe(12.0);
+			expect(response.body.data.max_height_m).toBe(45.0);
+			expect(response.body.data.min_diameter_cm).toBe(20.0);
+			expect(response.body.data.max_diameter_cm).toBe(90.0);
+		});
+
+		it("should return 400 when updating min_height_m with a negative value", async () => {
+			const treeType = await createTreeType();
+
+			const response = await request(app)
+				.put(`/tree-types/${treeType.id}`)
+				.set(adminAuthHeader)
+				.send({
+					min_height_m: -5.0,
+				});
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should return 400 when updating max_height_m with zero", async () => {
+			const treeType = await createTreeType();
+
+			const response = await request(app)
+				.put(`/tree-types/${treeType.id}`)
+				.set(adminAuthHeader)
+				.send({
+					max_height_m: 0,
+				});
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should return 400 when updating min_diameter_cm with a negative value", async () => {
+			const treeType = await createTreeType();
+
+			const response = await request(app)
+				.put(`/tree-types/${treeType.id}`)
+				.set(adminAuthHeader)
+				.send({
+					min_diameter_cm: -10.0,
+				});
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should return 400 when updating max_diameter_cm with zero", async () => {
+			const treeType = await createTreeType();
+
+			const response = await request(app)
+				.put(`/tree-types/${treeType.id}`)
+				.set(adminAuthHeader)
+				.send({
+					max_diameter_cm: 0,
+				});
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
 		});
 	});
 

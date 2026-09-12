@@ -11,6 +11,7 @@ type CreateProjectInput = {
 	countryId: number;
 	adminLocationId: number;
 	isActive?: boolean;
+	scansEnabled?: boolean;
 };
 
 // Input type for updating an existing project with optional fields for partial changes.
@@ -21,6 +22,7 @@ type UpdateProjectInput = {
 	countryId?: number;
 	adminLocationId?: number;
 	isActive?: boolean;
+	scansEnabled?: boolean;
 };
 
 // Checks whether a value is a positive whole number.
@@ -52,6 +54,17 @@ const assertCreatePayload = (data: CreateProjectInput) => {
 
 	if (data.isActive !== undefined && typeof data.isActive !== "boolean") {
 		throw new AppError(400, customError("VAL_002"), "Invalid isActive value");
+	}
+
+	if (
+		data.scansEnabled !== undefined &&
+		typeof data.scansEnabled !== "boolean"
+	) {
+		throw new AppError(
+			400,
+			customError("VAL_002"),
+			"Invalid scansEnabled value",
+		);
 	}
 };
 
@@ -90,6 +103,17 @@ const assertUpdatePayload = (data: UpdateProjectInput) => {
 
 	if (data.isActive !== undefined && typeof data.isActive !== "boolean") {
 		throw new AppError(400, customError("VAL_002"), "Invalid isActive value");
+	}
+
+	if (
+		data.scansEnabled !== undefined &&
+		typeof data.scansEnabled !== "boolean"
+	) {
+		throw new AppError(
+			400,
+			customError("VAL_002"),
+			"Invalid scansEnabled value",
+		);
 	}
 };
 
@@ -210,6 +234,7 @@ export class ProjectManagementService {
 						countryId: data.countryId,
 						adminLocationId: data.adminLocationId,
 						isActive: data.isActive ?? true,
+						scansEnabled: data.scansEnabled ?? true,
 					},
 				});
 
@@ -294,6 +319,9 @@ export class ProjectManagementService {
 						? { adminLocationId: data.adminLocationId }
 						: {}),
 					...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+					...(data.scansEnabled !== undefined
+						? { scansEnabled: data.scansEnabled }
+						: {}),
 				},
 			});
 
@@ -328,6 +356,7 @@ export class ProjectManagementService {
 				dependentUserProjects,
 				dependentProjectTreeTypes,
 				dependentScanBatches,
+				dependentAdoptions,
 			] = await Promise.all([
 				prisma.treeScan.count({
 					where: { projectId: id },
@@ -341,13 +370,17 @@ export class ProjectManagementService {
 				prisma.scanBatch.count({
 					where: { projectId: id },
 				}),
+				prisma.adoption.count({
+					where: { projectId: id },
+				}),
 			]);
 
 			if (
 				dependentScans > 0 ||
 				dependentUserProjects > 0 ||
 				dependentProjectTreeTypes > 0 ||
-				dependentScanBatches > 0
+				dependentScanBatches > 0 ||
+				dependentAdoptions > 0
 			) {
 				throw new AppError(
 					409,

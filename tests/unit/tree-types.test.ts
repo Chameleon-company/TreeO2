@@ -29,6 +29,7 @@ jest.mock("../../src/config/logger", () => ({
 	logger: loggerMock,
 }));
 
+import { Decimal } from "@prisma/client/runtime/library";
 import { TreeTypesService } from "../../src/modules/tree-types/treeTypes.service";
 
 const makeTreeTypeRecord = (
@@ -38,7 +39,7 @@ const makeTreeTypeRecord = (
 	name: "Eucalyptus",
 	key: "eucalyptus",
 	scientificName: "Eucalyptus globulus",
-	dryWeightDensity: 650,
+	dryWeightDensity: Decimal(650),
 	createdAt: new Date("2026-01-28T10:00:00.000Z"),
 	updatedAt: new Date("2026-01-28T10:00:00.000Z"),
 	...overrides,
@@ -75,6 +76,10 @@ describe("TreeTypesService", () => {
 					key: "acacia",
 					scientific_name: "Eucalyptus globulus",
 					dry_weight_density: 650,
+					max_diameter_cm: null,
+					max_height_m: null,
+					min_diameter_cm: null,
+					min_height_m: null,
 					created_at: "2026-01-28T10:00:00.000Z",
 					updated_at: "2026-01-28T10:00:00.000Z",
 				},
@@ -87,6 +92,41 @@ describe("TreeTypesService", () => {
 			const result = await service.listTreeTypes();
 
 			expect(result).toEqual([]);
+		});
+
+		it("should return tree types with height and diameter values when present", async () => {
+			prismaMock.treeType.findMany.mockResolvedValue([
+				makeTreeTypeRecord({
+					id: 1,
+					name: "Tall Tree",
+					dryWeightDensity: Decimal(550),
+					minHeightM: Decimal(10.0),
+					maxHeightM: Decimal(50.0),
+					minDiameterCm: Decimal(20.0),
+					maxDiameterCm: Decimal(100.0),
+				}),
+				makeTreeTypeRecord({
+					id: 2,
+					name: "Small Tree",
+					dryWeightDensity: null,
+					minHeightM: null,
+					maxHeightM: null,
+					minDiameterCm: null,
+					maxDiameterCm: null,
+				}),
+			]);
+
+			const result = await service.listTreeTypes();
+
+			expect(result).toHaveLength(2);
+			expect(result[0].dry_weight_density).toBe(550);
+			expect(result[0].min_height_m).toBe(10.0);
+			expect(result[0].max_height_m).toBe(50.0);
+			expect(result[0].min_diameter_cm).toBe(20.0);
+			expect(result[0].max_diameter_cm).toBe(100.0);
+			expect(result[1].dry_weight_density).toBe(null);
+			expect(result[1].min_height_m).toBe(null);
+			expect(result[1].max_height_m).toBe(null);
 		});
 	});
 
@@ -102,6 +142,10 @@ describe("TreeTypesService", () => {
 				key: "eucalyptus",
 				scientific_name: "Eucalyptus globulus",
 				dry_weight_density: 650,
+				max_diameter_cm: null,
+				max_height_m: null,
+				min_diameter_cm: null,
+				min_height_m: null,
 				created_at: "2026-01-28T10:00:00.000Z",
 				updated_at: "2026-01-28T10:00:00.000Z",
 			});
@@ -157,7 +201,7 @@ describe("TreeTypesService", () => {
 				makeTreeTypeRecord({
 					key: null,
 					scientificName: null,
-					dryWeightDensity: 595,
+					dryWeightDensity: null,
 				}),
 			);
 
@@ -170,27 +214,11 @@ describe("TreeTypesService", () => {
 					name: "Acacia",
 					key: undefined,
 					scientificName: undefined,
-					dryWeightDensity: 595,
+					dryWeightDensity: undefined,
 				},
 			});
-			expect(result.dry_weight_density).toBe(595);
-		});
 
-		it("should apply the default density when omitted", async () => {
-			prismaMock.treeType.findFirst.mockResolvedValue(null);
-			prismaMock.treeType.create.mockResolvedValue(
-				makeTreeTypeRecord({ dryWeightDensity: 595 }),
-			);
-
-			await service.createTreeType({
-				name: "Acacia",
-			});
-
-			expect(prismaMock.treeType.create).toHaveBeenCalledWith({
-				data: expect.objectContaining({
-					dryWeightDensity: 595,
-				}),
-			});
+			expect(result.dry_weight_density).toBe(null);
 		});
 
 		it("should throw a conflict for a duplicate key", async () => {
@@ -221,13 +249,112 @@ describe("TreeTypesService", () => {
 				detail: "Tree type key already exists",
 			});
 		});
+
+		it("should create successfully with all height and diameter fields", async () => {
+			prismaMock.treeType.findFirst.mockResolvedValue(null);
+			prismaMock.treeType.create.mockResolvedValue(
+				makeTreeTypeRecord({
+					dryWeightDensity: Decimal(550),
+					minHeightM: Decimal(5.5),
+					maxHeightM: Decimal(30.0),
+					minDiameterCm: Decimal(10.0),
+					maxDiameterCm: Decimal(80.0),
+				}),
+			);
+
+			const result = await service.createTreeType({
+				name: "Sugar Gum",
+				key: "sugar-gum",
+				min_height_m: 5.5,
+				max_height_m: 30.0,
+				min_diameter_cm: 10.0,
+				max_diameter_cm: 80.0,
+			});
+
+			expect(prismaMock.treeType.create).toHaveBeenCalledWith({
+				data: {
+					name: "Sugar Gum",
+					key: "sugar-gum",
+					minHeightM: 5.5,
+					maxHeightM: 30.0,
+					minDiameterCm: 10.0,
+					maxDiameterCm: 80.0,
+				},
+			});
+			expect(result.min_height_m).toBe(5.5);
+			expect(result.max_height_m).toBe(30.0);
+			expect(result.min_diameter_cm).toBe(10.0);
+			expect(result.max_diameter_cm).toBe(80.0);
+		});
+
+		it("should create successfully with only some height/diameter fields", async () => {
+			prismaMock.treeType.findFirst.mockResolvedValue(null);
+			prismaMock.treeType.create.mockResolvedValue(
+				makeTreeTypeRecord({
+					minHeightM: Decimal(3.0),
+					maxHeightM: null,
+					minDiameterCm: null,
+					maxDiameterCm: null,
+				}),
+			);
+
+			const result = await service.createTreeType({
+				name: "Young Tree",
+				min_height_m: 3.0,
+			});
+
+			expect(prismaMock.treeType.create).toHaveBeenCalledWith({
+				data: {
+					name: "Young Tree",
+					minHeightM: 3.0,
+				},
+			});
+			expect(result.min_height_m).toBe(3.0);
+			expect(result.max_height_m).toBe(null);
+		});
+
+		it("should create successfully with both density and height/diameter fields", async () => {
+			prismaMock.treeType.findFirst.mockResolvedValue(null);
+			prismaMock.treeType.create.mockResolvedValue(
+				makeTreeTypeRecord({
+					dryWeightDensity: Decimal(600),
+					minHeightM: Decimal(10.0),
+					maxHeightM: Decimal(40.0),
+					minDiameterCm: Decimal(15.0),
+					maxDiameterCm: Decimal(100.0),
+				}),
+			);
+
+			const result = await service.createTreeType({
+				name: "Tall Eucalyptus",
+				dry_weight_density: 600,
+				min_height_m: 10.0,
+				max_height_m: 40.0,
+				min_diameter_cm: 15.0,
+				max_diameter_cm: 100.0,
+			});
+
+			expect(prismaMock.treeType.create).toHaveBeenCalledWith({
+				data: {
+					name: "Tall Eucalyptus",
+					dryWeightDensity: 600,
+					minHeightM: 10.0,
+					maxHeightM: 40.0,
+					minDiameterCm: 15.0,
+					maxDiameterCm: 100.0,
+				},
+			});
+			expect(result.dry_weight_density).toBe(600);
+			expect(result.min_height_m).toBe(10.0);
+			expect(result.max_height_m).toBe(40.0);
+		});
 	});
 
 	describe("updateTreeType", () => {
 		it("should update only the provided fields", async () => {
 			prismaMock.treeType.findUnique.mockResolvedValue(makeTreeTypeRecord());
 			prismaMock.treeType.update.mockResolvedValue(
-				makeTreeTypeRecord({ dryWeightDensity: 640.5 }),
+				makeTreeTypeRecord({ dryWeightDensity: Decimal(640.5) }),
 			);
 
 			const result = await service.updateTreeType(1, {
@@ -268,6 +395,121 @@ describe("TreeTypesService", () => {
 				statusCode: 409,
 				detail: "Tree type key already exists",
 			});
+		});
+
+		it("should update height and diameter fields", async () => {
+			prismaMock.treeType.findUnique.mockResolvedValue(makeTreeTypeRecord());
+			prismaMock.treeType.update.mockResolvedValue(
+				makeTreeTypeRecord({
+					minHeightM: Decimal(12.0),
+					maxHeightM: Decimal(45.0),
+					minDiameterCm: Decimal(20.0),
+					maxDiameterCm: Decimal(90.0),
+				}),
+			);
+
+			const result = await service.updateTreeType(1, {
+				min_height_m: 12.0,
+				max_height_m: 45.0,
+				min_diameter_cm: 20.0,
+				max_diameter_cm: 90.0,
+			});
+
+			expect(prismaMock.treeType.update).toHaveBeenCalledWith({
+				where: { id: 1 },
+				data: {
+					name: undefined,
+					key: undefined,
+					scientificName: undefined,
+					dryWeightDensity: undefined,
+					minHeightM: 12.0,
+					maxHeightM: 45.0,
+					minDiameterCm: 20.0,
+					maxDiameterCm: 90.0,
+				},
+			});
+			expect(result.min_height_m).toBe(12.0);
+			expect(result.max_height_m).toBe(45.0);
+			expect(result.min_diameter_cm).toBe(20.0);
+			expect(result.max_diameter_cm).toBe(90.0);
+		});
+
+		it("should update only some height/diameter fields", async () => {
+			prismaMock.treeType.findUnique.mockResolvedValue(makeTreeTypeRecord());
+			prismaMock.treeType.update.mockResolvedValue(
+				makeTreeTypeRecord({
+					minHeightM: Decimal(8.0),
+				}),
+			);
+
+			const result = await service.updateTreeType(1, {
+				min_height_m: 8.0,
+			});
+
+			expect(prismaMock.treeType.update).toHaveBeenCalledWith({
+				where: { id: 1 },
+				data: {
+					name: undefined,
+					key: undefined,
+					scientificName: undefined,
+					dryWeightDensity: undefined,
+					minHeightM: 8.0,
+				},
+			});
+			expect(result.min_height_m).toBe(8.0);
+			expect(result.max_height_m).toBe(null);
+		});
+
+		it("should update density alongside height/diameter fields", async () => {
+			prismaMock.treeType.findUnique.mockResolvedValue(makeTreeTypeRecord());
+			prismaMock.treeType.update.mockResolvedValue(
+				makeTreeTypeRecord({
+					dryWeightDensity: Decimal(700),
+					minHeightM: Decimal(15.0),
+					maxHeightM: Decimal(50.0),
+				}),
+			);
+
+			const result = await service.updateTreeType(1, {
+				dry_weight_density: 700,
+				min_height_m: 15.0,
+				max_height_m: 50.0,
+			});
+
+			expect(prismaMock.treeType.update).toHaveBeenCalledWith({
+				where: { id: 1 },
+				data: {
+					name: undefined,
+					key: undefined,
+					scientificName: undefined,
+					dryWeightDensity: 700,
+					minHeightM: 15.0,
+					maxHeightM: 50.0,
+				},
+			});
+			expect(result.dry_weight_density).toBe(700);
+			expect(result.min_height_m).toBe(15.0);
+			expect(result.max_height_m).toBe(50.0);
+		});
+
+		it("should return null for height/diameter fields when they are null in the database", async () => {
+			prismaMock.treeType.findUnique.mockResolvedValue(
+				makeTreeTypeRecord({
+					dryWeightDensity: null,
+					minHeightM: null,
+					maxHeightM: null,
+					minDiameterCm: null,
+					maxDiameterCm: null,
+				}),
+			);
+
+			const result = await service.getTreeTypeById(1);
+
+			expect(result.dry_weight_density).toBe(null);
+			expect(result.min_height_m).toBe(null);
+			expect(result.max_height_m).toBe(null);
+			expect(result.min_diameter_cm).toBe(null);
+			expect(result.max_diameter_cm).toBe(null);
 		});
 	});
 

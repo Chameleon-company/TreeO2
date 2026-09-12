@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, Project } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { customError } from "../../utils/errorCodes";
@@ -22,7 +22,6 @@ type AuthUser = {
 const ensureProjectExists = async (projectId: number) => {
 	const project = await prisma.project.findUnique({
 		where: { id: projectId },
-		select: { id: true, isActive: true },
 	});
 
 	if (!project) {
@@ -42,6 +41,17 @@ const ensureProjectExists = async (projectId: number) => {
 	}
 
 	return project;
+};
+
+// ensure project has scans enabled
+const ensureProjectScansEnabled = (project: Project) => {
+	if (!project.scansEnabled) {
+		throw new AppError(
+			400,
+			customError("VAL_002"),
+			TREE_SCAN_MESSAGES.PROJECT_DISABLED_SCANS,
+		);
+	}
 };
 
 // Ensure user exists and account is active
@@ -273,7 +283,8 @@ export class TreeScansService {
 		try {
 			const inspectorId = user.id;
 
-			await ensureProjectExists(data.projectId);
+			const project = await ensureProjectExists(data.projectId);
+			ensureProjectScansEnabled(project);
 
 			await ensureUserExists(
 				data.farmerId,

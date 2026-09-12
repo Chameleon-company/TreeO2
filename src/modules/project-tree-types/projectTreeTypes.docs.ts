@@ -43,6 +43,18 @@
  *             dry_weight_density:
  *               type: number
  *               example: 550
+ *             min_height_m:
+ *               type: number
+ *               example: 10
+ *             max_height_m:
+ *               type: number
+ *               example: 150
+ *             min_diameter_cm:
+ *               type: number
+ *               example: 10
+ *             max_diameter_cm:
+ *               type: number
+ *               example: 150
  *     CreateProjectTreeTypeInput:
  *       type: object
  *       required:

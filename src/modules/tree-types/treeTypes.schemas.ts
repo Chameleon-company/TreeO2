@@ -15,7 +15,7 @@ const requiredNameString = z
 	.min(1, "Name is required")
 	.max(TREE_TYPE_TEXT_MAX_LENGTH);
 
-const positiveDensity = z.coerce.number().positive();
+const positiveNumber = z.coerce.number().positive();
 
 const treeTypeIdParams = z.object({
 	id: z.coerce.number().int().positive(),
@@ -30,7 +30,11 @@ export const createTreeTypeSchema = z.object({
 		name: requiredNameString,
 		key: optionalTrimmedString,
 		scientific_name: optionalTrimmedString,
-		dry_weight_density: positiveDensity.optional(),
+		dry_weight_density: positiveNumber.optional(),
+		min_height_m: positiveNumber.optional(),
+		max_height_m: positiveNumber.optional(),
+		min_diameter_cm: positiveNumber.optional(),
+		max_diameter_cm: positiveNumber.optional(),
 	}),
 });
 
@@ -41,7 +45,11 @@ export const updateTreeTypeSchema = z.object({
 			name: requiredNameString.optional(),
 			key: optionalTrimmedString,
 			scientific_name: optionalTrimmedString,
-			dry_weight_density: positiveDensity.optional(),
+			dry_weight_density: positiveNumber.optional(),
+			min_height_m: positiveNumber.optional(),
+			max_height_m: positiveNumber.optional(),
+			min_diameter_cm: positiveNumber.optional(),
+			max_diameter_cm: positiveNumber.optional(),
 		})
 		.refine((value) => Object.keys(value).length > 0, {
 			message: "At least one field is required",

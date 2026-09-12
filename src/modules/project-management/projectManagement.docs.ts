@@ -86,6 +86,8 @@
  *                 minimum: 1
  *               isActive:
  *                 type: boolean
+ *               scansEnabled:
+ *                 type: boolean
  *           example:
  *             name: Reforestation Project
  *             description: Tree planting initiative
@@ -93,6 +95,7 @@
  *             countryId: 1
  *             adminLocationId: 10
  *             isActive: true
+ *             scansEnabled: true
  *     responses:
  *       201:
  *         description: Project created successfully
@@ -141,10 +144,13 @@
  *                 type: integer
  *               isActive:
  *                 type: boolean
+ *               scansEnabled:
+ *                 type: boolean
  *           example:
  *             name: Updated Reforestation Project
  *             description: Expanded planting area
  *             isActive: false
+ *             scansEnabled: false
  *     responses:
  *       200:
  *         description: Project updated successfully

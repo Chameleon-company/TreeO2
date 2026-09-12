@@ -34,6 +34,9 @@ jest.mock("@prisma/client", () => {
 		projectOrganisation: {
 			create: jest.fn(),
 		},
+		adoption: {
+			count: jest.fn(),
+		},
 		$transaction: jest.fn(),
 	};
 
@@ -182,6 +185,7 @@ describe("ProjectManagementService", () => {
 					countryId: 1,
 					adminLocationId: 1,
 					isActive: true,
+					scansEnabled: true,
 				},
 			});
 
@@ -226,6 +230,48 @@ describe("ProjectManagementService", () => {
 			});
 		});
 
+		it("should create a project with scansEnabled set to false when explicitly provided", async () => {
+			const createdProject = {
+				id: 1,
+				ownerOrganisationId: 1,
+				name: "Reforestation Project",
+				description: "Tree planting initiative",
+				countryId: 1,
+				adminLocationId: 1,
+				isActive: true,
+				scansEnabled: false,
+			};
+
+			mockPrisma.organisation.findUnique.mockResolvedValue({ id: 1 });
+			mockPrisma.country.findUnique.mockResolvedValue({ id: 1 });
+			mockPrisma.location.findUnique.mockResolvedValue({ id: 1, countryId: 1 });
+			mockPrisma.project.create.mockResolvedValue(createdProject);
+
+			const result = await service.createProject({
+				ownerOrganisationId: 1,
+				name: "Reforestation Project",
+				description: "Tree planting initiative",
+				countryId: 1,
+				adminLocationId: 1,
+				isActive: true,
+				scansEnabled: false,
+			});
+
+			expect(mockPrisma.project.create).toHaveBeenCalledWith({
+				data: {
+					ownerOrganisationId: 1,
+					name: "Reforestation Project",
+					description: "Tree planting initiative",
+					countryId: 1,
+					adminLocationId: 1,
+					isActive: true,
+					scansEnabled: false,
+				},
+			});
+
+			expect(result).toEqual(createdProject);
+		});
+
 		it("should trim name and description and default isActive to true", async () => {
 			const createdProject = {
 				id: 1,
@@ -258,6 +304,7 @@ describe("ProjectManagementService", () => {
 					countryId: 1,
 					adminLocationId: 1,
 					isActive: true,
+					scansEnabled: true,
 				},
 			});
 		});
@@ -457,6 +504,39 @@ describe("ProjectManagementService", () => {
 					"Selected admin location does not belong to the selected country",
 			});
 		});
+
+		it("should update scansEnabled when provided", async () => {
+			const existingProject = {
+				id: 1,
+				ownerOrganisationId: 1,
+				name: "Reforestation Project",
+				countryId: 1,
+				adminLocationId: 1,
+				isActive: true,
+				scansEnabled: true,
+			};
+
+			const updatedProject = {
+				...existingProject,
+				scansEnabled: false,
+			};
+
+			mockPrisma.project.findUnique.mockResolvedValue(existingProject);
+			mockPrisma.project.update.mockResolvedValue(updatedProject);
+
+			const result = await service.updateProject(1, {
+				scansEnabled: false,
+			});
+
+			expect(mockPrisma.project.update).toHaveBeenCalledWith({
+				where: { id: 1 },
+				data: {
+					scansEnabled: false,
+				},
+			});
+
+			expect(result).toEqual(updatedProject);
+		});
 	});
 
 	// Tests for deleting a project.
@@ -472,6 +552,7 @@ describe("ProjectManagementService", () => {
 			mockPrisma.userProject.count.mockResolvedValue(0);
 			mockPrisma.projectTreeType.count.mockResolvedValue(0);
 			mockPrisma.scanBatch.count.mockResolvedValue(0);
+			mockPrisma.adoption.count.mockResolvedValue(0);
 			mockPrisma.project.delete.mockResolvedValue(existingProject);
 
 			const result = await service.deleteProject(1);
@@ -489,6 +570,10 @@ describe("ProjectManagementService", () => {
 			});
 
 			expect(mockPrisma.scanBatch.count).toHaveBeenCalledWith({
+				where: { projectId: 1 },
+			});
+
+			expect(mockPrisma.adoption.count).toHaveBeenCalledWith({
 				where: { projectId: 1 },
 			});
 
@@ -524,6 +609,7 @@ describe("ProjectManagementService", () => {
 			mockPrisma.userProject.count.mockResolvedValue(0);
 			mockPrisma.projectTreeType.count.mockResolvedValue(0);
 			mockPrisma.scanBatch.count.mockResolvedValue(0);
+			mockPrisma.adoption.count.mockResolvedValue(0);
 
 			const err = customError("DATA_004");
 			await expect(service.deleteProject(1)).rejects.toMatchObject({

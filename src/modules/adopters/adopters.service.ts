@@ -5,11 +5,13 @@ import { customError } from "../../utils/errorCodes";
 interface CreateAdopterInput {
 	name: string;
 	email?: string;
+	partnerId?: number;
 }
 
 interface UpdateAdopterInput {
 	name?: string;
 	email?: string;
+	partnerId?: number;
 }
 
 // -----------------------------
@@ -51,15 +53,30 @@ const assertValidEmail = (email?: string) => {
 	}
 };
 
-const assertCreatePayload = (data: CreateAdopterInput) => {
+const assertValidPartner = async (partnerId: number) => {
+	const partner = await prisma.partner.findUnique({
+		where: { id: partnerId },
+		select: { id: true },
+	});
+
+	if (!partner) {
+		throw new AppError(404, customError("DATA_001"), "Partner not found");
+	}
+};
+
+const assertCreatePayload = async (data: CreateAdopterInput) => {
 	if (!data.name?.trim()) {
 		throw new AppError(400, customError("VAL_003"));
 	}
 
 	assertValidEmail(data.email);
+
+	if (data.partnerId) {
+		await assertValidPartner(data.partnerId);
+	}
 };
 
-const assertUpdatePayload = (data: UpdateAdopterInput) => {
+const assertUpdatePayload = async (data: UpdateAdopterInput) => {
 	if (Object.keys(data).length === 0) {
 		throw new AppError(
 			400,
@@ -73,6 +90,10 @@ const assertUpdatePayload = (data: UpdateAdopterInput) => {
 	}
 
 	assertValidEmail(data.email);
+
+	if (data.partnerId) {
+		await assertValidPartner(data.partnerId);
+	}
 };
 
 // -----------------------------
@@ -105,12 +126,13 @@ export class AdoptersService {
 	}
 
 	async createAdopter(data: CreateAdopterInput) {
-		assertCreatePayload(data);
+		await assertCreatePayload(data);
 
 		return prisma.adopter.create({
 			data: {
 				name: data.name.trim(),
 				email: data.email ?? null,
+				partnerId: data.partnerId ?? null,
 			},
 		});
 	}
@@ -131,7 +153,7 @@ export class AdoptersService {
 
 	async updateAdopter(id: number, data: UpdateAdopterInput) {
 		assertValidId(id);
-		assertUpdatePayload(data);
+		await assertUpdatePayload(data);
 
 		await this.getAdopterById(id);
 

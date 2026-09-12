@@ -6,6 +6,7 @@ model Project {
   countryId           Int?     @map("country_id")
   adminLocationId     Int?     @map("admin_location_id")
   isActive            Boolean  @default(true) @map("is_active")
+  scansEnabled        Boolean  @default(true) @map("scans_enabled")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
 
@@ -17,6 +18,7 @@ model Project {
   projectOrganisations ProjectOrganisation[]
   scanBatches          ScanBatch[]           @relation("ProjectScanBatches")
   treeScans            TreeScan[]            @relation("ProjectTreeScans")
+  adoptions            Adoption[]
 
   userProjectRoles UserProjectRole[]
 

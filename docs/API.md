@@ -535,6 +535,10 @@ Current API response shape:
   "key": "eucalyptus",
   "scientific_name": "Eucalyptus globulus",
   "dry_weight_density": 650,
+  "min_height_m": 10,
+  "max_height_m": 150,
+  "min_diameter_cm": 10,
+  "max_diameter_cm": 150,
   "created_at": "2026-01-28T10:00:00.000Z",
   "updated_at": "2026-01-28T10:00:00.000Z"
 }
@@ -545,7 +549,10 @@ Current business rules:
 - `key` is optional
 - `scientific_name` is optional
 - `dry_weight_density` is optional
-- when omitted on create, `dry_weight_density` defaults to `595`
+- `min_height_m` is optional
+- `max_height_m` is optional
+- `min_diameter_cm` is optional
+- `max_diameter_cm` is optional
 - delete is blocked when referenced by dependent records
 
 ---
@@ -882,7 +889,8 @@ Retrieve all projects ordered by newest first.
       "description": "Tree planting initiative",
       "countryId": 1,
       "adminLocationId": 10,
-      "isActive": true
+      "isActive": true,
+      "scansEnabled": true
     }
   ]
 }
@@ -914,7 +922,8 @@ Retrieve a single project by ID.
     "description": "Tree planting initiative",
     "countryId": 1,
     "adminLocationId": 10,
-    "isActive": true
+    "isActive": true,
+    "scansEnabled": true
   }
 }
 ```
@@ -938,7 +947,8 @@ Create a new project. Also creates a project-organisation link to determine "own
   "description": "Tree planting initiative",
   "countryId": 1,
   "adminLocationId": 10,
-  "isActive": true
+  "isActive": true,
+  "scansEnabled": true
 }
 ```
 
@@ -986,7 +996,8 @@ Any subset of fields may be provided.
   "description": "Expanded planting scope",
   "countryId": 1,
   "adminLocationId": 12,
-  "isActive": false
+  "isActive": false,
+  "scansEnabled": true
 }
 ```
 
@@ -1362,7 +1373,7 @@ localization.routes.ts (Router + middleware)
 - Reads and writes localized strings via Prisma
 - Returns data or throws handled errors
 
-### 12.3 Security
+### 13.3 Security
 
 All endpoints are protected using Bearer Token authentication.
 
@@ -1370,7 +1381,7 @@ Middleware used:
 - `authMiddleware`
 - `roleMiddleware`
 
-### 12.4 Access Control Matrix
+### 13.4 Access Control Matrix
 
 | Endpoint | ADMIN | MANAGER | INSPECTOR | FARMER | DEVELOPER |
 |---|---|---|---|---|---|
@@ -1379,7 +1390,7 @@ Middleware used:
 | PUT /localized-strings/{id} | Yes | No | No | No | No |
 | DELETE /localized-strings/{id} | Yes | No | No | No | No |
 
-### 12.5 Endpoints
+### 13.5 Endpoints
 
 #### GET /localized-strings
 
@@ -1524,7 +1535,7 @@ Delete a localized string.
 - `403` Insufficient permissions
 - `404` Localized string not found
 
-### 12.6 Validation Rules
+### 13.6 Validation Rules
 
 #### List Validation
 - `preferredLanguage` / `preferred_language` must be non-empty strings (max 10).
@@ -1548,7 +1559,7 @@ Delete a localized string.
 - `id` must be a positive integer
 - Target localized string must exist
 
-### 12.7 Error Handling
+### 13.7 Error Handling
 
 Uses centralised error middleware.
 
@@ -1568,7 +1579,7 @@ Uses centralised error middleware.
 - Resource not found (`DATA_001`)
 - Internal server error (`SYS_001`)
 
-### 12.8 Swagger Documentation
+### 13.8 Swagger Documentation
 
 All endpoints are documented in:
 
@@ -1584,7 +1595,7 @@ Swagger supports:
 - Response definitions
 - Security schemas
 
-### 12.9 Testing
+### 13.9 Testing
 
 #### Test Files
 - `tests/unit/localization.test.ts`
@@ -1621,7 +1632,7 @@ Swagger supports:
 - Valid delete succeeds
 - Missing target rejected
 
-### 12.10 Summary
+### 13.10 Summary
 
 The Localization API follows the TreeO2 backend engineering standard:
 
@@ -1847,7 +1858,11 @@ Current API response shape:
     "name": "Mahogany",
     "key": "mahogany",
     "scientific_name": "Swietenia macrophylla",
-    "dry_weight_density": 550
+    "dry_weight_density": 550,
+    "min_height_m": 10,
+    "max_height_m": 150,
+    "min_diameter_cm": 10,
+    "max_diameter_cm": 150,
   }
 }
 ```
@@ -3739,9 +3754,12 @@ The Adoptions API is responsible for managing adoption records linked to adopter
 
 An adoption record stores:
 - the adopter linked to the adoption
+- the project linked to the adoption
 - the tree FOB ID
 - the adoption date
 - the creation timestamp
+- the cancelled timestamp
+- the cancellation reason
 
 ### 18.2 Architecture Flow
 
@@ -3811,8 +3829,11 @@ Retrieve paginated adoption records.
     {
       "id": 1,
       "adopter_id": 1,
+      "project_id": 2,
       "fob_id": "NFC-001",
-      "adopted_at": "2026-05-14T00:00:00.000Z"
+      "adopted_at": "2026-05-14T00:00:00.000Z",
+      "cancelled_at": "2026-05-14T00:00:00.000Z",
+      "cancellation_reason": "Remove adoption"
     }
   ]
 }
@@ -3844,8 +3865,11 @@ Retrieve a single adoption by ID.
   "data": {
     "id": 1,
     "adopter_id": 1,
+    "project_id": 2,
     "fob_id": "NFC-001",
-    "adopted_at": "2026-05-14T00:00:00.000Z"
+    "adopted_at": "2026-05-14T00:00:00.000Z",
+    "cancelled_at": "2026-05-14T00:00:00.000Z",
+    "cancellation_reason": "Remove adoption"
   }
 }
 ```
@@ -3868,8 +3892,9 @@ Create a new adoption record.
 ```json
 {
   "adopter_id": 1,
+  "project_id": 2,
   "fob_id": "NFC-001",
-  "adopted_at": "2026-05-14"
+  "adopted_at": "2026-05-14",
 }
 ```
 
@@ -3886,8 +3911,9 @@ Create a new adoption record.
   "data": {
     "id": 1,
     "adopter_id": 1,
+    "project_id": 2,
     "fob_id": "NFC-001",
-    "adopted_at": "2026-05-14T00:00:00.000Z"
+    "adopted_at": "2026-05-14T00:00:00.000Z",
   }
 }
 ```
@@ -3929,6 +3955,7 @@ Any subset of fields may be provided.
   "data": {
     "id": 1,
     "adopter_id": 1,
+    "project_id": 2,
     "fob_id": "NFC-UPDATED",
     "adopted_at": "2026-05-14T00:00:00.000Z"
   }
@@ -3946,7 +3973,7 @@ Any subset of fields may be provided.
 
 #### DELETE /adoptions/{id}
 
-Delete an adoption record.
+Cancels an adoption record.
 
 ##### Path Parameters
 

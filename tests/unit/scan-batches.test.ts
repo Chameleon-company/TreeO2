@@ -154,6 +154,7 @@ describe("ScanBatchesService", () => {
 		mockPrisma.project.findUnique.mockResolvedValue({
 			id: 1,
 			isActive: true,
+			scansEnabled: true,
 		});
 
 		mockPrisma.userProject.findFirst.mockResolvedValue({
@@ -444,6 +445,26 @@ describe("ScanBatchesService", () => {
 					skippedClientScanIds: [],
 					skippedNoTimestamp: [],
 				},
+			});
+		});
+
+		// Tests project scans disabled validation
+		it("should throw when project has scans disabled", async () => {
+			mockPrisma.user.findUnique.mockReset();
+			mockPrisma.user.findUnique.mockResolvedValueOnce(inspectorRecord);
+			mockPrisma.project.findUnique.mockResolvedValueOnce({
+				id: 1,
+				name: "Reforestation Project",
+				isActive: true,
+				scansEnabled: false,
+			});
+
+			const err = customError("VAL_002");
+			await expect(createScanBatch(validCreateInput)).rejects.toMatchObject({
+				statusCode: 400,
+				detail: SCAN_BATCHES_MESSAGES.PROJECT_DISABLED_SCANS,
+				code: err.code,
+				message: err.message,
 			});
 		});
 

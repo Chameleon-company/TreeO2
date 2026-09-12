@@ -3,5 +3,7 @@ model Partner {
   name      String   @db.VarChar(255)
   createdAt DateTime @default(now()) @map("created_at")
 
+  adopters Adopter[]
+
   @@map("partners")
 }
