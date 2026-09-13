@@ -486,7 +486,10 @@ describe("DashboardWidgetsService - Unit Tests", () => {
 		});
 
 		it("SystemAdmin skips membership and organisation guards", async () => {
-			await dashboardWidgetsService.getTotals({ user: systemAdminIdentity }, {});
+			await dashboardWidgetsService.getTotals(
+				{ user: systemAdminIdentity },
+				{},
+			);
 
 			expect(mockedUserProjectRole.findFirst).not.toHaveBeenCalled();
 			expect(mockedProject.findFirst).not.toHaveBeenCalled();
@@ -634,7 +637,9 @@ describe("DashboardWidgetsService - Unit Tests", () => {
 		});
 
 		it("groups by inspector and resolves user names as labels", async () => {
-			mockedQueries.countTreesByGroup.mockResolvedValue([{ key: 4, trees: 10 }]);
+			mockedQueries.countTreesByGroup.mockResolvedValue([
+				{ key: 4, trees: 10 },
+			]);
 			mockedUser.findMany.mockResolvedValue([{ id: 4, name: "Maria Soares" }]);
 
 			const result = await dashboardWidgetsService.getTreeCounts(
@@ -702,7 +707,10 @@ describe("DashboardWidgetsService - Unit Tests", () => {
 			});
 			expect(mockedTreeScanAudit.groupBy).toHaveBeenCalledWith(
 				expect.objectContaining({
-					where: { treeScan: { projectId: 1 }, changedAt: { gte: from, lte: to } },
+					where: {
+						treeScan: { projectId: 1 },
+						changedAt: { gte: from, lte: to },
+					},
 				}),
 			);
 			expect(mockedQueries.countScansPerBucket).toHaveBeenCalledWith(
