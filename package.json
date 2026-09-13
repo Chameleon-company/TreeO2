@@ -21,7 +21,8 @@
     "prisma:migrate:dev": "prisma migrate dev --schema prisma",
     "prisma:migrate:deploy": "prisma migrate deploy --schema prisma",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "generate-token": "ts-node scripts/generate-token.ts"
   },
   "lint-staged": {
     "src/**/*.ts": [
