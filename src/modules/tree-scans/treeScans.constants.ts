@@ -60,7 +60,7 @@ export const TREE_SCAN_INCLUDE = {
 					accountActive: true,
 				},
 			},
-		}
+		},
 	},
 	inspector: {
 		select: {

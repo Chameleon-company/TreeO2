@@ -252,13 +252,19 @@ export const UserManagementService = {
 			throw new AppError(404, customError("DATA_001"));
 		}
 
-		const linked = await prisma.treeScan.findFirst({
+		const linkedTreeScan = await prisma.treeScan.findFirst({
 			where: {
-				OR: [{ farmerId: userId }, { inspectorId: userId }],
+				inspectorId: userId,
 			},
 		});
 
-		if (linked) {
+		const linkedFarm = await prisma.farm.findFirst({
+			where: {
+				farmerId: userId,
+			},
+		});
+
+		if (linkedTreeScan || linkedFarm) {
 			throw new AppError(409, customError("VAL_001"));
 		}
 

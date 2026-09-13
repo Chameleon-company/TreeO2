@@ -12,7 +12,7 @@ jest.mock("@prisma/client", () => {
 		userProject: {
 			findUnique: jest.fn(),
 		},
-		farms: {
+		farm: {
 			findUnique: jest.fn(),
 		},
 		treeType: {
@@ -317,21 +317,21 @@ describe("TreeScansService", () => {
 				isActive: true,
 			});
 
-			mockPrisma.user.findUnique
-				.mockResolvedValueOnce({
-					id: 4,
-					accountActive: true,
-				});
+			mockPrisma.user.findUnique.mockResolvedValue({
+				id: 4,
+				accountActive: true,
+			});
 
-			mockPrisma.userProject.findUnique
-				.mockResolvedValueOnce({
-					userId: 4,
-					projectId: 1,
-				});
+			mockPrisma.userProject.findUnique.mockResolvedValue({
+				userId: 4,
+				projectId: 1,
+			});
 
-			mockPrisma.farms.findUnique.mockResolvedValue({
-				id:2,
-			})
+			mockPrisma.farm.findUnique.mockResolvedValue({
+				id: 2,
+				projectId: 1,
+				status: "active",
+			});
 
 			mockPrisma.treeType.findUnique.mockResolvedValue({
 				id: 3,
@@ -405,8 +405,8 @@ describe("TreeScansService", () => {
 		});
 
 		it("should throw DATA_001 when farm does not exist", async () => {
-			mockPrisma.user.findUnique.mockReset();
-			mockPrisma.user.findUnique.mockResolvedValueOnce(null);
+			mockPrisma.farm.findUnique.mockReset();
+			mockPrisma.farm.findUnique.mockResolvedValueOnce(null);
 
 			const err = customError("DATA_001");
 			await expect(
@@ -421,12 +421,7 @@ describe("TreeScansService", () => {
 
 		it("should throw DATA_001 when inspector does not exist", async () => {
 			mockPrisma.user.findUnique.mockReset();
-			mockPrisma.user.findUnique
-				.mockResolvedValueOnce({
-					id: 2,
-					accountActive: true,
-				})
-				.mockResolvedValueOnce(null);
+			mockPrisma.user.findUnique.mockResolvedValue(null);
 			const err = customError("DATA_001");
 
 			await expect(
@@ -439,11 +434,12 @@ describe("TreeScansService", () => {
 			});
 		});
 
-		it("should throw VAL_002 when user account is inactive", async () => {
-			mockPrisma.user.findUnique.mockReset();
-			mockPrisma.user.findUnique.mockResolvedValueOnce({
+		it("should throw VAL_002 when farm is inactive", async () => {
+			mockPrisma.farm.findUnique.mockReset();
+			mockPrisma.farm.findUnique.mockResolvedValue({
 				id: 2,
-				accountActive: false,
+				projectId: 1,
+				status: "inactive",
 			});
 			const err = customError("VAL_002");
 
@@ -453,13 +449,17 @@ describe("TreeScansService", () => {
 				statusCode: 400,
 				code: err.code,
 				message: err.message,
-				detail: "User account is inactive",
+				detail: "Farm is not active",
 			});
 		});
 
 		it("should throw AUTH_007 when farm is not assigned to project", async () => {
-			mockPrisma.userProject.findUnique.mockReset();
-			mockPrisma.userProject.findUnique.mockResolvedValueOnce(null);
+			mockPrisma.farm.findUnique.mockReset();
+			mockPrisma.farm.findUnique.mockResolvedValueOnce({
+				id: 2,
+				projectId: 2,
+				status: "active",
+			});
 			const err = customError("AUTH_007");
 
 			await expect(
@@ -474,12 +474,7 @@ describe("TreeScansService", () => {
 
 		it("should throw AUTH_007 when inspector is not assigned to project", async () => {
 			mockPrisma.userProject.findUnique.mockReset();
-			mockPrisma.userProject.findUnique
-				.mockResolvedValueOnce({
-					userId: 2,
-					projectId: 1,
-				})
-				.mockResolvedValueOnce(null);
+			mockPrisma.userProject.findUnique.mockResolvedValueOnce(null);
 			const err = customError("AUTH_007");
 
 			await expect(

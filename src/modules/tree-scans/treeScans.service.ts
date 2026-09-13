@@ -1,4 +1,4 @@
-import { FarmStatus, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { customError } from "../../utils/errorCodes";
@@ -66,14 +66,17 @@ const ensureUserExists = async (userId: number, message: string) => {
 const ensureFarmExists = async (farmId: number, message: string) => {
 	const farm = await prisma.farm.findUnique({
 		where: { id: farmId },
-		select: { id: true, status: true },
+		select: {
+			id: true,
+			status: true,
+		},
 	});
 
 	if (!farm) {
 		throw new AppError(404, customError("DATA_001"), message);
 	}
 
-	if (farm.status != FarmStatus.active) {
+	if (farm.status !== "active") {
 		throw new AppError(400, customError("VAL_002"), "Farm is not active");
 	}
 
@@ -311,10 +314,7 @@ export class TreeScansService {
 
 			await ensureProjectExists(data.projectId);
 
-			await ensureFarmExists(
-				data.farmId,
-				TREE_SCAN_MESSAGES.FARM_NOT_FOUND,
-			);
+			await ensureFarmExists(data.farmId, TREE_SCAN_MESSAGES.FARM_NOT_FOUND);
 
 			await ensureUserExists(
 				inspectorId,
@@ -395,10 +395,7 @@ export class TreeScansService {
 				const nextSpeciesId = data.speciesId ?? existingScan.speciesId;
 
 				await ensureProjectExists(nextProjectId);
-				await ensureFarmExists(
-					nextFarmId,
-					TREE_SCAN_MESSAGES.FARM_NOT_FOUND,
-				);
+				await ensureFarmExists(nextFarmId, TREE_SCAN_MESSAGES.FARM_NOT_FOUND);
 				await ensureUserExists(
 					nextInspectorId,
 					TREE_SCAN_MESSAGES.INSPECTOR_NOT_FOUND,

@@ -63,7 +63,7 @@ const toTreeScanFields = (
 ) => ({
 	fobId: scan.fob_id,
 	projectId: data.project_id,
-	farmerId: scan.farmer_id,
+	farmId: scan.farm_id,
 	inspectorId: data.inspector_id,
 	speciesId: scan.species_id,
 	estimatedPlantedYear: scan.estimated_planted_year,
@@ -415,7 +415,7 @@ export const createScanBatch = async (
 	// Per-scan reference checks. Measurement bounds are enforced by the Zod
 	// schema (createScanBatchSchema) at parse time, so they are not repeated here.
 	for (const scan of data.scans) {
-		await validateFarmer(scan.farmer_id, data.project_id);
+		await validateFarmer(scan.farm_id, data.project_id);
 		await validateSpecies(scan.species_id, data.project_id);
 	}
 

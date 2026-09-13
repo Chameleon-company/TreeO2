@@ -29,10 +29,10 @@ const scanSchema = z.object({
 		.min(1, "fob_id is required")
 		.max(SCAN_BATCHES_LIMITS.FOB_ID_MAX_LENGTH),
 
-	farmer_id: z.coerce
+	farm_id: z.coerce
 		.number()
 		.int()
-		.positive("farmer_id must be a positive integer"),
+		.positive("farm_id must be a positive integer"),
 
 	species_id: z.coerce
 		.number()
