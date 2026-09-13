@@ -40,6 +40,7 @@ const ERROR_CODES = {
 	SYS_003: "Service unavailable",
 	SYS_004: "Report generation failed",
 	SYS_005: "External service error",
+	SYS_006: "Feature not implemented",
 
 	// Farm
 	FARM_001: "Farm not found or not accessible in selected project",
