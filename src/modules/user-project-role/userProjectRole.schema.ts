@@ -19,6 +19,13 @@ export const UserProjectRoleReq = z.object({
 
 export type UserProjectRoleReq = z.infer<typeof UserProjectRoleReq>;
 
+// Authenticated user ID used for assignedBy
+export const UserProjectRoleAssignedBy = z.coerce.number().int().positive();
+
+export type UserProjectRoleAssignedBy = z.infer<
+	typeof UserProjectRoleAssignedBy
+>;
+
 // GET /user-project-roles query
 export const UserProjectRoleListQuery = z.object({
 	page: z.coerce.number().int().positive().default(DEFAULT_PAGE),

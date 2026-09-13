@@ -3,6 +3,7 @@ import { authMiddleware } from "../../middleware/auth.middleware";
 import { validateMiddleware } from "../../middleware/validate.middleware";
 import { userProjectRoleController } from "./userProjectRole.controller";
 import {
+	UserProjectRoleAssignedBy,
 	UserProjectRoleDeleteReq,
 	UserProjectRoleListReq,
 	UserProjectRoleReq,
@@ -15,6 +16,12 @@ const router = Router();
 // GET    -> user_project_roles:read
 // POST   -> user_project_roles:assign + role hierarchy validation
 // DELETE -> user_project_roles:remove + role hierarchy validation
+
+// TODO: Manager role assignment must be restricted so managers cannot
+// assign roles they do not have permission to grant.
+
+// TODO: When a user's project role changes, revoke related refresh tokens
+// so existing sessions cannot keep outdated permissions.
 
 router.get(
 	"/",
@@ -34,7 +41,17 @@ router.post(
 	authMiddleware,
 	validateMiddleware(UserProjectRoleReq),
 	(req, res, next) => {
-		const assignedBy = Number(req.user?.sub);
+		const assignedByResult = UserProjectRoleAssignedBy.safeParse(req.user?.sub);
+
+		if (!assignedByResult.success) {
+			res.status(401).json({
+				success: false,
+				message: "Invalid authenticated user",
+			});
+			return;
+		}
+
+		const assignedBy = assignedByResult.data;
 
 		void userProjectRoleController.assignRole(
 			req as unknown as UserProjectRoleReq,

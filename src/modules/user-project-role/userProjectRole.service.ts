@@ -20,6 +20,21 @@ const ensureUserExists = async (userId: number) => {
 	}
 };
 
+const ensureAssignedByUserExists = async (userId: number) => {
+	const user = await prisma.user.findUnique({
+		where: { id: userId },
+		select: { id: true },
+	});
+
+	if (!user) {
+		throw new AppError(
+			404,
+			customError("DATA_001"),
+			"Assigning user not found",
+		);
+	}
+};
+
 const ensureProjectExists = async (projectId: number) => {
 	const project = await prisma.project.findUnique({
 		where: { id: projectId },
@@ -157,6 +172,7 @@ export class UserProjectRoleService {
 
 	async assignRole(data: AssignUserProjectRoleInput) {
 		await ensureUserExists(data.userId);
+		await ensureAssignedByUserExists(data.assignedBy);
 		await ensureProjectExists(data.projectId);
 		await ensureRoleExists(data.roleId);
 		await ensureUserCanBelongToProject(data.userId, data.projectId);
@@ -166,7 +182,10 @@ export class UserProjectRoleService {
 			data.roleId,
 		);
 
-		return prisma.userProjectRole.create({
+		// TODO: Enforce role-granting permissions so managers cannot assign
+		// roles they are not authorised to grant.
+
+		const assignment = await prisma.userProjectRole.create({
 			data: {
 				userId: data.userId,
 				projectId: data.projectId,
@@ -195,6 +214,11 @@ export class UserProjectRoleService {
 				},
 			},
 		});
+
+		// TODO: Revoke refresh tokens related to this user after a role
+		// assignment so active sessions cannot retain stale permissions.
+
+		return assignment;
 	}
 
 	async removeRole(userId: number, projectId: number, roleId: number) {
@@ -225,6 +249,9 @@ export class UserProjectRoleService {
 				},
 			},
 		});
+
+		// TODO: Revoke refresh tokens related to this user after a role
+		// removal so active sessions cannot retain stale permissions.
 
 		return {
 			message: "User project role removed successfully",
