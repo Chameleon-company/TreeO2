@@ -16,6 +16,7 @@ import treeScansRoutes from "../modules/tree-scans";
 import { projectOrganisationRoutes } from "../modules/project-organisation";
 import { userOrganisationsRoutes } from "../modules/user-organisations";
 import { userOrganisationRolesRoutes } from "../modules/user-organisation-roles";
+import { dashboardWidgetsRoutes } from "../modules/dashboard-widgets";
 
 const router = Router();
 
@@ -36,5 +37,6 @@ router.use("/organisations", organisationsRoutes);
 router.use("/user-organisations", userOrganisationsRoutes);
 router.use("/user-organisation-roles", userOrganisationRolesRoutes);
 router.use("/tree-scans", treeScansRoutes);
+router.use("/dashboard", dashboardWidgetsRoutes);
 
 export default router;
