@@ -1,0 +1,11 @@
+model UserOrganisationRoles {
+  userId         Int @map("user_id")
+  organisationId Int @map("organisation_id")
+  roleId         Int @map("role_id")
+
+  userOrganisation UserOrganisation @relation(fields: [userId, organisationId], references: [userId, organisationId], onDelete: Restrict)
+  role             OrganisationRole @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@id([userId, organisationId, roleId])
+  @@map("user_organisations_roles")
+}

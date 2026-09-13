@@ -5,7 +5,7 @@ model User {
   passwordHash       String?   @map("password_hash") @db.VarChar(300)
   accessToken        String?   @map("access_token") @db.VarChar(100)
   accessTokenCreated DateTime? @map("access_token_created")
-  resetToken         String?   @map("reset_token") @db.VarChar(500)
+  resetToken         String?   @unique @map("reset_token") @db.VarChar(500)
   resetTokenExpires  DateTime? @map("reset_token_expires")
   canSignIn          Boolean   @default(true) @map("can_sign_in")
   roleId             Int       @map("role")
@@ -25,21 +25,21 @@ model User {
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  primaryRole        Role      @relation("PrimaryRole", fields: [roleId], references: [id], onDelete: Restrict)
+  primaryRole        Role                 @relation("PrimaryRole", fields: [roleId], references: [id], onDelete: Restrict)
   country            Country?             @relation("UserCountry", fields: [countryId], references: [id], onDelete: Restrict)
   adminLocation      Location?            @relation("UserAdminLocation", fields: [adminLocationId], references: [id], onDelete: Restrict)
   roleAssignments    UserRoleAssignment[]
   userProjects       UserProject[]
-  reports            Report[]         @relation("UserReports")
-  scanBatches        ScanBatch[]      @relation("ScanBatchInspector")
-  farmerTreeScans    TreeScan[]       @relation("FarmerTreeScans")
-  inspectorTreeScans TreeScan[]       @relation("InspectorTreeScans")
-  correctedTreeScans TreeScan[]       @relation("CorrectedTreeScans")
-  treeScanAudits     TreeScanAudit[]  @relation("TreeScanAuditChangedBy")
-  userOrganisations UserOrganisation[]
+  reports            Report[]             @relation("UserReports")
+  scanBatches        ScanBatch[]          @relation("ScanBatchInspector")
+  farmerTreeScans    TreeScan[]           @relation("FarmerTreeScans")
+  inspectorTreeScans TreeScan[]           @relation("InspectorTreeScans")
+  correctedTreeScans TreeScan[]           @relation("CorrectedTreeScans")
+  treeScanAudits     TreeScanAudit[]      @relation("TreeScanAuditChangedBy")
+  userOrganisations  UserOrganisation[]
 
-userProjectRoles        UserProjectRole[] @relation("UserProjectRoles")
-  assignedProjectRoles    UserProjectRole[] @relation("AssignedByUser")
+  userProjectRoles     UserProjectRole[] @relation("UserProjectRoles")
+  assignedProjectRoles UserProjectRole[] @relation("AssignedByUser")
 
   @@index([roleId])
   @@index([countryId])

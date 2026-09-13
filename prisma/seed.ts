@@ -1,23 +1,53 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+// Each step below needs ids from the one before it, so the order is fixed.
+// See prisma/seed/README.md for the full breakdown of why.
+import { prisma } from "./seed/client";
+import { seedRoles } from "./seed/roles";
+import { seedCountryAndLocations } from "./seed/geography";
+import {
+	seedOrganisation,
+	seedPartnerOrganisation,
+} from "./seed/organisations";
+import { seedUsers } from "./seed/users";
+import { seedTreeTypes } from "./seed/treeTypes";
+import {
+	seedProject,
+	seedSecondProject,
+	seedProjectSharing,
+} from "./seed/projects";
+import { seedScans } from "./seed/scans";
+import { seedPartnersAdoptersAdoptions } from "./seed/partnersAdoptions";
+import { seedLocalization } from "./seed/localization";
 
 const main = async (): Promise<void> => {
-	const adminRole = await prisma.role.upsert({
-		where: { name: "ADMIN" },
-		update: {},
-		create: { name: "ADMIN" },
-	});
-
-	await prisma.user.upsert({
-		where: { email: "admin@treeo2.local" },
-		update: {},
-		create: {
-			email: "admin@treeo2.local",
-			name: "TreeO2 Admin",
-			roleId: adminRole.id,
-		},
-	});
+	const roles = await seedRoles();
+	const { countryId, municipalityId, adminPostId } =
+		await seedCountryAndLocations();
+	const organisationId = await seedOrganisation(countryId, municipalityId);
+	const partnerOrganisationId = await seedPartnerOrganisation(
+		countryId,
+		municipalityId,
+	);
+	const users = await seedUsers(roles, countryId, municipalityId);
+	const { sandalwoodId, teakId } = await seedTreeTypes();
+	const projectId = await seedProject(
+		organisationId,
+		countryId,
+		adminPostId,
+		sandalwoodId,
+		teakId,
+	);
+	await seedSecondProject(organisationId, countryId, adminPostId, teakId);
+	await seedProjectSharing(projectId, partnerOrganisationId);
+	await seedScans(
+		projectId,
+		users.FARMER,
+		users.INSPECTOR,
+		users.MANAGER,
+		sandalwoodId,
+		teakId,
+	);
+	await seedPartnersAdoptersAdoptions();
+	await seedLocalization();
 };
 
 void main()

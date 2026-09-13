@@ -4300,7 +4300,7 @@ Create a new scan batch and associate uploaded tree scans.
 ```json
 {
   "project_id": 1,
-  "uploaded_at": "2024-05-20T10:35:00.000Z",
+  "device_id": "MOB-001",
   "scans": [
     {
       "fob_id": "SWAGGER-001",
@@ -4314,7 +4314,8 @@ Create a new scan batch and associate uploaded tree scans.
       "diameter_cm": 14.4,
       "latitude": -8.5569,
       "longitude": 125.5603,
-      "device_id": "MOB-001"
+      "client_scan_id": "7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c",
+      "scan_timestamp": "2024-05-20T10:30:00.000Z"
     }
   ]
 }
@@ -4322,14 +4323,60 @@ Create a new scan batch and associate uploaded tree scans.
 
 ##### Required Fields
 - `project_id`
+- `device_id` (batch level; identifies the uploading device)
 - `scans`
 - `fob_id`
 - `farmer_id`
 - `species_id`
 - `estimated_planted_year`
 - `estimated_planted_month`
+- `client_scan_id` (per scan; device-generated UUID)
+
+##### Offline Idempotency
+
+Offline scan uploads are idempotent. Each scan carries a device-generated
+`client_scan_id` (UUID), and the pair is stored under the unique key
+`(project_id, inspector_id, device_id, client_scan_id)`. If a batch is
+re-sent — for example after a network timeout or reconnect — no duplicate
+scan record is created. `scan_timestamp` records when the scan was captured
+on the device and cannot be in the future.
+
+##### Conflict Resolution (Last-Write-Wins)
+
+When a submitted `client_scan_id` already exists, the offline scan is treated
+as the authoritative field observation, and what it is compared against depends
+on whether the stored record has been modified since it was inserted.
+
+If the stored record has **not** been modified since insert, last-write-wins
+compares capture times: the uploaded scan replaces the stored record when its
+`scan_timestamp` is later than the stored scan's own `scan_timestamp`, and is
+otherwise skipped. A stored record with no `scan_timestamp` of its own has no
+comparable capture time, so the incoming observation overwrites it.
+
+If the stored record **has** been modified since insert — corrected, archived,
+validated, or previously overwritten — that modification is the more recent
+authoritative write, so the comparison is against the modification time
+instead: the uploaded scan replaces the record only when it was captured after
+that modification.
+
+Either way the previous state of an overwritten record is preserved in
+`tree_scan_audit`, and an overwrite clears any correction attribution
+(`is_corrected`, `corrected_by`, `correction_reason`) from the record it
+replaces, since those describe a correction to values that no longer exist.
+
+An archived record is never overwritten. It stays frozen and is reported under
+`skippedClientScanIds`.
+
+A duplicate whose upload carries no `scan_timestamp` cannot be compared, so it
+is skipped and reported under `skippedNoTimestamp` rather than overwriting.
+
+Each response includes a `summary` reporting how many scans were inserted
+(`created_count`), overwritten under last-write-wins (`updated_count`) and
+`skipped`.
 
 ##### Response
+
+New scans created (some may be skipped duplicates):
 
 ```json
 {
@@ -4338,17 +4385,49 @@ Create a new scan batch and associate uploaded tree scans.
   "data": {
     "id": 1,
     "inspectorId": 4,
-    "projectId": 1
+    "projectId": 1,
+    "deviceId": "MOB-001",
+    "treeScans": []
+  },
+  "summary": {
+    "created_count": 1,
+    "updated_count": 0,
+    "skipped": 0,
+    "skippedClientScanIds": [],
+    "skippedNoTimestamp": []
+  }
+}
+```
+
+Idempotent retry where every submitted scan already exists (no new batch is
+created):
+
+```json
+{
+  "success": true,
+  "message": "All submitted scans already exist. No new scans were created.",
+  "data": null,
+  "summary": {
+    "created_count": 0,
+    "updated_count": 0,
+    "skipped": 1,
+    "skippedClientScanIds": ["7b9c1e42-2b1e-4f0a-9c3a-1d2e3f4a5b6c"],
+    "skippedNoTimestamp": []
   }
 }
 ```
 
 ##### Status Codes
-- `201` Created
-- `400` Validation failed
+- `201` Created (one or more scans inserted or overwritten)
+- `200` Idempotent no-op (no scan was created or overwritten)
+- `400` Validation failed (includes missing/invalid `client_scan_id` or
+  `device_id`, future `scan_timestamp`, or duplicate `client_scan_id` within
+  the batch)
 - `401` Authentication required
 - `403` Insufficient permissions
 - `404` Related entity not found
+- `409` Write conflict between concurrent uploads could not be resolved after
+  retrying; the client may retry the request
 - `422` Invalid project or measurement values
 
 ---
@@ -4523,3 +4602,569 @@ The Scan Batches API follows the TreeO2 backend engineering standard:
 - Automated unit testing
 - Automated integration testing
 - Scalable backend structure
+
+---
+
+## 21. User Organisations API
+
+This module manages user-organisation membership relationships in the TreeO2 platform. It allows creating, retrieving, updating, and removing memberships between users and organisations.
+
+**Module Path:** `src/modules/user-organisations/`
+
+### Files
+
+- `userOrganisations.routes.ts`
+- `userOrganisations.controller.ts`
+- `userOrganisations.service.ts`
+- `userOrganisation.schema.ts`
+- `userOrganisations.docs.ts`
+- `index.ts`
+
+### 21.1 Purpose
+
+The User Organisations API is responsible for managing which users are members of which organisations.
+
+This module handles:
+
+- Listing all user-organisation memberships with pagination
+- Creating a new user-organisation membership
+- Updating the status of an existing membership
+- Removing a user-organisation membership (cascades to associated role assignments)
+
+Membership statuses:
+
+- `invited` — user has been invited but not yet accepted
+- `active` — user is an active member
+- `suspended` — user membership has been suspended
+
+### 21.2 Architecture Flow
+
+Every request follows the standard backend module structure:
+
+```
+Route → Controller → Service → Prisma ORM → PostgreSQL → Response
+```
+
+#### Responsibilities
+
+#### Routes
+
+- Define endpoints
+- Apply authentication middleware
+- Apply validation middleware
+- Contain Swagger documentation
+
+#### Controller
+
+- Receive request data
+- Read params/query/body
+- Call service methods
+- Return HTTP responses
+
+#### Service
+
+- Validate user and organisation existence
+- Validate membership existence for updates/deletes
+- Execute database queries
+- Handle transactional deletion of memberships and associated roles
+- Throw structured errors
+
+### 21.3 Security
+
+All endpoints are protected using Bearer Token authentication.
+
+Middleware used:
+
+- `authMiddleware`
+
+> **Note:** Permission-based middleware is not yet implemented. Any authenticated user can perform all operations. See T2-2026 API12.
+
+### 21.4 Access Control Matrix
+
+> **Note:** Permission-based middleware is not yet implemented. This section may not reflect final access control rules.
+
+### 21.5 Endpoints
+
+#### GET /user-organisations
+
+Retrieve all user-organisation memberships with pagination.
+
+##### Query Parameters
+
+| Name  | Type    | Required | Default | Notes                    |
+| ----- | ------- | -------- | ------- | ------------------------ |
+| page  | integer | No       | 1       | Page number              |
+| limit | integer | No       | 10      | Items per page (max 100) |
+
+##### Response
+
+```json
+{
+	"success": true,
+	"data": [
+		{
+			"userId": 1,
+			"organisationId": 2,
+			"status": "active",
+			"createdAt": "2024-01-15T10:30:00.000Z"
+		}
+	],
+	"pagination": {
+		"page": 1,
+		"limit": 10,
+		"total": 50,
+		"totalPages": 5
+	}
+}
+```
+
+##### Status Codes
+
+- `200` Success
+- `401` Authentication required
+- `500` System error
+
+---
+
+#### POST /user-organisations
+
+Create a new user-organisation membership.
+
+##### Request Body
+
+```json
+{
+	"userId": 1,
+	"organisationId": 2,
+	"status": "active"
+}
+```
+
+##### Fields
+
+| Name           | Type                             | Required | Default | Notes                           |
+| -------------- | -------------------------------- | -------- | ------- | ------------------------------- |
+| userId         | integer                          | Yes      | —       | Must be a valid user ID         |
+| organisationId | integer                          | Yes      | —       | Must be a valid organisation ID |
+| status         | enum(invited, active, suspended) | No       | active  | Membership status               |
+
+##### Response
+
+```json
+{
+	"success": true,
+	"data": {
+		"userId": 1,
+		"organisationId": 2,
+		"status": "active",
+		"createdAt": "2024-01-15T10:30:00.000Z"
+	}
+}
+```
+
+##### Status Codes
+
+- `201` Created
+- `401` Authentication required
+- `404` User or organisation not found
+- `500` System error
+
+---
+
+#### PUT /user-organisations/{userId}/{organisationId}
+
+Update the status of an existing user-organisation membership.
+
+##### Path Parameters
+
+| Name           | Type    | Required |
+| -------------- | ------- | -------- |
+| userId         | integer | Yes      |
+| organisationId | integer | Yes      |
+
+##### Request Body
+
+```json
+{
+	"status": "active"
+}
+```
+
+##### Fields
+
+| Name   | Type                             | Required | Notes                 |
+| ------ | -------------------------------- | -------- | --------------------- |
+| status | enum(invited, active, suspended) | Yes      | New membership status |
+
+##### Response
+
+```json
+{
+	"success": true,
+	"data": {
+		"userId": 1,
+		"organisationId": 2,
+		"status": "active",
+		"createdAt": "2024-01-15T10:30:00.000Z"
+	}
+}
+```
+
+##### Status Codes
+
+- `200` Success
+- `401` Authentication required
+- `404` User organisation membership not found
+- `500` System error
+
+---
+
+#### DELETE /user-organisations/{userId}/{organisationId}
+
+Remove a user-organisation membership and all associated role assignments.
+
+##### Path Parameters
+
+| Name           | Type    | Required |
+| -------------- | ------- | -------- |
+| userId         | integer | Yes      |
+| organisationId | integer | Yes      |
+
+##### Response
+
+```json
+{
+	"success": true,
+	"data": {
+		"userId": 1,
+		"organisationId": 2
+	}
+}
+```
+
+##### Status Codes
+
+- `200` Success
+- `401` Authentication required
+- `404` User organisation membership not found
+- `500` System error
+
+### 21.6 Validation Rules
+
+#### List Validation
+
+- `page` must be a positive integer (default: 1)
+- `limit` must be a positive integer, maximum 100 (default: 10)
+
+#### Create Validation
+
+- `userId` must be a positive integer
+- `organisationId` must be a positive integer
+- User must exist before membership is created
+- Organisation must exist before membership is created
+- `status` if provided must be one of: `invited`, `active`, `suspended`
+
+#### Update Validation
+
+- `userId` must be a positive integer
+- `organisationId` must be a positive integer
+- Membership must exist before update
+- `status` must be one of: `invited`, `active`, `suspended`
+
+#### Delete Validation
+
+- `userId` must be a positive integer
+- `organisationId` must be a positive integer
+- Membership must exist before deletion
+- All associated `user_organisation_roles` entries are deleted as part of the same transaction
+
+### 21.7 Business Rules
+
+- Both the user and organisation must exist before a membership can be created.
+- On deletion, all associated role assignments in `user_organisation_roles` are deleted in the same transaction.
+- Refresh token revocation on deletion is pending (see T2-2026 API12).
+
+### 21.8 Error Handling
+
+Uses centralised error middleware.
+
+#### Standard Error Response
+
+```json
+{
+	"success": false,
+	"message": "User not found"
+}
+```
+
+#### Common Errors
+
+- Authentication required
+- User not found
+- Organisation not found
+- Membership not found
+- Internal server error
+
+### 21.9 Swagger Documentation
+
+All endpoints are documented in:
+
+`userOrganisations.docs.ts`
+
+Available at:
+
+`http://localhost:3000/api-docs`
+
+Swagger supports:
+
+- Interactive testing
+- Request examples
+- Response definitions
+- Security schemas
+
+### 21.10 Summary
+
+The User Organisations API follows the TreeO2 backend engineering standard:
+
+- Modular architecture
+- Secure authentication
+- Clean separation of concerns
+- Strong validation with Zod
+- Pagination support for list endpoint
+- Transactional deletion of memberships and associated roles
+- Swagger documentation
+- Scalable structure for future permission-based access control
+
+---
+
+## 22. User Organisation Roles API
+
+This module manages role assignments for users within organisations in the TreeO2 platform. It allows assigning and removing organisation roles to users who are members of those organisations.
+
+**Module Path:** `src/modules/user-organisation-roles/`
+
+### Files
+
+- `userOrganisationRoles.routes.ts`
+- `userOrganisationRoles.controller.ts`
+- `userOrganisationRoles.service.ts`
+- `userOrganisationRoles.schema.ts`
+- `userOrganisationRoles.docs.ts`
+- `index.ts`
+
+### 22.1 Purpose
+
+The User Organisation Roles API is responsible for managing role assignments between users and organisations.
+
+This module handles:
+
+- Assigning an organisation role to a user within a specific organisation
+- Removing a specific role assignment from a user within an organisation
+
+Prerequisites:
+
+- The user must already be a member of the organisation (a `user_organisation` record must exist)
+- The organisation role must exist in the `organisation_roles` table
+
+### 22.2 Architecture Flow
+
+Every request follows the standard backend module structure:
+
+```
+Route → Controller → Service → Prisma ORM → PostgreSQL → Response
+```
+
+#### Responsibilities
+
+#### Routes
+
+- Define endpoints
+- Apply authentication middleware
+- Apply validation middleware
+- Contain Swagger documentation
+
+#### Controller
+
+- Receive request data
+- Read params/body
+- Call service methods
+- Return HTTP responses
+
+#### Service
+
+- Validate user-organisation membership exists
+- Validate organisation role exists
+- Execute database queries
+- Handle composite primary key constraints
+- Throw structured errors
+
+### 22.3 Security
+
+All endpoints are protected using Bearer Token authentication.
+
+Middleware used:
+
+- `authMiddleware`
+
+> **Note:** Permission-based middleware is not yet implemented. Any authenticated user can perform all operations. See T2-2026 API12.
+
+### 22.4 Access Control Matrix
+
+> **Note:** Permission-based middleware is not yet implemented. This section may not reflect final access control rules.
+
+### 22.5 Endpoints
+
+#### POST /user-organisation-roles
+
+Assign a role to a user within an organisation.
+
+##### Request Body
+
+```json
+{
+	"userId": 1,
+	"organisationId": 2,
+	"roleId": 3
+}
+```
+
+##### Fields
+
+| Name           | Type    | Required | Notes                                        |
+| -------------- | ------- | -------- | -------------------------------------------- |
+| userId         | integer | Yes      | Must be a valid user ID                      |
+| organisationId | integer | Yes      | Must be a valid organisation ID              |
+| roleId         | integer | Yes      | Must reference an existing organisation role |
+
+##### Response
+
+```json
+{
+	"success": true,
+	"data": {
+		"userId": 1,
+		"organisationId": 2,
+		"roleId": 3
+	}
+}
+```
+
+##### Status Codes
+
+- `201` Created
+- `401` Authentication required
+- `404` User organisation membership or organisation role not found
+- `409` Duplicate role assignment (composite primary key violation)
+- `500` System error
+
+---
+
+#### DELETE /user-organisation-roles/{userId}/{organisationId}/{roleId}
+
+Remove a role assignment from a user within an organisation.
+
+##### Path Parameters
+
+| Name           | Type    | Required |
+| -------------- | ------- | -------- |
+| userId         | integer | Yes      |
+| organisationId | integer | Yes      |
+| roleId         | integer | Yes      |
+
+##### Response
+
+```json
+{
+	"success": true,
+	"data": {
+		"userId": 1,
+		"organisationId": 2,
+		"roleId": 3
+	}
+}
+```
+
+##### Status Codes
+
+- `200` Success
+- `401` Authentication required
+- `404` User organisation role assignment not found
+- `500` System error
+
+### 22.6 Validation Rules
+
+#### Create Validation
+
+- `userId` must be a positive integer
+- `organisationId` must be a positive integer
+- `roleId` must be a positive integer
+- User-organisation membership must exist before role assignment
+- Organisation role must exist before role assignment
+- Duplicate `(userId, organisationId, roleId)` assignments are prevented by the composite primary key
+
+#### Delete Validation
+
+- `userId` must be a positive integer
+- `organisationId` must be a positive integer
+- `roleId` must be a positive integer
+- Role assignment must exist before deletion
+
+### 22.7 Business Rules
+
+- The user must already be a member of the organisation (a `user_organisation` record must exist) before a role can be assigned.
+- The organisation role must exist in the `organisation_roles` table.
+- Duplicate role assignments are prevented by the composite primary key on `(user_id, organisation_id, role_id)`.
+- Role hierarchy checks for assignment and removal are pending (see T2-2026 API12).
+- Refresh token revocation on role removal is pending (see T2-2026 API12).
+
+### 22.8 Error Handling
+
+Uses centralised error middleware.
+
+#### Standard Error Response
+
+```json
+{
+	"success": false,
+	"message": "User organisation membership not found"
+}
+```
+
+#### Common Errors
+
+- Authentication required
+- User organisation membership not found
+- Organisation role not found
+- Role assignment not found
+- Duplicate role assignment
+- Internal server error
+
+### 22.9 Swagger Documentation
+
+All endpoints are documented in:
+
+`userOrganisationRoles.docs.ts`
+
+Available at:
+
+`http://localhost:3000/api-docs`
+
+Swagger supports:
+
+- Interactive testing
+- Request examples
+- Response definitions
+- Security schemas
+
+### 22.10 Summary
+
+The User Organisation Roles API follows the TreeO2 backend engineering standard:
+
+- Modular architecture
+- Secure authentication
+- Clean separation of concerns
+- Strong validation with Zod
+- Relationship integrity validation
+- Composite primary key protection
+- Swagger documentation
+- Scalable structure for future permission-based access control and role hierarchy

@@ -11,6 +11,7 @@ const ERROR_CODES = {
 	AUTH_007: "Project scope required",
 	AUTH_008: "Invalid token scope",
 	AUTH_009: "Refresh token revoked",
+	AUTH_010: "Too many requests",
 
 	// Tenant
 	TENANT_001: "Organisation access denied",
@@ -31,6 +32,7 @@ const ERROR_CODES = {
 	DATA_003: "Record is referenced by other records",
 	DATA_004: "Dependent records prevent deletion",
 	DATA_005: "Record is archived",
+	DATA_006: "Write conflict, please retry the request",
 
 	// System
 	SYS_001: "Internal server error",

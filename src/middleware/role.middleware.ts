@@ -11,7 +11,7 @@ export const roleMiddleware =
 			return;
 		}
 
-		if (!allowedRoles.includes(req.user.role)) {
+		if (!req.user.role || !allowedRoles.includes(req.user.role)) {
 			next(new AppError(403, customError("AUTH_004")));
 			return;
 		}

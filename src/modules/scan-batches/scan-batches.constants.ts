@@ -41,7 +41,27 @@ export const SCAN_BATCHES_MESSAGES = {
 
 	DELETE_BLOCKED_HAS_SCANS:
 		"Scan batch cannot be deleted because it has related tree scans",
+
+	DEVICE_ID_REQUIRED: "device_id is required to upload a scan batch",
+	INVALID_CLIENT_SCAN_ID: "client_scan_id must be a valid UUID",
+	INVALID_SCAN_TIMESTAMP: "scan_timestamp cannot be in the future",
+	DUPLICATE_CLIENT_SCAN_IDS:
+		"Duplicate client_scan_id values are not allowed within the same upload",
+	ALL_DUPLICATES:
+		"All submitted scans already exist. No new scans were created.",
+	CREATED_WITH_DUPLICATES:
+		"Scan batch uploaded. Some scans already existed and were skipped.",
 } as const;
+
+// Recorded on tree_scan_audit when an offline scan overwrites a stored record
+// under the last-write-wins policy (V1.3 clarification, sec 10.7/7.24).
+export const SCAN_BATCHES_AUDIT = {
+	LAST_WRITE_WINS_REASON: "offline sync last-write-wins",
+} as const;
+
+// Serializable transactions abort on write conflicts (P2034); Prisma's guidance
+// is to retry the transaction rather than surface the conflict to the client.
+export const SCAN_BATCHES_MAX_TRANSACTION_RETRIES = 5;
 
 export const SCAN_BATCHES_DEFAULTS = {
 	PAGE: 1,

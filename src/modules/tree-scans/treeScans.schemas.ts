@@ -62,6 +62,10 @@ export const createTreeScanSchema = z.object({
 
 		deviceId: z.string().trim().max(100).optional(),
 
+		// Idempotency key generated on the capturing device, not the server, so a
+		// retried submission maps back to the same tree scan.
+		clientScanId: z.string().uuid(),
+
 		validationNotes: z.string().trim().max(5000).optional(),
 	}),
 });

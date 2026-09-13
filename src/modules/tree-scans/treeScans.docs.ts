@@ -101,6 +101,7 @@
  *         - speciesId
  *         - estimatedPlantedYear
  *         - estimatedPlantedMonth
+ *         - clientScanId
  *       properties:
  *         fobId:
  *           type: string
@@ -151,6 +152,14 @@
  *         deviceId:
  *           type: string
  *           nullable: true
+ *         clientScanId:
+ *           type: string
+ *           format: uuid
+ *           description: >
+ *             Idempotency key generated on the capturing device. Required so a
+ *             retried submission maps back to the same tree scan rather than
+ *             creating a duplicate.
+ *           example: 3f1a6d90-8c25-4d0e-9b7a-2e5f8c1d4a63
  *         validationNotes:
  *           type: string
  *           nullable: true

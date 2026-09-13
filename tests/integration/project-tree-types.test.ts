@@ -1,4 +1,3 @@
-import "dotenv/config";
 import request from "supertest";
 import { prisma } from "../../src/lib/prisma";
 import app from "../../src/app";

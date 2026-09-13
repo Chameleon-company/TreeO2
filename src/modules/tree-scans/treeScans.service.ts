@@ -2,7 +2,11 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { customError } from "../../utils/errorCodes";
-import { TREE_SCAN_INCLUDE, TREE_SCAN_MESSAGES } from "./treeScans.constants";
+import {
+	TREE_SCAN_AUDIT_CHANGE_TYPES,
+	TREE_SCAN_INCLUDE,
+	TREE_SCAN_MESSAGES,
+} from "./treeScans.constants";
 import type {
 	CreateTreeScanInput,
 	ListTreeScansQuery,
@@ -313,6 +317,7 @@ export class TreeScansService {
 					photoId: data.photoId,
 					batchId: data.batchId,
 					deviceId: data.deviceId,
+					clientScanId: data.clientScanId,
 					validationNotes: data.validationNotes,
 				},
 				include: TREE_SCAN_INCLUDE,
@@ -390,6 +395,7 @@ export class TreeScansService {
 					data: {
 						treeScanId: id,
 						changedBy,
+						changeType: TREE_SCAN_AUDIT_CHANGE_TYPES.CORRECTED,
 						changeReason: data.correctionReason ?? "Tree scan corrected",
 						oldData: JSON.parse(
 							JSON.stringify(existingScan),
