@@ -73,16 +73,6 @@ if (env.NODE_ENV === "development" && env.AUTH_DEV_MODE) {
 		},
 	);
 
-	// Capstone Panel Demo Endpoint
-	router.get(
-		"/test/capability",
-		authMiddleware,
-		requirePermission("tree_types:create"),
-		(req, res) => {
-			res.status(200).json({ message: "Capability verified successfully!" });
-		},
-	);
-
 	router.get(
 		"/test/project-scope",
 		authMiddleware,
