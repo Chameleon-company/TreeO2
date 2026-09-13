@@ -10,6 +10,25 @@ export class AuthRepository {
 		return "role" in prisma;
 	}
 
+		async findUserWithRolesByEmail(email: string) {
+		return prisma.user.findUnique({
+			where: { email },
+			include: {
+				primaryRole: true,
+				systemRole: true,
+				userOrganisations: {
+					include: {
+						roles: {
+							include: {
+								role: true
+							}
+						}
+					}
+				}
+			}
+		});
+	}
+
 	async findUserByEmail(email: string): Promise<User | null> {
 		return prisma.user.findUnique({ where: { email } });
 	}

@@ -1,0 +1,466 @@
+TreeO2 API & Database Development – Complete Technical Specification
+A guide for the future development of the TreeO2 API & Database
+TreeO2 API & Database Development – Production Technical Specification
+Document Properties
+1. Project Overview
+1.1 Client Information & Project Background
+xpand Foundation is an Australian-registered charity enabling community-led social and economic development through regeneration and innovation. For more than a decade, xpand has worked alongside communities in Timor-Leste to support fair, regenerative, and climate-resilient livelihoods. Our approach is grounded in long-term partnerships, knowledge exchange, and practical innovation, with a strong belief that the most effective and enduring change occurs when communities lead and local knowledge is matched with the right tools, systems, and networks.
+xpand operates as a small core team based in Melbourne, working closely with a trusted network of more than 100 Timorese colleagues across Timor-Leste. Together, we bring expertise spanning GIS and spatial analysis, carbon accounting, project and program management, botany, environmental and forest science, and community development. This distributed, collaborative model allows xpand to combine technical rigour with deep local insight and on-the-ground experience.
+xpand Foundation’s work in Timor-Leste is delivered through a set of closely linked initiatives, including WithOneSeed, Rai Matak, and TreeO2. WithOneSeed and Rai Matak focus on community-led forestry, sustainable livelihoods, and certified carbon farming, supporting smallholder farmers to restore landscapes while improving household incomes and long-term resilience.
+One of xpand Foundation’s key technical innovations is TreeO2, a digital platform and mobile app developed and iteratively refined over several years in Timor-Leste. TreeO2 tracks trees planted by smallholder farmers, monitors growth over time, and supports farmer participation in reforestation and carbon markets. The platform underpins forest monitoring, carbon accounting, certification processes, and transparent reporting across xpand’s programs.
+TreeO2 has now reached a stage where a full technical rebuild is required to support scale, reliability, and future integration. This project invites students to work with xpand Foundation on the next phase of TreeO2, contributing to a real-world social and environmental impact initiative. Students will gain hands-on experience supporting the rebuild through AWS infrastructure, RESTful API design, database schema design, and cloud deployment, while contributing directly to community-led climate and livelihood outcomes in Timor-Leste.
+1.2 TreeO2 Application Features
+1.3. Project Objectives
+2. Core Design Principles
+2.1 Multi-Tenant Organisation Model
+The system supports multiple organisations. Organisations represent tenant boundaries, but projects may be shared between organisations where operational collaboration is required.
+The data model separates:
+Organisation membership: user_organisations
+Project ownership: projects.owner_organisation_id
+Project sharing/access: project_organisations
+Project role assignment: user_project_roles
+2.2 Project-Based Access
+Access to a project must be evaluated as:
+SystemAdmin → unrestricted
+OrganisationAdmin → organisation linked to project
+Standard user → organisation membership + project role
+2.3 Multiple Roles and Additive Permissions
+A user may hold multiple roles within the same project, such as both Manager and Inspector. Permissions are additive. The application must enable features based on effective capabilities rather than requiring explicit role switching.
+2.4 Capability-Driven Authorisation
+API endpoints should check permissions/capabilities rather than hard-coding role names wherever possible.
+Example:
+Instead of checking role == Manager
+Check permission == reports:create
+2.5 Auditability and Historical Integrity
+Farm, boundary, and tree scan records are operational records with long-term traceability requirements. Tree scans must not be physically deleted during normal operations. Farm ownership, boundary replacements, corrections, validation changes, archive actions, and fob recycling must preserve history and an auditable chain of custody.
+3. Technology Requirements
+3.1 Backend
+Node.js, Next.js API routes, NestJS, Express, or equivalent backend framework
+Must support RESTful JSON APIs
+Must be deployable on AWS Elastic Beanstalk
+Must support middleware-based authentication and authorisation
+3.2 Database
+PostgreSQL
+Normalized relational schema
+Foreign keys and constraints required
+JSONB permitted for flexible report parameters and audit snapshots
+Proper indexing required
+3.3 Cloud Services
+AWS Elastic Beanstalk for API deployment
+AWS SQS for asynchronous report generation
+AWS S3 for generated reports and uploaded media references
+IAM roles and security groups configured using least privilege
+3.4 Development Practices
+Git-based version control
+CI/CD pipeline
+Automated tests
+OpenAPI/Swagger documentation
+Migration-based schema management
+4. Authentication and Token Model
+4.1 Token Types
+4.1.1 Identity Access Token
+The identity access token authenticates the user but does not grant project-scoped operational access. Identity JWTs are used only for authentication, project selection, and listing accessible organisations/projects. Identity JWTs must not be accepted for project-scoped operational endpoints.
+Rules:
+JWT
+Short-lived, recommended 15 minutes
+Contains user identity and system-level claims only
+Used for login continuation, project selection, and non-project identity actions
+Must not be used for project-scoped data operations
+The identity JWT may include all organisation memberships and organisation roles for context.
+Example Identity JWT payload:
+{
+"sub": 1,
+"userId": 1,
+"systemRole": "SystemAdmin",
+"organisations": [
+{
+"organisationId": 10,
+"organisationRole": "OrganisationAdmin"
+},
+{
+"organisationId": 12,
+"organisationRole": "Member"
+}],
+"scope": "identity",
+"jti": "uuid",
+"iat": 1710000000,
+"exp": 1710000900
+}
+4.1.2 Project-Scoped Access Token
+The project-scoped token is issued when a user selects a project.
+Rules:
+JWT
+Short-lived, recommended 15 minutes
+Contains selected project context
+Contains assigned project roles
+Required for most project-specific endpoints
+Must not authorize access to any other project
+The project-scoped JWT must include only the organisation and organisation role relevant to the selected project.
+4.1.3 Refresh Token
+Refresh tokens support persistent sessions.
+Rules:
+Stored server-side as a secure hash only
+Device-scoped using device_id
+Rotated on use
+Never stored in the users table
+Refresh tokens must be revoked when account access materially changes, including account deactivation, password reset, security incident, logout, user removal from an organisation, user removal from a project, or removal of all project roles for a project.
+Minor role changes do not necessarily require immediate refresh token revocation because project JWTs are short-lived and permissions are re-evaluated when a new project token is issued.
+4.1.4 Token Expiry Policy
+Token expiry is determined by token type rather than user role. Identity JWTs and project-scoped JWTs are short-lived and use the same expiry across all roles. Refresh tokens are session/device-scoped and use a consistent expiry regardless of role.
+Extending token lifetimes based on roles (e.g. Inspector vs Manager) is not supported. Users may hold multiple roles simultaneously, and permissions are additive.
+Offline field operation is supported through cached project data and deferred synchronization rather than extended JWT lifetimes.
+Identity and project-scoped JWTs should use a short-lived expiry (e.g. 15 minutes), while refresh tokens may use a longer expiry (e.g. 14 days) and are device-scoped.
+5. Project-Scoped JWT Contract
+Example project-scoped JWT payload:
+{
+"sub": 123,
+"userId": 123,
+"projectId": 45,
+"systemRole": "SystemAdmin",
+"organisationId": 10,
+"organisationRole": "OrganisationAdmin",
+"projectRoles": ["Manager", "Inspector"],
+"scope": "project",
+"jti": "uuid",
+"iat": 1710000000,
+"exp": 1710000900
+}
+The project-scoped JWT contains assigned project roles only. Effective permissions are derived server-side from the user’s roles, organisation context, and permission mapping. Permissions may be cached server-side but must not be treated as permanently embedded in the token.
+The project-scoped JWT includes only the organisation through which the user accessed the selected project. It must not contain all organisations the user belongs to.
+Required claims:
+Rules:
+projectRoles must be an array.
+API authorisation should evaluate permissions, not role names.
+The token must be re-issued when the user switches project.
+5.1 Authorization Middleware Rules
+All protected API requests must pass through authentication and authorisation middleware.
+The middleware must:
+Validate the JWT signature.
+Validate token expiry.
+Validate token scope.
+For project-scoped endpoints, require scope = "project".
+Resolve effective permissions from:
+system role
+organisation role
+project roles
+Enforce the required permission for the endpoint.
+Log security-relevant access decisions where appropriate.
+SystemAdmin Rule:
+If systemRole = SystemAdmin, the request bypasses organisation membership and project role checks. However, token validation, token expiry, token scope, and project context must still be enforced.
+OrganisationAdmin Rule:
+If the user is OrganisationAdmin for an organisation linked to the selected project, the user may access that project without requiring an explicit user_project_roles entry.
+Member Rule:
+All other users must:
+- belong to an active organisation linked to the project, and
+- have one or more project roles in user_project_roles for the selected project.
+6. Permission Model
+6.1 System Roles
+6.2 Organisation Roles
+6.3 Project Roles
+Farmer is a project role used for access control. A farmer record is represented by a user referenced by farms.farmer_id. A farm is the ownership and spatial context for trees. Tree scans reference tree_scans.farm_id, and farmer ownership is resolved through the related farm. The Farmer role does not itself determine ownership; visibility is enforced through farm ownership, tree scan relationships, and project access rules.
+6.4 Example Capability Matrix
+Implementation note: the exact permission set may be implemented as seed data in a role_permissions table or static configuration, but the effective permission list must be deterministic and testable.
+7. Database Schema
+7.1 countries
+7.2 administrative_levels
+7.3 locations
+7.4 organisations
+7.5 projects
+7.6 project_organisations
+Supports project sharing across organisations.
+Rule: the owning organisation must also have a row in project_organisations.
+7.7 users
+Important: access tokens are not stored in this table.
+7.8 refresh_tokens
+7.9 system_roles
+7.10 organisation_roles
+7.11 roles
+Project roles.
+7.12 permissions
+7.13 role_permissions
+Optional additional mapping tables may be created for system and organisation role permissions if implemented dynamically.
+7.14 user_organisations
+7.15 user_organisation_roles
+7.16 user_project_roles
+Rule: before assignment, user must belong to an organisation linked to the project unless assigned by a SystemAdmin override.
+7.17 tree_types
+7.18 project_tree_types
+7.19 farms
+7.20 farm_boundaries
+7.21 farm_eligible_boundaries
+7.22 farm_allocations
+7.23 scan_batches
+7.24 tree_scans
+Recommended constraint:
+UNIQUE (project_id, inspector_id, device_id, client_scan_id)
+7.25 tree_scan_audit
+7.26 partners
+7.27 adopters
+7.28 adoptions
+7.29 reports
+7.30 cultures
+7.31 localized_strings
+Unique constraint:
+UNIQUE (culture_code, string_key, context)
+8. Recommended Indexes
+CREATE INDEX idx_locations_country ON locations(country_id);
+CREATE INDEX idx_locations_parent ON locations(parent_id);
+CREATE INDEX idx_projects_owner_org ON projects(owner_organisation_id);
+CREATE INDEX idx_project_organisations_project ON project_organisations(project_id);
+CREATE INDEX idx_project_organisations_org ON project_organisations(organisation_id);
+CREATE INDEX idx_user_organisations_user ON user_organisations(user_id);
+CREATE INDEX idx_user_organisations_org ON user_organisations(organisation_id);
+CREATE INDEX idx_user_project_roles_user ON user_project_roles(user_id);
+CREATE INDEX idx_user_project_roles_project ON user_project_roles(project_id);
+CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
+CREATE INDEX idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
+CREATE INDEX idx_refresh_tokens_device ON refresh_tokens(user_id, device_id);
+CREATE INDEX idx_farms_project ON farms(project_id);
+CREATE INDEX idx_farms_farmer ON farms(farmer_id);
+CREATE UNIQUE INDEX idx_farms_project_farmer_code ON farms(project_id, farmer_id, farm_code) WHERE archived_at IS NULL;
+CREATE INDEX idx_farm_boundaries_geom ON farm_boundaries USING GIST(boundary);
+CREATE INDEX idx_farm_eligible_boundaries_farm ON farm_eligible_boundaries(farm_id);
+CREATE INDEX idx_farm_eligible_boundaries_geom ON farm_eligible_boundaries USING GIST(boundary);
+CREATE INDEX idx_farm_allocations_farm_year ON farm_allocations(farm_id, allocation_year);
+CREATE INDEX idx_scan_batches_inspector ON scan_batches(inspector_id);
+CREATE INDEX idx_scan_batches_project ON scan_batches(project_id);
+CREATE INDEX idx_tree_scans_fob ON tree_scans(fob_id);
+CREATE INDEX idx_tree_scans_project ON tree_scans(project_id);
+CREATE INDEX idx_tree_scans_farm ON tree_scans(farm_id);
+CREATE INDEX idx_tree_scans_inspector ON tree_scans(inspector_id);
+CREATE INDEX idx_tree_scans_species ON tree_scans(species_id);
+CREATE INDEX idx_tree_scans_batch ON tree_scans(batch_id);
+CREATE INDEX idx_tree_scans_fob_year ON tree_scans(fob_id, estimated_planted_year);
+CREATE INDEX idx_tree_scans_farm_year ON tree_scans(farm_id, estimated_planted_year);
+CREATE INDEX idx_tree_scans_project_year ON tree_scans(project_id, estimated_planted_year);
+CREATE INDEX idx_reports_requested_by ON reports(requested_by);
+CREATE INDEX idx_reports_project ON reports(project_id);
+CREATE INDEX idx_reports_status ON reports(status);
+CREATE UNIQUE INDEX idx_tree_scans_client_scan ON tree_scans(project_id, inspector_id, device_id, client_scan_id);
+ CREATE UNIQUE INDEX idx_tree_scans_client_scan ON 
+ tree_scans(project_id, inspector_id, device_id, client_scan_id);
+9. API Endpoint Specification
+General API rules:
+All responses are JSON.
+All list endpoints must support pagination.
+All write endpoints must validate input and return consistent error responses.
+Project endpoints require project-scoped JWT unless explicitly stated otherwise.
+Identity endpoints require identity JWT or refresh token as specified.
+9.1 Authentication Endpoints
+POST /auth/login
+Request:
+{
+   "email": "inspector@example.com",
+   "password": "securepassword123",
+   "device_id": "mobile-device-001"
+ }
+Validation:
+User exists.
+Password matches stored hash.
+account_active = true.
+can_sign_in = true.
+If user belongs only to suspended organisations, project access is denied even if login succeeds.
+Returns:
+Identity access token.
+Refresh token.
+Accessible organisations.
+Accessible projects.
+POST /auth/select-project
+Request:
+{
+   "project_id": 123
+ }
+Validation:
+Valid identity token.
+Project exists and is_active = true.
+User must be SystemAdmin, OR:
+be an active OrganisationAdmin of an organisation linked to the project, OR
+be an active organisation member with one or more roles in user_project_roles for the selected project.
+Returns:
+project-scoped JWT containing projectRoles[]. Permissions are derived server-side.
+OrganisationAdmins may access any project linked to their organisation without requiring explicit project role assignment.
+SystemAdmins may select any project regardless of organisation membership or project role assignment.
+9.2 User Endpoints
+Rules:
+Users with dependent scans must not be physically deleted.
+Deactivation is preferred over deletion.
+Farmers and Inspectors may only update limited self-profile fields.
+9.3 Organisation Endpoints
+Rules:
+OrganisationAdmin may update own organisation only.
+Organisation cannot be deleted if it has active users, projects, or scans.
+9.4 Organisation Membership Endpoints
+Rules:
+OrganisationAdmin may invite users to their own organisation.
+OrganisationAdmin may assign Member role.
+Only SystemAdmin may assign OrganisationAdmin unless delegated rules are added.
+Removing organisation membership must revoke related refresh tokens.
+9.5 Project Endpoints
+Rules:
+Project must have an owner organisation.
+Owner organisation must be linked in project_organisations.
+Projects with scans cannot be deleted.
+is_active=false disables new operational activity but preserves records.
+9.6 Project Sharing Endpoints
+Rules:
+Cannot remove owner organisation link while it remains owner.
+Removing project access must revoke affected users’ refresh tokens.
+9.7 User Project Role Endpoints
+Rules:
+User must belong to an organisation linked to the project.
+A user may hold multiple project roles.
+Manager cannot assign roles they do not have permission to grant.
+Role changes must revoke related refresh tokens.
+9.8 Tree Type and Localisation Endpoints
+Rules:
+Tree type used in scans cannot be deleted; deactivate/stop assigning instead.
+Localized strings are selected by preferred_language and context.
+Fallback to default language when translation is unavailable.
+9.9 Farm and Farm Boundary Endpoints
+Boundary replacement and farm ownership changes must be audited.
+Area and spatial capacity values must be calculated server-side rather than trusted from uploaded files.
+Upload processing must validate the complete file before committing and must use a database transaction.
+All geometry must be Polygon or MultiPolygon in EPSG:4326, valid, non-empty, and converted to two dimensions before storage.
+Boundary uploads use GeoPackage (.gpkg). The farm_boundaries layer is required; eligible_boundaries is optional and may contain multiple polygons for one farm.
+Farm code uniqueness is scoped to project + farmer for active farms.
+Farm creation requires an existing active farmer with access to the selected project; orphaned farms are not permitted.
+Rules:
+9.10 Tree Scan Endpoints
+Rules:
+Physical deletion is not allowed through normal API.
+Corrections must write to tree_scan_audit.
+Inspector must be assigned to project.
+The submitted farm_id is required. Farmer ownership is resolved through farms.farmer_id and must not be accepted independently from the client.
+Farm must exist, be active, belong to the selected project, and be owned by an active farmer.
+Tree type must be valid for project.
+Project must allow scans.
+9.11 Scan Batch Endpoints
+Rules:
+All scans in batch must belong to same project.
+All scans must be uploaded by same inspector.
+Partial failure strategy must be explicit: either reject entire batch or accept valid rows with error report.
+9.12 Partner, Adopter, and Adoption Endpoints
+Rules:
+Cancellation must preserve historical record.
+Adoption must reference valid fob ID.
+If project is known, project access must be enforced.
+9.13 Report Endpoints
+Rules:
+Reports generated asynchronously via SQS.
+Reports stored in S3.
+Report status must transition: PENDING → PROCESSING → COMPLETE or FAILED.
+Failed reports must store error_message.
+Managers can only generate reports for assigned projects.
+OrganisationAdmins can generate reports for their organisation projects.
+9.14 Dashboard Endpoints
+Dashboard scope:
+10. Business Logic and Validation Rules
+10.1 Authentication Rules
+Refresh tokens must be revoked when account access materially changes, including account deactivation, password reset, security incident, logout, user removal from an organisation, user removal from a project, or removal of all project roles for a project.
+Minor role changes do not necessarily require immediate refresh token revocation because project JWTs are short-lived and permissions are re-evaluated when a new project token is issued.
+10.2 Organisation and Tenancy Rules
+SystemAdmins are not restricted by organisation membership when performing administrative operations.
+10.3 Project Rules
+Project access may be granted through either:
+explicit project role assignment (user_project_roles), or
+organisation-level authority (e.g. OrganisationAdmin) where the organisation is linked to the project via project_organisations.
+10.4 Project Role Rules
+10.5 Farm and Boundary Upload Rules
+10.6 Tree Scan Rules
+Offline scan uploads must be idempotent. The mobile app must generate a stable client_scan_id for each locally captured scan. If the same scan is uploaded more than once due to retry or reconnect behaviour, the server must detect the duplicate and avoid creating multiple records.
+10.7 Batch Upload Rules
+10.8 Offline Operation Rules
+Inspectors may capture scans offline using cached project assignments, roles, authorised farms, farm identifiers, boundary metadata, tree types, and validation rules obtained during the last successful synchronization. Offline actions are provisional and must be fully revalidated by the server when connectivity is restored. A scan must retain its stable farm_id (or an approved offline farm reference mapped during sync). Refresh tokens are used only to re-establish authenticated sessions and do not provide offline authorization.
+10.9 Fob Rules
+10.10 Correction and Validation Rules
+10.11 Reports and Dashboards
+10.12 Localisation Rules
+11. Error Handling
+11.1 HTTP Status Codes
+11.2 Custom Error Codes
+Example error response:
+{
+   "success": false,
+   "error": {
+ 	"code": "AUTH_003",
+ 	"message": "Insufficient permissions for this action",
+ 	"details": null
+   }
+ }
+12. Security Requirements
+HTTPS required for all API traffic.
+Passwords must be hashed using bcrypt, scrypt, or Argon2.
+Refresh tokens must be stored as hashes only.
+Access tokens must be short-lived.
+Access-reducing role or membership changes must revoke affected refresh tokens.
+Rate limiting required on authentication endpoints.
+All SQL must use parameterized queries or ORM-safe bindings.
+Uploaded files must be validated and stored securely.
+GeoPackage uploads must enforce file-size limits, verify SQLite/GeoPackage structure, allow-list layers and columns, reject executable or external content, and never execute SQL contained in uploaded data.
+CORS must be explicitly configured.
+Sensitive operational events must be logged.
+13. Performance Requirements
+Pagination required on all list endpoints.
+Frequently queried fields must be indexed.
+PostGIS GIST indexes are required for farm and eligible boundary geometry. Farm-scoped tree scan queries must use farm_id indexes.
+Tree scan upload should support batch insert.
+Report generation must be asynchronous.
+Dashboard totals may be cached or materialized.
+Permission derivation may be cached server-side or in short-lived memory, but must not be treated as permanently embedded in JWTs.
+14. Deliverables
+14.1 Core Deliverables
+PostgreSQL schema migrations
+PostGIS farm, boundary, eligible boundary, allocation, and tree scan farm-link migrations
+Seed data for roles, permissions, cultures, sample tree types
+REST API implementation
+Authentication and authorization middleware
+SQS report worker
+S3 report output integration
+Automated tests
+OpenAPI/Swagger documentation
+14.2 Documentation Deliverables
+API reference
+ERD diagram
+System architecture diagram
+Deployment guide
+Local setup guide
+Testing guide
+Security notes
+14.3 Quality Deliverables
+Unit tests for business logic
+Integration tests for endpoints
+Validation tests for database constraints
+Authentication and authorization tests
+Report generation tests
+Scan upload and batch upload tests
+Farm creation, GeoPackage boundary upload, spatial validation, transaction rollback, and farm-linked scan tests
+15. Submission Checklist
+Required:
+Source repository URL
+Database migrations
+Seed data
+API documentation
+ERD diagram
+Architecture diagram
+Deployment guide
+Test instructions and results
+README
+Optional:
+Demo video
+Presentation slides
+Live deployment
+Admin portal prototype
+Performance test results
+16. Evaluation Criteria
+17. Final Notes
+This specification formalizes TreeO2 as a secure, multi-tenant, capability-driven platform. The key architectural decisions are:
+Users can hold multiple simultaneous roles.
+Project access requires SystemAdmin authority, OrganisationAdmin authority for a linked organisation, or standard organisation access plus project role assignment.
+Permissions are additive and capability-driven.
+Project-scoped JWTs carry assigned project roles. Effective permissions are derived server-side.
+Refresh tokens provide secure session persistence and are revoked when access changes.
+Farms provide the ownership and spatial context for trees; every tree scan references a valid farm.
+Tree scan history must be preserved and audited.
+Farm ownership and boundary changes must preserve traceability and audit history.
+Reports are generated asynchronously and stored externally.
+This design is intended to provide a scalable foundation for TreeO2 API / DB while preserving operational flexibility for real-world field workflows.

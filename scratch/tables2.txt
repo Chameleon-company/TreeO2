@@ -1,0 +1,561 @@
+Property	Value
+Issued by	xpand Foundation
+Version	1.3 Production
+Project	TreeO2 Backend API & Database Rebuild
+Audience	Student Development Team / Backend Engineers
+Primary Stack	REST API, PostgreSQL, AWS Elastic Beanstalk, SQS, S3
+Feature	Description
+NFC Tag Scanning	Inspectors scan farmer cards and NFC fobs attached to trees
+Growth Tracking	Height, diameter, circumference, species, planting date, photos
+Geolocation	GPS coordinates and project/location information
+Role-Based System	Farmer, Inspector, Manager, Admin
+Multilingual Support	Tree types, labels, and messages in multiple languages
+Farm Management	Create and manage farms linked to farmers and projects; each tree scan belongs to a farm
+Farm Boundary Upload	Upload and validate GeoPackage farm boundaries and optional eligible planting boundaries
+Objective	Description
+Database Design	Design normalised PostgreSQL/PostGIS database to store users, projects, farms, farm boundaries, eligible boundaries, farm allocations, tree scans, scan batches, fob history, tree types, localization strings, partners, adopters, adoptions, and reports
+API Development	Build RESTful API with role-based access (token-based authentication), CRUD operations, validation, and all required endpoints
+Async Processing	Implement report generation via AWS SQS and store generated reports in S3
+Cloud Deployment	Deploy backend on AWS Elastic Beanstalk with Git-based CI/CD pipelines
+Documentation	Provide Swagger/OpenAPI documentation, ERD diagrams, and system architecture diagrams
+Claim	Description
+sub / userId	Authenticated user ID
+projectId	Selected project
+systemRole	Set if user has SystemRole
+organisationId	Organisation through which the user can access the selected project
+organisationRole	Role in organisation, OrganisationAdmin or Member
+projectRoles	All project roles assigned to the user for the selected project
+scope	Must equal project
+jti	Unique token ID for future revocation/audit support
+iat	Issued-at timestamp
+exp	Expiry timestamp
+Role	Scope	Description
+SystemAdmin	Global	Full system access. SystemAdmin has unrestricted access across all organisations and projects. SystemAdmin users are not constrained by organisation membership or project role assignment but must still operate within a selected project context for project-scoped endpoints.
+SupportAdmin	Global	Operational support access, configurable
+ReadOnly	Global	Read-only access across permitted data
+Role	Scope	Description
+OrganisationAdmin	Organisation	Manage organisation users, projects, and reports within organisation. Organisation Admins may access all projects linked to their organisation without requiring explicit project role assignment.
+Member	Organisation	Organisation membership only; project access depends on project roles
+Role	Scope	Description
+Manager	Project	Manage project data, farms, boundaries, users, reports, and fob recycling
+Inspector	Project	Upload scans and scan batches against authorised farms; view own/project scan context
+Farmer	Project	View own profile, farms, boundaries, trees, and scans
+Permission	SystemAdmin	OrganisationAdmin	Manager	Inspector	Farmer
+organisations:create	Yes	No	No	No	No
+organisations:read	Yes	Own org	No	No	No
+organisations:update	Yes	Own org	No	No	No
+organisations:delete	Yes	No	No	No	No
+projects:create	Yes	Own org	No	No	No
+projects:read	Yes	Own org	Assigned	Assigned	Assigned
+projects:update	Yes	Own org	Assigned	No	No
+projects:delete	Yes	Own org, if allowed	No	No	No
+users:create	Yes	Own org	Limited project assignment	No	No
+users:read	Yes	Own org	Assigned project	Self	Self
+users:update	Yes	Own org	Limited assigned users	Self limited	Self limited
+user_project_roles:assign	Yes	Own org	Assigned project, non-escalating	No	No
+tree_types:create	Yes	Optional configurable	No	No	No
+tree_types:read	Yes	Yes	Yes	Yes	Yes
+tree_types:update	Yes	Optional configurable	No	No	No
+tree_scans:create	Yes	No	Optional	Yes	No
+tree_scans:read	Yes	Own org	Assigned project	Own/project as configured	Own only
+tree_scans:correct	Yes	Configurable	Configurable	No	No
+tree_scans:archive	Yes	Own org	Assigned project	No	No
+scan_batches:create	Yes	Yes	Optional	Yes	No
+reports:create	Yes	Own org	Assigned project	No	No
+reports:read	Yes	Own org	Assigned project	No	No
+dashboard:read	Yes	Own org	Assigned project	Own scans	Own trees
+farms:create	Yes	Own org	Assigned project	No	No
+farms:read	Yes	Own org	Assigned project	Assigned project	Own only
+farms:update	Yes	Own org	Assigned project	No	No
+farms:archive	Yes	Own org	Assigned project	No	No
+farm_boundaries:read	Yes	Own org	Assigned project	Assigned project	Own only
+farm_boundaries:upload	Yes	Own org	Assigned project	No	No
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	Country ID
+name	VARCHAR(100)	NOT NULL	Country name
+iso2	CHAR(2)	UNIQUE, NOT NULL	ISO-2 code
+iso3	CHAR(3)	UNIQUE	ISO-3 code
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	Level ID
+country_id	INTEGER	FK → countries(id), NOT NULL	Country
+level	INTEGER	NOT NULL	Level number
+name	VARCHAR(100)	NOT NULL	Level name
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	Location ID
+country_id	INTEGER	FK → countries(id), NOT NULL	Country
+parent_id	INTEGER	FK → locations(id), NULL	Parent location
+level	INTEGER	NOT NULL	Hierarchy level
+name	VARCHAR(200)	NOT NULL	Location name
+code	VARCHAR(50)	NULL	Optional location code
+latitude	NUMERIC(9,6)	NULL	Latitude
+longitude	NUMERIC(9,6)	NULL	Longitude
+created_at	TIMESTAMP	DEFAULT now()	Created timestamp
+updated_at	TIMESTAMP	DEFAULT now()	Updated timestamp
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	Organisation ID
+name	VARCHAR(100)	NOT NULL	Organisation name
+contact_email	VARCHAR(300)	UNIQUE	Contact email
+government_id	VARCHAR(80)	NULL	Optional registration ID
+country_id	INTEGER	FK → countries(id)	Country
+admin_location_id	INTEGER	FK → locations(id)	Administrative location
+street_address	VARCHAR(500)	NULL	Street address
+logo_id	VARCHAR(100)	NULL	Media reference
+description	TEXT	NULL	Public/operational description
+notes	TEXT	NULL	Internal notes
+account_active	BOOLEAN	DEFAULT true	Active flag
+date_joined	TIMESTAMP	NULL	Joined date
+created_at	TIMESTAMP	DEFAULT now()	Created timestamp
+updated_at	TIMESTAMP	DEFAULT now()	Updated timestamp
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	Project ID
+owner_organisation_id	INTEGER	FK → organisations(id), NOT NULL	Owning organisation
+name	VARCHAR(255)	NOT NULL	Project name
+description	TEXT	NULL	Project description
+country_id	INTEGER	FK → countries(id), NOT NULL	Country
+admin_location_id	INTEGER	FK → locations(id), NOT NULL	Location
+is_active	BOOLEAN	DEFAULT true	Project active flag
+scans_enabled	BOOLEAN	DEFAULT true	Whether scans can be uploaded
+created_at	TIMESTAMP	DEFAULT now()	Created timestamp
+updated_at	TIMESTAMP	DEFAULT now()	Updated timestamp
+Field	Type	Constraints	Description
+project_id	INTEGER	FK → projects(id), PRIMARY KEY	Project
+organisation_id	INTEGER	FK → organisations(id), PRIMARY KEY	Organisation with access
+access_type	VARCHAR(50)	NOT NULL DEFAULT ‘shared’	owner/shared/partner
+created_at	TIMESTAMP	DEFAULT now()	Created timestamp
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	User ID
+name	VARCHAR(100)	NOT NULL	Full name
+email	VARCHAR(300)	UNIQUE	Email
+password_hash	VARCHAR(300)	NULL	Password hash
+can_sign_in	BOOLEAN	DEFAULT true	Sign-in flag
+card_id	VARCHAR(80)	UNIQUE	NFC card ID
+government_id	VARCHAR(80)	NULL	Optional ID
+gender	VARCHAR(30)	NULL	Gender, optional
+disability	BOOLEAN	DEFAULT false	Disability flag
+country_id	INTEGER	FK → countries(id)	Country
+admin_location_id	INTEGER	FK → locations(id)	Location
+street_address	VARCHAR(500)	NULL	Address
+preferred_language	VARCHAR(10)	NULL	Culture code
+photo_id	VARCHAR(100)	NULL	Media reference
+biography	TEXT	NULL	Biography
+notes	TEXT	NULL	Internal notes
+account_active	BOOLEAN	DEFAULT true	Active flag
+date_joined	TIMESTAMP	NULL	Joined date
+system_role_id	INTEGER	FK → system_roles(id), NULL	Optional system role
+created_at	TIMESTAMP	DEFAULT now()	Created timestamp
+updated_at	TIMESTAMP	DEFAULT now()	Updated timestamp
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	Token record ID
+user_id	INTEGER	FK → users(id), NOT NULL	User
+token_hash	VARCHAR(255)	NOT NULL	Hashed refresh token
+device_id	VARCHAR(100)	NULL	Device identifier
+expires_at	TIMESTAMP	NOT NULL	Expiry
+revoked	BOOLEAN	DEFAULT false	Revoked flag
+revoked_at	TIMESTAMP	NULL	Revocation time
+created_at	TIMESTAMP	DEFAULT now()	Created timestamp
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	System role ID
+name	VARCHAR(100)	UNIQUE, NOT NULL	SystemAdmin, SupportAdmin, ReadOnly
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	Organisation role ID
+name	VARCHAR(100)	UNIQUE, NOT NULL	OrganisationAdmin, Member
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	Role ID
+name	VARCHAR(50)	UNIQUE, NOT NULL	Farmer, Inspector, Manager
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	Permission ID
+key	VARCHAR(100)	UNIQUE, NOT NULL	e.g. tree_scans:create
+description	TEXT	NULL	Permission description
+Field	Type	Constraints	Description
+role_id	INTEGER	FK → roles(id), PRIMARY KEY	Project role
+permission_id	INTEGER	FK → permissions(id), PRIMARY KEY	Permission
+Field	Type	Constraints	Description
+user_id	INTEGER	FK → users(id), PRIMARY KEY	User
+organisation_id	INTEGER	FK → organisations(id), PRIMARY KEY	Organisation
+status	VARCHAR(30)	NOT NULL DEFAULT ‘active’	invited, active, suspended
+created_at	TIMESTAMP	DEFAULT now()	Created timestamp
+Field	Type	Constraints	Description
+user_id	INTEGER	FK → users(id), PRIMARY KEY	User
+organisation_id	INTEGER	FK → organisations(id), PRIMARY KEY	Organisation
+role_id	INTEGER	FK → organisation_roles(id), PRIMARY KEY	Organisation role
+Field	Type	Constraints	Description
+user_id	INTEGER	FK → users(id), PRIMARY KEY	User
+project_id	INTEGER	FK → projects(id), PRIMARY KEY	Project
+role_id	INTEGER	FK → roles(id), PRIMARY KEY	Project role
+assigned_by	INTEGER	FK → users(id), NULL	Assigning user
+created_at	TIMESTAMP	DEFAULT now()	Created timestamp
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	Tree species ID
+name	VARCHAR(200)	NOT NULL	Default name
+key	VARCHAR(200)	NULL	Stable key
+scientific_name	VARCHAR(200)	NULL	Scientific name
+dry_weight_density	NUMERIC(8,3)	NULL	Biomass density
+min_height_m	NUMERIC(12,3)	NULL	Optional validation lower bound
+max_height_m	NUMERIC(12,3)	NULL	Optional validation upper bound
+min_diameter_cm	NUMERIC(12,3)	NULL	Optional validation lower bound
+max_diameter_cm	NUMERIC(12,3)	NULL	Optional validation upper bound
+created_at	TIMESTAMP	DEFAULT now()	Created timestamp
+updated_at	TIMESTAMP	DEFAULT now()	Updated timestamp
+Field	Type	Constraints	Description
+project_id	INTEGER	FK → projects(id), PRIMARY KEY	Project
+tree_type_id	INTEGER	FK → tree_types(id), PRIMARY KEY	Tree type
+Field	Type	Constraints	Description
+id	UUID	PRIMARY KEY	Farm ID
+project_id	INTEGER	FK → projects(id), NOT NULL	Project
+farmer_id	INTEGER	FK → users(id), NOT NULL	Farm owner/responsible farmer
+farm_code	VARCHAR(80)	NOT NULL	Operational farm identifier
+name	VARCHAR(255)	NULL	Farm display name
+status	VARCHAR(30)	NOT NULL DEFAULT 'active'	active, inactive, pending
+land_mapping_date	DATE	NULL	Date boundary was mapped
+notes	TEXT	NULL	Operational/import notes
+created_at	TIMESTAMPTZ	DEFAULT now()	Created timestamp
+updated_at	TIMESTAMPTZ	DEFAULT now()	Updated timestamp
+archived_at	TIMESTAMPTZ	NULL	Soft archive timestamp
+Field	Type	Constraints	Description
+farm_id	UUID	PK, FK → farms(id)	Farm
+boundary	GEOMETRY(MultiPolygon,4326)	NOT NULL	Primary farm boundary in WGS84
+area_hectares	NUMERIC(12,4)	NOT NULL, CHECK > 0	Server-calculated geodesic area
+maximum_tree_allocation	INTEGER	NULL, CHECK >= 0	Calculated or approved capacity
+locked	BOOLEAN	DEFAULT true	Prevents unapproved replacement
+source_upload_id	UUID	NULL	Import traceability identifier
+created_at	TIMESTAMPTZ	DEFAULT now()	Created timestamp
+updated_at	TIMESTAMPTZ	DEFAULT now()	Updated timestamp
+Field	Type	Constraints	Description
+id	UUID	PRIMARY KEY	Eligible boundary ID
+farm_id	UUID	FK → farms(id), NOT NULL	Farm
+boundary	GEOMETRY(MultiPolygon,4326)	NOT NULL	Eligible planting area
+area_hectares	NUMERIC(12,4)	NOT NULL, CHECK > 0	Server-calculated area
+source_upload_id	UUID	NULL	Import traceability identifier
+created_at	TIMESTAMPTZ	DEFAULT now()	Created timestamp
+Field	Type	Constraints	Description
+id	UUID	PRIMARY KEY	Allocation ID
+farm_id	UUID	FK → farms(id), NOT NULL	Farm
+allocation_year	INTEGER	NOT NULL	Allocation year
+tree_allocation_count	INTEGER	NOT NULL, CHECK > 0	Approved tree allocation
+area_hectares	NUMERIC(12,4)	NULL, CHECK > 0	Area used for allocation
+archived	BOOLEAN	DEFAULT false	Historical archive flag
+created_at	TIMESTAMPTZ	DEFAULT now()	Created timestamp
+UNIQUE	(farm_id, allocation_year)	Required	One active allocation per farm/year
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	Batch ID
+inspector_id	INTEGER	FK → users(id), NOT NULL	Uploading inspector
+project_id	INTEGER	FK → projects(id), NOT NULL	Project
+device_id	VARCHAR(100)	NULL	Device ID
+uploaded_at	TIMESTAMP	DEFAULT now()	Upload timestamp
+created_at	TIMESTAMP	DEFAULT now()	Created timestamp
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	Scan ID
+fob_id	VARCHAR(80)	NOT NULL	NFC tag/fob ID
+project_id	INTEGER	FK → projects(id), NOT NULL	Project; must match farms.project_id
+farm_id	UUID	FK → farms(id), NOT NULL	Farm containing the tree
+inspector_id	INTEGER	FK → users(id), NOT NULL	Inspector
+species_id	INTEGER	FK → tree_types(id), NOT NULL	Tree species
+estimated_planted_year	INTEGER	NOT NULL	Estimated planted year
+estimated_planted_month	INTEGER	NOT NULL CHECK (estimated_planted_month BETWEEN 1 AND 12)	Estimated planted month
+planted_date	DATE	NULL	Optional exact planted date
+height_m	NUMERIC(12,3)	NULL CHECK (height_m IS NULL OR height_m >= 0)	Height
+circumference_cm	NUMERIC(12,3)	NULL CHECK (circumference_cm IS NULL OR circumference_cm >= 0)	Circumference
+diameter_cm	NUMERIC(12,3)	NULL CHECK (diameter_cm IS NULL OR diameter_cm >= 0)	Diameter
+latitude	DOUBLE PRECISION	NULL	GPS latitude
+longitude	DOUBLE PRECISION	NULL	GPS longitude
+photo_id	UUID	NULL	Photo reference
+batch_id	INTEGER	FK → scan_batches(id)	Batch
+device_id	VARCHAR(100)	NULL	Device ID
+scan_timestamp	TIMESTAMP	NULL	Time captured on device
+upload_timestamp	TIMESTAMP	DEFAULT now()	Time uploaded
+is_archived	BOOLEAN	DEFAULT false	Archived/recycled flag
+is_corrected	BOOLEAN	DEFAULT false	Correction flag
+corrected_by	INTEGER	FK → users(id), NULL	Correcting user
+correction_reason	TEXT	NULL	Reason for correction
+is_valid	BOOLEAN	DEFAULT true	Validation flag
+validation_notes	TEXT	NULL	Validation notes
+created_at	TIMESTAMP	DEFAULT now()	Created timestamp
+updated_at	TIMESTAMP	DEFAULT now()	Updated timestamp
+client_scan_id	UUID	NOT NULL	Device-generated unique scan ID for offline sync/idempotency
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	Audit ID
+tree_scan_id	INTEGER	FK → tree_scans(id), NOT NULL	Scan
+changed_by	INTEGER	FK → users(id), NOT NULL	User
+change_type	VARCHAR(50)	NOT NULL	created, corrected, archived, validated
+change_reason	TEXT	NULL	Reason
+old_data	JSONB	NULL	Previous state
+new_data	JSONB	NOT NULL	New state
+changed_at	TIMESTAMP	DEFAULT now()	Change time
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	Partner ID
+name	VARCHAR(255)	NOT NULL	Partner name
+created_at	TIMESTAMP	DEFAULT now()	Created timestamp
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	Adopter ID
+partner_id	INTEGER	FK → partners(id), NULL	Optional partner
+name	VARCHAR(255)	NOT NULL	Adopter name
+email	VARCHAR(255)	NULL	Email
+created_at	TIMESTAMP	DEFAULT now()	Created timestamp
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	Adoption ID
+adopter_id	INTEGER	FK → adopters(id), NOT NULL	Adopter
+fob_id	VARCHAR(80)	NOT NULL	Tree fob ID
+project_id	INTEGER	FK → projects(id), NULL	Project if known
+adopted_at	DATE	NOT NULL	Adoption date
+cancelled_at	TIMESTAMP	NULL	Cancellation timestamp
+cancellation_reason	TEXT	NULL	Reason
+created_at	TIMESTAMP	DEFAULT now()	Created timestamp
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	Report ID
+report_type	VARCHAR(100)	NOT NULL	Type
+requested_by	INTEGER	FK → users(id), NOT NULL	Requesting user
+project_id	INTEGER	FK → projects(id), NULL	Project scope
+status	VARCHAR(50)	NOT NULL	PENDING, PROCESSING, COMPLETE, FAILED
+parameters	JSONB	NOT NULL	Report parameters
+output_url	TEXT	NULL	S3/report URL
+error_message	TEXT	NULL	Failure reason
+created_at	TIMESTAMP	DEFAULT now()	Request timestamp
+completed_at	TIMESTAMP	NULL	Completion timestamp
+Field	Type	Constraints	Description
+code	VARCHAR(10)	PRIMARY KEY	Culture code
+name	VARCHAR(100)	NOT NULL	Culture name
+Field	Type	Constraints	Description
+id	SERIAL	PRIMARY KEY	String ID
+culture_code	VARCHAR(10)	FK → cultures(code), NOT NULL	Culture
+string_key	VARCHAR(255)	NOT NULL	Key
+value	TEXT	NOT NULL	Localized value
+context	VARCHAR(50)	NOT NULL	API, MOBILE, ADMIN, PUBLIC
+created_at	TIMESTAMP	DEFAULT now()	Created timestamp
+updated_at	TIMESTAMP	DEFAULT now()	Updated timestamp
+Endpoint	Method	Auth	Permission	Description
+/auth/login	POST	None	Public	Login and return identity JWT + refresh token
+/auth/logout	POST	Refresh token or identity token	Authenticated	Revoke refresh token/session
+/auth/refresh	POST	Refresh token	Authenticated	Rotate refresh token and issue new access token
+/auth/forgot-password	POST	None	Public	Request password reset
+/auth/reset-password	POST	Reset code	Public	Reset password
+/auth/select-project	POST	Identity JWT	Authenticated	Issue project-scoped JWT
+Endpoint	Method	Permission	Description
+/users	GET	users:read	List users, filter by organisation/project
+/users/{id}	GET	users:read or self	Get user details
+/users	POST	users:create	Create user
+/users/{id}	PUT	users:update or self-limited	Update user
+/users/{id}	DELETE	users:delete	Soft delete/deactivate user if allowed
+Endpoint	Method	Permission	Description
+/organisations	GET	organisations:read	List organisations
+/organisations/{id}	GET	organisations:read	Get organisation
+/organisations	POST	organisations:create	Create organisation
+/organisations/{id}	PUT	organisations:update	Update organisation
+/organisations/{id}	DELETE	organisations:delete	Delete organisation if no dependencies
+Endpoint	Method	Permission	Description
+/user-organisations	GET	user_organisations:read	List organisation memberships
+/user-organisations	POST	user_organisations:create	Add user to organisation
+/user-organisations/{user_id}/{organisation_id}	PUT	user_organisations:update	Update membership status
+/user-organisations/{user_id}/{organisation_id}	DELETE	user_organisations:delete	Remove membership if allowed
+/user-organisation-roles	POST	user_organisation_roles:assign	Assign organisation role
+/user-organisation-roles/{user_id}/{organisation_id}/{role_id}	DELETE	user_organisation_roles:remove	Remove organisation role
+Endpoint	Method	Permission	Description
+/projects	GET	projects:read	List accessible projects
+/projects/{id}	GET	projects:read	Get project details
+/projects	POST	projects:create	Create project
+/projects/{id}	PUT	projects:update	Update project
+/projects/{id}	DELETE	projects:delete	Delete project if no dependencies
+Endpoint	Method	Permission	Description
+/project-organisations	GET	project_organisations:read	List project-organisation links
+/project-organisations	POST	project_organisations:create	Share project with organisation
+/project-organisations/{project_id}/{organisation_id}	DELETE	project_organisations:delete	Remove sharing link
+Endpoint	Method	Permission	Description
+/user-project-roles	GET	user_project_roles:read	List assignments
+/user-project-roles	POST	user_project_roles:assign	Assign project role
+/user-project-roles/{user_id}/{project_id}/{role_id}	DELETE	user_project_roles:remove	Remove project role
+Endpoint	Method	Permission	Description
+/tree-types	GET	tree_types:read	List tree types
+/tree-types/{id}	GET	tree_types:read	Get tree type
+/tree-types	POST	tree_types:create	Create tree type
+/tree-types/{id}	PUT	tree_types:update	Update tree type
+/tree-types/{id}	DELETE	tree_types:delete	Delete tree type if unused
+/project-tree-types	GET	project_tree_types:read	List allowed tree types for project
+/project-tree-types	POST	project_tree_types:create	Add tree type to project
+/project-tree-types/{project_id}/{tree_type_id}	DELETE	project_tree_types:delete	Remove tree type from project
+/localized-strings	GET	localized_strings:read	Fetch localized strings
+/localized-strings	POST	localized_strings:create	Create localized string
+/localized-strings/{id}	PUT	localized_strings:update	Update localized string
+/localized-strings/{id}	DELETE	localized_strings:delete	Delete localized string
+Endpoint	Method	Permission	Description
+/farms	GET	farms:read	List farms; filter by project, farmer, code, status, and allocation year
+/farms/{id}	GET	farms:read	Get farm details, ownership, allocation summary, and boundary metadata
+/farms	POST	farms:create	Create a farm linked to an existing farmer and selected project
+/farms/{id}	PUT	farms:update	Update permitted farm metadata
+/farms/{id}	DELETE	farms:archive	Soft archive farm if operational rules allow
+/farms/import	POST	farms:create	Bulk import farm records from validated CSV/JSON
+/farm-boundaries/upload	POST	farm_boundaries:upload	Upload GeoPackage containing farm_boundaries and optional eligible_boundaries layers
+/farms/{id}/boundary	GET	farm_boundaries:read	Get primary farm boundary as GeoJSON or WKT
+/farms/{id}/eligible-boundaries	GET	farm_boundaries:read	List eligible planting boundaries
+/farms/{id}/boundary	PUT	farm_boundaries:upload	Replace an unlocked boundary with audit history
+Endpoint	Method	Permission	Description
+/tree-scans	GET	tree_scans:read	List scans with project, farm, farmer, inspector, fob, and date filters
+/tree-scans/{id}	GET	tree_scans:read	Get scan details
+/tree-scans	POST	tree_scans:create	Upload single scan linked to a farm
+/tree-scans/{id}	PUT	tree_scans:correct	Correct scan data
+/tree-scans/{id}	DELETE	tree_scans:archive	Archive only; no physical delete
+/tree-scans/recycle-fob	POST	tree_scans:archive	Archive prior scans for fob reuse
+/tree-scans/{id}/validate	POST	tree_scans:validate	Mark scan valid/invalid
+Endpoint	Method	Permission	Description
+/scan-batches	GET	scan_batches:read	List scan batches
+/scan-batches/{id}	GET	scan_batches:read	Get batch and scan details
+/scan-batches	POST	scan_batches:create	Upload batch of scans
+/scan-batches/{id}	DELETE	scan_batches:archive	Archive batch where allowed
+Endpoint	Method	Permission	Description
+/partners	GET	partners:read	List partners
+/partners/{id}	GET	partners:read	Get partner
+/partners	POST	partners:create	Create partner
+/partners/{id}	PUT	partners:update	Update partner
+/partners/{id}	DELETE	partners:delete	Delete partner if unused
+/adopters	GET	adopters:read	List adopters
+/adopters/{id}	GET	adopters:read	Get adopter
+/adopters	POST	adopters:create	Create adopter
+/adopters/{id}	PUT	adopters:update	Update adopter
+/adopters/{id}	DELETE	adopters:delete	Delete adopter if allowed
+/adoptions	GET	adoptions:read	List adoptions
+/adoptions/{id}	GET	adoptions:read	Get adoption
+/adoptions	POST	adoptions:create	Record adoption
+/adoptions/{id}	PUT	adoptions:update	Update/cancel adoption
+/adoptions/{id}	DELETE	adoptions:delete	Soft delete/cancel adoption
+Endpoint	Method	Permission	Description
+/reports	GET	reports:read	List reports
+/reports/{id}	GET	reports:read	Get report details
+/reports	POST	reports:create	Queue report generation
+/reports/status/{id}	GET	reports:read	Check status
+Endpoint	Method	Permission	Description
+/dashboard/totals	GET	dashboard:read	Summary totals by access scope
+/dashboard/tree-counts	GET	dashboard:read	Tree counts by year/project/farm/farmer/inspector
+/dashboard/scan-stats	GET	dashboard:read	Scan stats, corrections, archived scans
+Role	Data Scope
+SystemAdmin	All data
+OrganisationAdmin	Organisation projects
+Manager	Assigned project(s)
+Inspector	Own scans and assigned project context
+Farmer	Own farms, trees, and scans only
+Rule	Validation	Notes
+Login	Email/password valid; account active; can sign in	Returns identity JWT + refresh token
+Refresh	Token hash exists; not expired; not revoked; device matches	Rotate token on use
+Logout	Revoke refresh token	Server-side invalidation
+Role change	Refresh tokens must be revoked when access is materially reduced (e.g. removal from project or removal of all roles). Minor role modifications do not require immediate revocation.	Prevent stale access renewal
+Organisation membership change	Revoke affected refresh tokens only when access is materially reduced.	Prevent stale tenant access
+Project role change	Revoke affected refresh tokens only when access is materially reduced.	Project token must be regenerated
+Access token storage	Do not store JWT access tokens server-side	Stateless access tokens
+Token expiry	Token expiry must not vary based on user role. All roles use the same access token and refresh token lifetimes.	
+Rule	Validation	Notes
+Organisation membership	User and organisation must exist	Status active/invited/suspended
+Organisation access	Organisation must be linked to project	Via project_organisations
+Suspended membership	Cannot access project via suspended organisation	Login may still succeed if other access exists
+Organisation deletion	No active users, projects, or scans	Prefer deactivation
+OrganisationAdmin scope	Own organisation only	No cross-tenant access
+Rule	Validation	Notes
+Project creation	name, country, location, owner organisation required	Owner link created automatically
+Project sharing	Target organisation exists and active	Creates project_organisations
+Project deletion	No scans or dependent records	Prefer is_active=false
+Project access	SystemAdmin, OrganisationAdmin for linked organisation, or active organisation member with project role.	
+Scans enabled	scans_enabled = true	Required for new scan uploads
+Rule	Validation	Notes
+Multiple roles	Allowed	Composite PK includes role_id
+Additive permissions	Combine all permissions	No role priority
+No role switching	Feature availability from permissions	Capability-driven UI/API
+Role assignment	User must belong to linked organisation	Prevent orphan access
+Role removal	Refresh tokens must be revoked when access is materially reduced (e.g. removal from project or removal of all roles). Minor role modifications do not require immediate revocation.	Prevent stale permissions
+Rule	Validation	Notes
+Farm ownership	farmer_id references an active farmer in the selected project	No orphaned farms
+Farm identity	farm_code required and unique within project + farmer	Preserves operational identity
+Required layer	GeoPackage contains farm_boundaries	Reject file if missing
+Required fields	farm_code and farmer_card_id; farm_name optional	Resolve farmer before farm creation
+Primary geometry	Polygon/MultiPolygon, EPSG:4326, valid and non-empty	Normalize to MultiPolygon and 2D
+Eligible layer	eligible_boundaries optional; zero or more polygons per farm	Multiple eligible areas allowed
+Eligible containment	Eligible geometry must be within or validly intersect the primary farm boundary	Reject spatially unrelated records
+Duplicate rows	Duplicate primary boundary for the same farm in one upload is invalid	One primary boundary per farm
+Area calculation	Calculate hectares server-side from geometry	Do not trust uploaded area
+Atomic save	Validate all records before commit; save farm, boundary, eligible areas, and allocation in one transaction	No partial chain of custody
+Empty file	Return warning when layers contain no records	Not a server error
+Unexpected columns	Preserve as import notes where safe	Do not silently discard metadata
+Date aliases	lm_date maps to land_mapping_date; accept validated date formats	Normalize before persistence
+Rule	Validation	Notes
+Inspector	Active user assigned to project with scan permission	Required
+Farm	Active farm in selected project; farmer derived from farm owner	farm_id required
+Farmer card	If supplied during scanning, must match farms.farmer_id → users.card_id	Identity cross-check only
+Project	Exists, active, scans enabled	Required
+Tree type	Must be valid for project	Via project_tree_types
+Height	Positive and realistic	Species/age checks if configured
+Diameter	Positive and realistic	Species/age checks if configured
+Circumference	Positive and realistic	Species/age checks if configured
+Coordinates	Valid lat/long ranges; compare against farm boundary and configured GPS tolerance	Flag outside-boundary scans for review
+Scan timestamp	Cannot be future	Device time validation
+Upload timestamp	Cannot be future	Server controlled preferred
+Estimated planted year	1950 to current year	DB check recommended
+Estimated planted month	1 to 12	DB check required
+Rule	Validation	Notes
+Same project	All scans share project_id	Required
+Same inspector	All scans uploaded by same inspector	Required
+Inspector permission	Inspector has scan_batches:create	Required
+Partial failure	Must be defined	Prefer transaction + detailed errors
+Audit	Batch creation traceable	Batch ID linked to scans
+Farm reference	Every scan has a valid farm_id in the batch project	Different farms may occur in one batch
+Rule	Validation	Notes
+Multiple scans	Allowed per fob/year	Supports repeated inspection
+Multi-inspector scans	Allowed if inspectors assigned to project	Operationally realistic
+Duplicate fob in year	Allowed	Latest scan used for count
+Fob recycling	Manager/SystemAdmin permission	Archives previous scans
+Historical preservation	Previous scans remain stored	is_archived=true
+Tree count logic	Latest non-archived scan per fob/year unless specified	Reporting rule
+Farm continuity	A fob may move farms only through an authorised correction/reassignment workflow	Audit prior and new farm
+Rule	Validation	Notes
+Correction access	Requires tree_scans:correct	Strictly controlled
+Audit required	Write old_data and new_data	Required
+Correction reason	Required for material changes	Required
+Separation of duties	User cannot validate/approve own scan	Action-level rule
+Validation notes	Required when marking invalid	Required
+Rule	Validation	Notes
+Report request	User has report permission for scope	Required
+Async processing	SQS job created	Non-blocking
+Status tracking	Store status in reports table	Required
+Output storage	S3 URL stored when complete	Required
+Tree counts	Latest non-archived scan per fob/year, grouped through farm_id	Supports farm and farmer reporting
+Dashboard scope	Based on effective permissions and data scope	Required
+Spatial reporting	Farm and eligible boundaries available for authorised map/report queries	Use PostGIS indexes
+Rule	Validation	Notes
+Preferred language	Use user preferred_language	If available
+Context	API/MOBILE/ADMIN/PUBLIC	Required
+Fallback	Default language if missing	Required
+Unique string	culture + key + context	DB unique constraint
+Code	Name	Usage
+200	OK	Successful request
+201	Created	Resource created
+400	Bad Request	Invalid parameters
+401	Unauthorized	Missing/invalid authentication
+403	Forbidden	Insufficient permission
+404	Not Found	Resource not found
+409	Conflict	Duplicate or state conflict
+422	Unprocessable Entity	Business rule violation
+500	Internal Server Error	Server error
+Code	Description
+AUTH_001	Invalid credentials
+AUTH_002	Token expired
+AUTH_003	Insufficient permissions
+AUTH_004	Invalid token scope
+AUTH_005	Refresh token revoked
+TENANT_001	Organisation access denied
+TENANT_002	Project not linked to organisation
+VAL_001	Required field missing
+VAL_002	Invalid email format
+VAL_003	Date in future
+VAL_004	Invalid measurement
+VAL_005	Invalid coordinates
+DATA_001	Resource not found
+DATA_002	Duplicate entry
+DATA_003	Dependent records prevent deletion
+SYS_001	Report generation failed
+SYS_002	External service error
+FARM_001	Farm not found or not accessible in selected project
+FARM_002	Farmer could not be resolved for farm upload
+FARM_003	Duplicate farm code for farmer/project
+GEO_001	Required GeoPackage layer missing
+GEO_002	Invalid, empty, or unsupported boundary geometry
+GEO_003	Eligible boundary is not associated with the primary farm boundary
+Criteria	Weight	Description
+Functionality	40%	Endpoints, business rules, validation
+Code Quality	25%	Architecture, maintainability, security
+Database Design	15%	Normalization, constraints, indexing
+Documentation	10%	Completeness and clarity
+Deployment	10%	Working cloud deployment and CI/CD
