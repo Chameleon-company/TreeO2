@@ -12,6 +12,9 @@ jest.mock("@prisma/client", () => {
 		userProject: {
 			findUnique: jest.fn(),
 		},
+		farms: {
+			findUnique: jest.fn(),
+		},
 		treeType: {
 			findUnique: jest.fn(),
 		},
@@ -76,7 +79,7 @@ describe("TreeScansService", () => {
 	const validCreateInput = {
 		fobId: "FOB-001",
 		projectId: 1,
-		farmerId: 2,
+		farmId: 2,
 		speciesId: 3,
 		estimatedPlantedYear: 2020,
 		estimatedPlantedMonth: 6,
@@ -122,7 +125,7 @@ describe("TreeScansService", () => {
 					page: 1,
 					limit: 10,
 					projectId: 1,
-					farmerId: 2,
+					farmId: 2,
 					inspectorId: 4,
 					speciesId: 3,
 					batchId: 1,
@@ -136,7 +139,7 @@ describe("TreeScansService", () => {
 				expect.objectContaining({
 					where: {
 						projectId: 1,
-						farmerId: 2,
+						farmId: 2,
 						inspectorId: 4,
 						speciesId: 3,
 						batchId: 1,
@@ -316,23 +319,19 @@ describe("TreeScansService", () => {
 
 			mockPrisma.user.findUnique
 				.mockResolvedValueOnce({
-					id: 2,
-					accountActive: true,
-				})
-				.mockResolvedValueOnce({
 					id: 4,
 					accountActive: true,
 				});
 
 			mockPrisma.userProject.findUnique
 				.mockResolvedValueOnce({
-					userId: 2,
-					projectId: 1,
-				})
-				.mockResolvedValueOnce({
 					userId: 4,
 					projectId: 1,
 				});
+
+			mockPrisma.farms.findUnique.mockResolvedValue({
+				id:2,
+			})
 
 			mockPrisma.treeType.findUnique.mockResolvedValue({
 				id: 3,
@@ -362,7 +361,7 @@ describe("TreeScansService", () => {
 					data: expect.objectContaining({
 						fobId: "FOB-001",
 						projectId: 1,
-						farmerId: 2,
+						farmId: 2,
 						inspectorId: 4,
 						speciesId: 3,
 						estimatedPlantedYear: 2020,
@@ -405,7 +404,7 @@ describe("TreeScansService", () => {
 			});
 		});
 
-		it("should throw DATA_001 when farmer does not exist", async () => {
+		it("should throw DATA_001 when farm does not exist", async () => {
 			mockPrisma.user.findUnique.mockReset();
 			mockPrisma.user.findUnique.mockResolvedValueOnce(null);
 
@@ -416,7 +415,7 @@ describe("TreeScansService", () => {
 				statusCode: 404,
 				code: err.code,
 				message: err.message,
-				detail: "Farmer not found",
+				detail: "Farm not found",
 			});
 		});
 
@@ -458,7 +457,7 @@ describe("TreeScansService", () => {
 			});
 		});
 
-		it("should throw AUTH_007 when farmer is not assigned to project", async () => {
+		it("should throw AUTH_007 when farm is not assigned to project", async () => {
 			mockPrisma.userProject.findUnique.mockReset();
 			mockPrisma.userProject.findUnique.mockResolvedValueOnce(null);
 			const err = customError("AUTH_007");
@@ -469,7 +468,7 @@ describe("TreeScansService", () => {
 				statusCode: 403,
 				code: err.code,
 				message: err.message,
-				detail: "Farmer is not assigned to this project",
+				detail: "Farm is not assigned to this project",
 			});
 		});
 
@@ -632,7 +631,7 @@ describe("TreeScansService", () => {
 			});
 		});
 
-		it("should revalidate project/farmer/inspector/species when relational fields change", async () => {
+		it("should revalidate project/farm/inspector/species when relational fields change", async () => {
 			mockPrisma.project.findUnique.mockResolvedValue({
 				id: 2,
 				isActive: true,
@@ -671,7 +670,7 @@ describe("TreeScansService", () => {
 				1,
 				{
 					projectId: 2,
-					farmerId: 5,
+					farmId: 5,
 					inspectorId: 6,
 					speciesId: 7,
 					correctionReason: "Relational fields corrected",
