@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { randomUUID } from "crypto";
 import request from "supertest";
 import { PrismaClient } from "@prisma/client";

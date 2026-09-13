@@ -1,6 +1,3 @@
-process.env.NODE_ENV = "development";
-process.env.AUTH_DEV_MODE = "true";
-
 import { describe, expect, it } from "@jest/globals";
 import request from "supertest";
 import app from "../../src/app";

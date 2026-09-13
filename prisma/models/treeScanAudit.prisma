@@ -15,9 +15,9 @@ model TreeScanAudit {
   changedBy    Int                     @map("changed_by")
   changeType   TreeScanAuditChangeType @map("change_type")
   changeReason String?                 @map("change_reason") @db.Text
-  oldData      Json?    @map("old_data") @db.JsonB
-  newData      Json     @map("new_data") @db.JsonB
-  changedAt    DateTime @default(now()) @map("changed_at")
+  oldData      Json?                   @map("old_data") @db.JsonB
+  newData      Json                    @map("new_data") @db.JsonB
+  changedAt    DateTime                @default(now()) @map("changed_at")
 
   treeScan      TreeScan @relation(fields: [treeScanId], references: [id], onDelete: Restrict)
   changedByUser User     @relation("TreeScanAuditChangedBy", fields: [changedBy], references: [id], onDelete: Restrict)

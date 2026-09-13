@@ -19,31 +19,19 @@ const envSchema = z.object({
 
 	PORT: z.coerce.number().default(3000),
 
-	CORS_ORIGIN: z.string().transform((value) => {
-		const origins = value
-			.split(",")
-			.map((origin) => origin.trim())
-			.filter(Boolean);
+	// relax in test
+	CORS_ORIGIN: (isTest ? z.string().default("") : z.string()).transform(
+		(value) => {
+			const origins = value
+				.split(",")
+				.map((origin) => origin.trim())
+				.filter(Boolean);
 
-		return origins.length === 1 && origins[0] === "*" ? "*" : origins;
-	}),
+			return origins.length === 1 && origins[0] === "*" ? "*" : origins;
+		},
+	),
 
-	DB_HOST: z.string().default("localhost"),
-	DB_PORT: z.coerce.number().default(5432),
-	DB_NAME: z.string().default("treeo2"),
-	DB_USER: z.string().default("treeo2_user"),
-	DB_PASSWORD: z.string().default("treeo2_password"),
-
-	// ⚠️ relax strict requirement in test
-	DATABASE_URL: isTest
-		? z.string().optional()
-		: z.string().url("DATABASE_URL must be a valid URL"),
-
-	// ⚠️ relax JWT in test
-	JWT_SECRET: isTest
-		? z.string().optional()
-		: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
-
+	JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
 	JWT_EXPIRES_IN: z.string().default("24h"),
 
 	AUTH_DEV_MODE: booleanFromEnv(false),
@@ -75,18 +63,38 @@ const envSchema = z.object({
 	LOG_TO_FILE: booleanFromEnv(false),
 });
 
+// these are to validate inputs from dotenv, but are not used by this file's exported `const env`
+const envValidation = z.object({
+	// used by docker compose, not required to run the application
+	DB_PORT: z.coerce.number().optional(),
+	DB_NAME: z.string().optional(),
+	DB_USER: z.string().optional(),
+	DB_PASSWORD: z.string().optional(),
+
+	// required for prisma
+	DATABASE_URL: z.string().url("DATABASE_URL must be a valid URL"),
+});
+
 const parsed = envSchema.safeParse(process.env);
+const validated = envValidation.safeParse(process.env);
 
-if (!parsed.success) {
+if (!(parsed.success && validated.success)) {
 	console.error("Invalid environment variables:");
-	console.error(parsed.error.flatten().fieldErrors);
 
-	// ✅ DO NOT EXIT DURING TESTS
+	if (!parsed.success) {
+		console.error(parsed.error.flatten().fieldErrors);
+	}
+
+	if (!validated.success) {
+		console.error(validated.error.flatten().fieldErrors);
+	}
+
+	// DO NOT EXIT DURING TESTS
 	if (!isTest) {
 		process.exit(1);
 	}
 
-	// ✅ throw instead so Jest can handle it
+	// throw instead so Jest can handle it
 	throw new Error("Invalid environment configuration");
 }
 
