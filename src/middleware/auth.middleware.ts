@@ -29,7 +29,7 @@ export const authMiddleware = (
 
 	const token = authHeader.slice("Bearer ".length).trim();
 
-	
+
 
 	// 3. Production Cryptographic JWT Signature Verification
 	try {

@@ -20,6 +20,7 @@ jobs:
       NODE_ENV: development
       DATABASE_URL: postgresql://treeo2_user:treeo2_password@localhost:5432/treeo2?schema=public
       JWT_SECRET: test-secret-test-secret-test-secret-123456
+      CORS_ORIGIN: http://localhost:3000
 
     services:
       postgres:

@@ -592,6 +592,7 @@ describe("TreeScansService", () => {
 					data: expect.objectContaining({
 						treeScanId: 1,
 						changedBy: 1,
+						changeType: "corrected",
 						changeReason: "Measurement corrected after verification",
 					}),
 				}),

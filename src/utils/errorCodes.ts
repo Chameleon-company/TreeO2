@@ -32,6 +32,7 @@ const ERROR_CODES = {
 	DATA_003: "Record is referenced by other records",
 	DATA_004: "Dependent records prevent deletion",
 	DATA_005: "Record is archived",
+	DATA_006: "Write conflict, please retry the request",
 
 	// System
 	SYS_001: "Internal server error",

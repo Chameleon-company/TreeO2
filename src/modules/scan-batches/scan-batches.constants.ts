@@ -53,6 +53,16 @@ export const SCAN_BATCHES_MESSAGES = {
 		"Scan batch uploaded. Some scans already existed and were skipped.",
 } as const;
 
+// Recorded on tree_scan_audit when an offline scan overwrites a stored record
+// under the last-write-wins policy (V1.3 clarification, sec 10.7/7.24).
+export const SCAN_BATCHES_AUDIT = {
+	LAST_WRITE_WINS_REASON: "offline sync last-write-wins",
+} as const;
+
+// Serializable transactions abort on write conflicts (P2034); Prisma's guidance
+// is to retry the transaction rather than surface the conflict to the client.
+export const SCAN_BATCHES_MAX_TRANSACTION_RETRIES = 5;
+
 export const SCAN_BATCHES_DEFAULTS = {
 	PAGE: 1,
 	LIMIT: 20,
