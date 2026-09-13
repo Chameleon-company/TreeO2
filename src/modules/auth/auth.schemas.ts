@@ -19,7 +19,13 @@ export type ForgotPasswordReq = z.infer<typeof ForgotPasswordReq>;
 
 export const ResetPasswordReqBody = z.object({
 	token: z.string().min(1),
-	password: z.string().min(8),
+	password: z
+		.string()
+		.min(8)
+		.max(72)
+		.regex(/[A-Z]/, "Password must contain an uppercase letter")
+		.regex(/[0-9]/, "Password must contain a number")
+		.regex(/[^a-zA-Z0-9]/, "Password must contain a special character"),
 });
 export type ResetPasswordReqBody = z.infer<typeof ResetPasswordReqBody>;
 

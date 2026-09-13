@@ -65,7 +65,7 @@ describe("Auth Password Reset Integration Tests", () => {
 		it("returns 400 AUTH_005 for an unknown token", async () => {
 			const res = await request(app)
 				.post("/auth/reset-password")
-				.send({ token: "not-a-real-token", password: "newpassword123" });
+				.send({ token: "not-a-real-token", password: "NewPassword123!" });
 
 			expect(res.status).toBe(400);
 			expect(res.body.error.code).toBe("AUTH_005");
@@ -85,7 +85,7 @@ describe("Auth Password Reset Integration Tests", () => {
 
 			const res = await request(app)
 				.post("/auth/reset-password")
-				.send({ token: rawToken, password: "newpassword123" });
+				.send({ token: rawToken, password: "NewPassword123!" });
 
 			expect(res.status).toBe(400);
 			expect(res.body.error.code).toBe("AUTH_002");
@@ -105,7 +105,7 @@ describe("Auth Password Reset Integration Tests", () => {
 
 			const res = await request(app)
 				.post("/auth/reset-password")
-				.send({ token: rawToken, password: "newpassword123" });
+				.send({ token: rawToken, password: "NewPassword123!" });
 
 			expect(res.status).toBe(200);
 
