@@ -32,7 +32,7 @@ model User {
   userProjects       UserProject[]
   reports            Report[]             @relation("UserReports")
   scanBatches        ScanBatch[]          @relation("ScanBatchInspector")
-  farmerTreeScans    TreeScan[]           @relation("FarmerTreeScans")
+  farms              Farm[]               @relation("UserFarms")
   inspectorTreeScans TreeScan[]           @relation("InspectorTreeScans")
   correctedTreeScans TreeScan[]           @relation("CorrectedTreeScans")
   treeScanAudits     TreeScanAudit[]      @relation("TreeScanAuditChangedBy")
