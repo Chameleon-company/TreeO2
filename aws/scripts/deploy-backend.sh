@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # Task: CLD04
 # Purpose: Run database migrations against RDS, deploy the backend to
 #          Elastic Beanstalk, and verify the deployed application
@@ -9,6 +11,7 @@ set -euo pipefail
 
 REGION="ap-southeast-2"
 ENV_NAME="treeo2-platform-api-test"
+EXPECTED_ACCOUNT_ID="930315119020"
 
 echo "=== CLD04: Deploy Backend ==="
 
@@ -19,6 +22,12 @@ ACCOUNT_ID=$(aws sts get-caller-identity \
 
 echo "AWS account: $ACCOUNT_ID"
 echo "AWS region: $REGION"
+
+if [ "$ACCOUNT_ID" != "$EXPECTED_ACCOUNT_ID" ]; then
+	echo "ERROR: expected account $EXPECTED_ACCOUNT_ID, got $ACCOUNT_ID."
+	echo "Refusing to run against the wrong account."
+	exit 1
+fi
 
 # DATABASE_URL must be supplied externally.
 # CLD03 is responsible for configuring DATABASE_URL on the EB environment.
@@ -42,6 +51,13 @@ fi
 
 echo "EB environment: $ENV_NAME"
 echo "EB status: $CURRENT_STATUS"
+
+# Confirm before making changes to RDS or deploying
+read -rp "Run migrations + deploy to $ENV_NAME? (yes/N) " confirm
+[ "$confirm" = "yes" ] || {
+	echo "Aborted."
+	exit 1
+}
 
 # Run pending migrations against RDS
 echo ""
@@ -71,14 +87,17 @@ echo ""
 echo "=== Health Check ==="
 echo "Checking $ENV_URL/health"
 
-HEALTH_RESPONSE=$(curl \
+if HEALTH_RESPONSE=$(curl \
 	--fail \
 	--silent \
 	--show-error \
-	"$ENV_URL/health")
-
-echo "Health check: PASS"
-echo "$HEALTH_RESPONSE"
+	"$ENV_URL/health"); then
+	echo "Health check: PASS"
+	echo "$HEALTH_RESPONSE"
+else
+	echo "Health check: FAIL"
+	exit 1
+fi
 
 # Verify database connectivity
 echo ""
