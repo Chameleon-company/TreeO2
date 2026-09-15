@@ -22,8 +22,9 @@ export const SCAN_BATCHES_MESSAGES = {
 	INVALID_INSPECTOR_ROLE: "User must have Inspector role",
 	INVALID_FARMER_ROLE: "Selected farmer_id must belong to a Farmer user",
 
-	FARMER_NOT_FOUND: "Farmer not found",
-	FARMER_NOT_ASSIGNED: "Farmer is not assigned to the selected project",
+	FARM_NOT_FOUND: "Farm not found",
+	FARM_NOT_ASSIGNED: "Farm is not assigned to the selected project",
+	FARM_NOT_ACTIVE: "Farm is not active",
 
 	SPECIES_NOT_FOUND: "Tree species not found",
 	SPECIES_NOT_IN_PROJECT: "Tree species is not assigned to this project",

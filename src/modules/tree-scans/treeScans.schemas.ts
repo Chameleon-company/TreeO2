@@ -28,7 +28,7 @@ export const createTreeScanSchema = z.object({
 
 		projectId: idSchema,
 
-		farmerId: idSchema,
+		farmId: idSchema,
 
 		speciesId: idSchema,
 
@@ -82,7 +82,7 @@ export const updateTreeScanSchema = z.object({
 
 			projectId: idSchema.optional(),
 
-			farmerId: idSchema.optional(),
+			farmId: idSchema.optional(),
 
 			inspectorId: idSchema.optional(),
 
@@ -161,7 +161,7 @@ export const listTreeScansSchema = z.object({
 
 		projectId: idSchema.optional(),
 
-		farmerId: idSchema.optional(),
+		farmId: idSchema.optional(),
 
 		inspectorId: idSchema.optional(),
 

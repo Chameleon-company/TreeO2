@@ -21,6 +21,7 @@ describe("User Management Integration Tests", () => {
 
 	beforeEach(async () => {
 		await prisma.treeScan.deleteMany();
+		await prisma.farm.deleteMany();
 		await prisma.user.deleteMany();
 		await prisma.role.deleteMany();
 
@@ -35,6 +36,7 @@ describe("User Management Integration Tests", () => {
 
 	afterAll(async () => {
 		await prisma.treeScan.deleteMany();
+		await prisma.farm.deleteMany();
 		await prisma.user.deleteMany();
 		await prisma.role.deleteMany();
 		await prisma.$disconnect();

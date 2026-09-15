@@ -17,7 +17,7 @@
  *         projectId:
  *           type: integer
  *           example: 1
- *         farmerId:
+ *         farmId:
  *           type: integer
  *           example: 2
  *         inspectorId:
@@ -96,7 +96,7 @@
  *       required:
  *         - fobId
  *         - projectId
- *         - farmerId
+ *         - farmId
  *         - inspectorId
  *         - speciesId
  *         - estimatedPlantedYear
@@ -109,7 +109,7 @@
  *         projectId:
  *           type: integer
  *           example: 1
- *         farmerId:
+ *         farmId:
  *           type: integer
  *           example: 2
  *         inspectorId:
@@ -174,7 +174,7 @@
  *         projectId:
  *           type: integer
  *           example: 1
- *         farmerId:
+ *         farmId:
  *           type: integer
  *           example: 2
  *         inspectorId:
@@ -255,7 +255,7 @@
  *         schema:
  *           type: integer
  *       - in: query
- *         name: farmerId
+ *         name: farmId
  *         required: false
  *         schema:
  *           type: integer

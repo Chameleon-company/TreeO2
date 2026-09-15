@@ -1,0 +1,24 @@
+enum FarmStatus {
+  active
+  inactive
+  pending
+}
+
+model Farm {
+  id              Int        @id @default(autoincrement())
+  projectId       Int        @map("project_id")
+  farmerId        Int        @map("farmer_id")
+  farmCode        String     @map("farm_code") @db.VarChar(80)
+  name            String?    @db.VarChar(255)
+  status          FarmStatus @default(active)
+  landMappingDate DateTime?  @db.Date
+  notes           String?    @db.Text
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @default(now()) @updatedAt @map("updated_at")
+
+  project   Project    @relation("ProjectFarms", fields: [projectId], references: [id], onDelete: Restrict)
+  farmer    User       @relation("UserFarms", fields: [farmerId], references: [id], onDelete: Restrict)
+  treeScans TreeScan[] @relation("FarmTreeScans")
+
+  @@map("farms")
+}

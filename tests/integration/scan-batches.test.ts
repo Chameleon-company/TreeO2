@@ -26,6 +26,8 @@ describe("Scan Batches Integration Tests", () => {
 	let adminLocationId: number;
 	let projectId: number;
 	let inactiveProjectId: number;
+	let farmId: number;
+	let unassignedFarmId: number;
 	let farmerId: number;
 	let unassignedFarmerId: number;
 	let managerId: number;
@@ -41,7 +43,7 @@ describe("Scan Batches Integration Tests", () => {
 		scans: [
 			{
 				fob_id: `SCAN-BATCH-${Date.now()}-${Math.random()}`,
-				farmer_id: farmerId,
+				farm_id: farmId,
 				species_id: speciesId,
 				estimated_planted_year: 2024,
 				estimated_planted_month: 5,
@@ -64,6 +66,7 @@ describe("Scan Batches Integration Tests", () => {
 		await prisma.scanBatch.deleteMany();
 		await prisma.projectTreeType.deleteMany();
 		await prisma.userProject.deleteMany();
+		await prisma.farm.deleteMany();
 
 		await prisma.user.deleteMany({
 			where: {
@@ -351,6 +354,38 @@ describe("Scan Batches Integration Tests", () => {
 
 		unassignedFarmerId = unassignedFarmer.id;
 
+		const farm = await prisma.farm.upsert({
+			where: { id: 1 },
+			update: {
+				farmCode: "Farm Code",
+				farmerId: farmer.id,
+				projectId: projectId,
+			},
+			create: {
+				farmCode: "Farm Code",
+				farmerId: farmer.id,
+				projectId: projectId,
+			},
+		});
+
+		farmId = farm.id;
+
+		const unassignedFarm = await prisma.farm.upsert({
+			where: { id: 2 },
+			update: {
+				farmCode: "Farm Code",
+				farmerId: farmer.id,
+				projectId: inactiveProjectId,
+			},
+			create: {
+				farmCode: "Farm Code",
+				farmerId: farmer.id,
+				projectId: inactiveProjectId,
+			},
+		});
+
+		unassignedFarmId = unassignedFarm.id;
+
 		const unassignedInspector = await prisma.user.upsert({
 			where: { email: "scan-batch-unassigned-inspector@test.com" },
 			update: {
@@ -437,7 +472,7 @@ describe("Scan Batches Integration Tests", () => {
 			data: {
 				fobId: "SCAN-BATCH-BASE",
 				projectId,
-				farmerId,
+				farmId,
 				inspectorId,
 				speciesId,
 				estimatedPlantedYear: 2024,
@@ -460,6 +495,7 @@ describe("Scan Batches Integration Tests", () => {
 		await prisma.treeScanAudit.deleteMany();
 		await prisma.treeScan.deleteMany();
 		await prisma.scanBatch.deleteMany();
+		await prisma.farm.deleteMany();
 
 		await prisma.projectTreeType.deleteMany({
 			where: {
@@ -732,7 +768,7 @@ describe("Scan Batches Integration Tests", () => {
 			expect(response.status).toBe(422);
 		});
 
-		it("should return 403 when farmer is not assigned to project", async () => {
+		it("should return 403 when farm is not assigned to project", async () => {
 			const response = await request(app)
 				.post("/scan-batches")
 				.set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
@@ -741,7 +777,7 @@ describe("Scan Batches Integration Tests", () => {
 					scans: [
 						{
 							...validPayload().scans[0],
-							farmer_id: unassignedFarmerId,
+							farm_id: unassignedFarmId,
 						},
 					],
 				});
@@ -955,7 +991,7 @@ describe("Scan Batches Integration Tests", () => {
 					scans: [
 						{
 							fob_id: `SCAN-BATCH-NOCSID-${Date.now()}`,
-							farmer_id: farmerId,
+							farmId: farmId,
 							species_id: speciesId,
 							estimated_planted_year: 2024,
 							estimated_planted_month: 5,
