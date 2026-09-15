@@ -26,6 +26,7 @@ jest.mock("../../src/config/logger", () => ({
 	logger: loggerMock,
 }));
 
+import { Decimal } from "@prisma/client/runtime/library";
 import { ProjectTreeTypesService } from "../../src/modules/project-tree-types/projectTreeTypes.service";
 
 const makeProjectRecord = (
@@ -43,7 +44,7 @@ const makeTreeTypeRecord = (
 	name: "Mahogany",
 	key: "mahogany",
 	scientificName: "Swietenia macrophylla",
-	dryWeightDensity: 550,
+	dryWeightDensity: Decimal(550),
 	...overrides,
 });
 
@@ -82,15 +83,7 @@ describe("ProjectTreeTypesService", () => {
 							name: true,
 						},
 					},
-					treeType: {
-						select: {
-							id: true,
-							name: true,
-							key: true,
-							scientificName: true,
-							dryWeightDensity: true,
-						},
-					},
+					treeType: true,
 				},
 				orderBy: [{ projectId: "asc" }, { treeTypeId: "asc" }],
 			});
@@ -109,6 +102,10 @@ describe("ProjectTreeTypesService", () => {
 						key: "mahogany",
 						scientific_name: "Swietenia macrophylla",
 						dry_weight_density: 550,
+						max_diameter_cm: null,
+						max_height_m: null,
+						min_diameter_cm: null,
+						min_height_m: null,
 					},
 				},
 			]);
@@ -134,6 +131,29 @@ describe("ProjectTreeTypesService", () => {
 			const result = await service.listProjectTreeTypes({});
 
 			expect(result).toEqual([]);
+		});
+
+		it("should return tree types with height and diameter values when present", async () => {
+			prismaMock.projectTreeType.findMany.mockResolvedValue([
+				makeProjectTreeTypeRecord({
+					treeType: makeTreeTypeRecord({
+						dryWeightDensity: Decimal(600),
+						minHeightM: Decimal(10.0),
+						maxHeightM: Decimal(50.0),
+						minDiameterCm: Decimal(20.0),
+						maxDiameterCm: Decimal(100.0),
+					}),
+				}),
+			]);
+
+			const result = await service.listProjectTreeTypes({});
+
+			expect(result).toHaveLength(1);
+			expect(result[0].tree_type.dry_weight_density).toBe(600);
+			expect(result[0].tree_type.min_height_m).toBe(10.0);
+			expect(result[0].tree_type.max_height_m).toBe(50.0);
+			expect(result[0].tree_type.min_diameter_cm).toBe(20.0);
+			expect(result[0].tree_type.max_diameter_cm).toBe(100.0);
 		});
 	});
 
@@ -163,15 +183,7 @@ describe("ProjectTreeTypesService", () => {
 							name: true,
 						},
 					},
-					treeType: {
-						select: {
-							id: true,
-							name: true,
-							key: true,
-							scientificName: true,
-							dryWeightDensity: true,
-						},
-					},
+					treeType: true,
 				},
 			});
 
@@ -188,6 +200,10 @@ describe("ProjectTreeTypesService", () => {
 					key: "mahogany",
 					scientific_name: "Swietenia macrophylla",
 					dry_weight_density: 550,
+					max_diameter_cm: null,
+					max_height_m: null,
+					min_diameter_cm: null,
+					min_height_m: null,
 				},
 			});
 

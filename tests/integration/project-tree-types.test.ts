@@ -176,6 +176,10 @@ describe("Project Tree Types API", () => {
 					key: treeType.key,
 					scientific_name: "Swietenia macrophylla",
 					dry_weight_density: 550,
+					max_diameter_cm: null,
+					max_height_m: null,
+					min_diameter_cm: null,
+					min_height_m: null,
 				},
 			});
 		});
@@ -296,6 +300,10 @@ describe("Project Tree Types API", () => {
 					key: treeType.key,
 					scientific_name: "Swietenia macrophylla",
 					dry_weight_density: 550,
+					max_diameter_cm: null,
+					max_height_m: null,
+					min_diameter_cm: null,
+					min_height_m: null,
 				},
 			});
 

@@ -4,6 +4,7 @@ import {
 	type CreateAdoptionInput,
 	type UpdateAdoptionInput,
 	type ListAdoptionsFilters,
+	DeleteAdoptionInput,
 } from "./adoptions.service";
 
 const parseOptionalNumber = (value: unknown): number | undefined => {
@@ -76,7 +77,8 @@ export class AdoptionsController {
 	async deleteAdoption(req: Request, res: Response, next: NextFunction) {
 		try {
 			const id = Number(req.params.id);
-			const result = await adoptionsService.deleteAdoption(id);
+			const payload = req.body as DeleteAdoptionInput;
+			const result = await adoptionsService.deleteAdoption(id, payload);
 
 			return res.status(200).json({ success: true, data: result });
 		} catch (error) {

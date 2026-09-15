@@ -312,6 +312,7 @@ describe("TreeScansService", () => {
 			mockPrisma.project.findUnique.mockResolvedValue({
 				id: 1,
 				isActive: true,
+				scansEnabled: true,
 			});
 
 			mockPrisma.user.findUnique
@@ -354,7 +355,6 @@ describe("TreeScansService", () => {
 
 			expect(mockPrisma.project.findUnique).toHaveBeenCalledWith({
 				where: { id: 1 },
-				select: { id: true, isActive: true },
 			});
 
 			expect(mockPrisma.treeScan.create).toHaveBeenCalledWith(
@@ -402,6 +402,24 @@ describe("TreeScansService", () => {
 				code: err.code,
 				message: err.message,
 				detail: "Project is inactive",
+			});
+		});
+
+		it("should throw when project has scans disabled", async () => {
+			mockPrisma.project.findUnique.mockResolvedValue({
+				id: 1,
+				isActive: true,
+				scansEnabled: false,
+			});
+			const err = customError("VAL_002");
+
+			await expect(
+				service.createTreeScan(validCreateInput, inspectorUser),
+			).rejects.toMatchObject({
+				statusCode: 400,
+				code: err.code,
+				message: err.message,
+				detail: "Project has scans disabled",
 			});
 		});
 
@@ -681,7 +699,6 @@ describe("TreeScansService", () => {
 
 			expect(mockPrisma.project.findUnique).toHaveBeenCalledWith({
 				where: { id: 2 },
-				select: { id: true, isActive: true },
 			});
 
 			expect(mockPrisma.projectTreeType.findUnique).toHaveBeenCalledWith({

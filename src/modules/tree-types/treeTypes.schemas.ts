@@ -15,7 +15,7 @@ const requiredNameString = z
 	.min(1, "Name is required")
 	.max(TREE_TYPE_TEXT_MAX_LENGTH);
 
-const positiveDensity = z.coerce.number().positive();
+const positiveNumber = z.coerce.number().positive();
 
 const treeTypeIdParams = z.object({
 	id: z.coerce.number().int().positive(),
@@ -26,12 +26,37 @@ export const treeTypeIdSchema = z.object({
 });
 
 export const createTreeTypeSchema = z.object({
-	body: z.object({
-		name: requiredNameString,
-		key: optionalTrimmedString,
-		scientific_name: optionalTrimmedString,
-		dry_weight_density: positiveDensity.optional(),
-	}),
+	body: z
+		.object({
+			name: requiredNameString,
+			key: optionalTrimmedString,
+			scientific_name: optionalTrimmedString,
+			dry_weight_density: positiveNumber.optional(),
+			min_height_m: positiveNumber.optional(),
+			max_height_m: positiveNumber.optional(),
+			min_diameter_cm: positiveNumber.optional(),
+			max_diameter_cm: positiveNumber.optional(),
+		})
+		.refine(
+			(data) =>
+				data.min_height_m === undefined ||
+				data.max_height_m === undefined ||
+				data.min_height_m <= data.max_height_m,
+			{
+				message: "min_height_m must not be greater than max_height_m",
+				path: ["min_height_m"],
+			},
+		)
+		.refine(
+			(data) =>
+				data.min_diameter_cm === undefined ||
+				data.max_diameter_cm === undefined ||
+				data.min_diameter_cm <= data.max_diameter_cm,
+			{
+				message: "min_diameter_cm must not be greater than max_diameter_cm",
+				path: ["min_diameter_cm"],
+			},
+		),
 });
 
 export const updateTreeTypeSchema = z.object({
@@ -41,7 +66,11 @@ export const updateTreeTypeSchema = z.object({
 			name: requiredNameString.optional(),
 			key: optionalTrimmedString,
 			scientific_name: optionalTrimmedString,
-			dry_weight_density: positiveDensity.optional(),
+			dry_weight_density: positiveNumber.optional(),
+			min_height_m: positiveNumber.optional(),
+			max_height_m: positiveNumber.optional(),
+			min_diameter_cm: positiveNumber.optional(),
+			max_diameter_cm: positiveNumber.optional(),
 		})
 		.refine((value) => Object.keys(value).length > 0, {
 			message: "At least one field is required",
