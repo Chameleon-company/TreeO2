@@ -18,6 +18,9 @@ jest.mock("../../src/lib/prisma", () => ({
 			delete: jest.fn(),
 			count: jest.fn(),
 		},
+		partner: {
+			findUnique: jest.fn(),
+		},
 	},
 }));
 
@@ -28,6 +31,10 @@ const mockedPrismaAdopter = prisma.adopter as {
 	update: jest.MockedFunction<any>;
 	delete: jest.MockedFunction<any>;
 	count: jest.MockedFunction<any>;
+};
+
+const mockedPrismaPartner = prisma.partner as {
+	findUnique: jest.MockedFunction<any>;
 };
 
 describe("AdoptersService - Unit Tests", () => {
@@ -74,6 +81,69 @@ describe("AdoptersService - Unit Tests", () => {
 					email: "",
 				}),
 			).rejects.toThrow(AppError);
+		});
+
+		it("should create adopter with a valid partnerId", async () => {
+			mockedPrismaPartner.findUnique.mockResolvedValue(1);
+			mockedPrismaAdopter.create.mockResolvedValue({
+				id: 1,
+				name: "name",
+				email: "name@gmail.com",
+				partnerId: 1,
+			});
+
+			const result = await adoptersService.createAdopter({
+				name: "name",
+				email: "name@gmail.com",
+				partnerId: 1,
+			});
+
+			expect(result.partnerId).toBe(1);
+			expect(mockedPrismaPartner.findUnique).toHaveBeenCalledWith({
+				where: { id: 1 },
+				select: { id: true },
+			});
+		});
+
+		it("should throw error if partnerId is non-existent", async () => {
+			mockedPrismaPartner.findUnique.mockResolvedValue(null);
+
+			await expect(
+				adoptersService.createAdopter({
+					name: "name",
+					email: "name@gmail.com",
+					partnerId: 999,
+				}),
+			).rejects.toBeInstanceOf(AppError);
+
+			expect(mockedPrismaPartner.findUnique).toHaveBeenCalledWith({
+				where: { id: 999 },
+				select: { id: true },
+			});
+		});
+
+		it("should throw error if partnerId is 0", async () => {
+			await expect(
+				adoptersService.createAdopter({
+					name: "name",
+					email: "name@gmail.com",
+					partnerId: 0,
+				}),
+			).rejects.toBeInstanceOf(AppError);
+
+			expect(mockedPrismaPartner.findUnique).not.toHaveBeenCalled();
+		});
+
+		it("should throw error if partnerId is negative", async () => {
+			await expect(
+				adoptersService.createAdopter({
+					name: "name",
+					email: "name@gmail.com",
+					partnerId: -1,
+				}),
+			).rejects.toBeInstanceOf(AppError);
+
+			expect(mockedPrismaPartner.findUnique).not.toHaveBeenCalled();
 		});
 	});
 
@@ -175,6 +245,90 @@ describe("AdoptersService - Unit Tests", () => {
 					name: "",
 				}),
 			).rejects.toThrow(AppError);
+		});
+
+		it("should update adopter with a valid partnerId", async () => {
+			mockedPrismaAdopter.findUnique.mockResolvedValue({
+				id: 1,
+				name: "Old",
+				email: "old@mail.com",
+			});
+
+			mockedPrismaPartner.findUnique.mockResolvedValue({ id: 2 });
+
+			mockedPrismaAdopter.update.mockResolvedValue({
+				id: 1,
+				name: "Old",
+				email: "old@mail.com",
+				partnerId: 2,
+			});
+
+			const result = await adoptersService.updateAdopter(1, {
+				partnerId: 2,
+			});
+
+			expect(result.partnerId).toBe(2);
+			expect(mockedPrismaPartner.findUnique).toHaveBeenCalledWith({
+				where: { id: 2 },
+				select: { id: true },
+			});
+			expect(mockedPrismaAdopter.update).toHaveBeenCalledTimes(1);
+		});
+
+		it("should throw error when partnerId is 0", async () => {
+			mockedPrismaAdopter.findUnique.mockResolvedValue({
+				id: 1,
+				name: "Old",
+				email: "old@mail.com",
+			});
+
+			await expect(
+				adoptersService.updateAdopter(1, {
+					partnerId: 0,
+				}),
+			).rejects.toThrow(AppError);
+
+			expect(mockedPrismaPartner.findUnique).not.toHaveBeenCalled();
+			expect(mockedPrismaAdopter.update).not.toHaveBeenCalled();
+		});
+
+		it("should throw 400 when partnerId is negative", async () => {
+			mockedPrismaAdopter.findUnique.mockResolvedValue({
+				id: 1,
+				name: "Old",
+				email: "old@mail.com",
+			});
+
+			await expect(
+				adoptersService.updateAdopter(1, {
+					partnerId: -1,
+				}),
+			).rejects.toThrow(AppError);
+
+			expect(mockedPrismaPartner.findUnique).not.toHaveBeenCalled();
+			expect(mockedPrismaAdopter.update).not.toHaveBeenCalled();
+		});
+
+		it("should throw 404 when partnerId does not exist", async () => {
+			mockedPrismaAdopter.findUnique.mockResolvedValue({
+				id: 1,
+				name: "Old",
+				email: "old@mail.com",
+			});
+
+			mockedPrismaPartner.findUnique.mockResolvedValue(null);
+
+			await expect(
+				adoptersService.updateAdopter(1, {
+					partnerId: 999,
+				}),
+			).rejects.toThrow(AppError);
+
+			expect(mockedPrismaPartner.findUnique).toHaveBeenCalledWith({
+				where: { id: 999 },
+				select: { id: true },
+			});
+			expect(mockedPrismaAdopter.update).not.toHaveBeenCalled();
 		});
 	});
 
