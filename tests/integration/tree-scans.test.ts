@@ -474,6 +474,8 @@ describe("Tree Scans Integration Tests", () => {
 			},
 		});
 
+		await prisma.farm.deleteMany();
+
 		await prisma.project.deleteMany({
 			where: {
 				id: {

@@ -107,12 +107,19 @@ describe("Tree Types API", () => {
 		const inspectorRole = await createRole(nextUnique("inspector-role"));
 		const farmer = await createUser(farmerRole.id, "farmer");
 		const inspector = await createUser(inspectorRole.id, "inspector");
+		const farm = await prisma.farm.create({
+			data: {
+				farmCode: "Farm Code",
+				farmerId: farmer.id,
+				projectId: projectId,
+			},
+		});
 
 		const treeScan = await prisma.treeScan.create({
 			data: {
 				fobId: nextUnique("fob"),
 				projectId,
-				farmerId: farmer.id,
+				farmId: farm.id,
 				inspectorId: inspector.id,
 				speciesId,
 				estimatedPlantedYear: 2024,
@@ -153,6 +160,8 @@ describe("Tree Types API", () => {
 				},
 			});
 		}
+
+		await prisma.farm.deleteMany();
 
 		if (userIds.length > 0) {
 			await prisma.user.deleteMany({

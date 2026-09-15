@@ -189,42 +189,41 @@ const validateInspectorAssignment = async (
 	}
 };
 
-// Confirm a scan's farmer exists, holds the Farmer role, and is assigned to the
+// Confirm a scan's farm exists, is active, and is assigned to the
 // project.
-const validateFarmer = async (
-	farmerId: number,
+const validateFarm = async (
+	farmId: number,
 	projectId: number,
 ): Promise<void> => {
-	const farmer = await prisma.user.findUnique({
-		where: { id: farmerId },
-		include: { primaryRole: true },
+	const farm = await prisma.farm.findUnique({
+		where: { id: farmId },
+		select: {
+			status: true,
+			projectId: true,
+		},
 	});
 
-	if (!farmer) {
+	if (!farm) {
 		throw new AppError(
 			404,
 			customError("DATA_001"),
-			SCAN_BATCHES_MESSAGES.FARMER_NOT_FOUND,
+			SCAN_BATCHES_MESSAGES.FARM_NOT_FOUND,
 		);
 	}
 
-	if (farmer.primaryRole?.name !== SCAN_BATCHES_DB_ROLES.FARMER) {
+	if (farm.status !== "active") {
 		throw new AppError(
-			403,
-			customError("DATA_001"),
-			SCAN_BATCHES_MESSAGES.INVALID_FARMER_ROLE,
+			400,
+			customError("VAL_002"),
+			SCAN_BATCHES_MESSAGES.FARM_NOT_ACTIVE,
 		);
 	}
 
-	const farmerAssignment = await prisma.userProject.findFirst({
-		where: { userId: farmerId, projectId },
-	});
-
-	if (!farmerAssignment) {
+	if (farm.projectId !== projectId) {
 		throw new AppError(
 			403,
 			customError("DATA_001"),
-			SCAN_BATCHES_MESSAGES.FARMER_NOT_ASSIGNED,
+			SCAN_BATCHES_MESSAGES.FARM_NOT_ASSIGNED,
 		);
 	}
 };
@@ -415,7 +414,7 @@ export const createScanBatch = async (
 	// Per-scan reference checks. Measurement bounds are enforced by the Zod
 	// schema (createScanBatchSchema) at parse time, so they are not repeated here.
 	for (const scan of data.scans) {
-		await validateFarmer(scan.farm_id, data.project_id);
+		await validateFarm(scan.farm_id, data.project_id);
 		await validateSpecies(scan.species_id, data.project_id);
 	}
 

@@ -46,6 +46,9 @@ jest.mock("../../src/lib/prisma", () => {
 		projectTreeType: {
 			findFirst: jest.fn(),
 		},
+		farm: {
+			findUnique: jest.fn(),
+		},
 	};
 
 	mockPrisma.$transaction = jest.fn((callback: any) => callback(mockPrisma));
@@ -80,7 +83,7 @@ describe("ScanBatchesService", () => {
 		scans: [
 			{
 				fob_id: "SWAGGER-001",
-				farmer_id: 16,
+				farm_id: 16,
 				species_id: 1,
 				estimated_planted_year: 2024,
 				estimated_planted_month: 5,
@@ -107,14 +110,10 @@ describe("ScanBatchesService", () => {
 		},
 	};
 
-	const farmerRecord = {
+	const farmRecord = {
 		id: 16,
-		accountActive: true,
-		canSignIn: true,
-		primaryRole: {
-			id: 4,
-			name: SCAN_BATCHES_DB_ROLES.FARMER,
-		},
+		status: "active",
+		projectId: 1,
 	};
 
 	const scanBatchRecord = {
@@ -136,7 +135,7 @@ describe("ScanBatchesService", () => {
 				id: 1,
 				fobId: "SWAGGER-001",
 				projectId: 1,
-				farmerId: 16,
+				farmId: 16,
 				inspectorId: inspectorUser.id,
 				speciesId: 1,
 				estimatedPlantedYear: 2024,
@@ -147,9 +146,7 @@ describe("ScanBatchesService", () => {
 	};
 
 	const mockSuccessfulCreateDependencies = () => {
-		mockPrisma.user.findUnique
-			.mockResolvedValueOnce(inspectorRecord)
-			.mockResolvedValueOnce(farmerRecord);
+		mockPrisma.user.findUnique.mockResolvedValueOnce(inspectorRecord);
 
 		mockPrisma.project.findUnique.mockResolvedValue({
 			id: 1,
@@ -185,6 +182,8 @@ describe("ScanBatchesService", () => {
 		});
 
 		mockPrisma.scanBatch.findUnique.mockResolvedValue(scanBatchRecord);
+
+		mockPrisma.farm.findUnique.mockResolvedValue(farmRecord);
 	};
 
 	beforeEach(() => {
@@ -423,7 +422,7 @@ describe("ScanBatchesService", () => {
 					expect.objectContaining({
 						fobId: "SWAGGER-001",
 						projectId: 1,
-						farmerId: 16,
+						farmId: 16,
 						inspectorId: inspectorUser.id,
 						speciesId: 1,
 						estimatedPlantedYear: 2024,
@@ -682,12 +681,9 @@ describe("ScanBatchesService", () => {
 				scans: [validCreateInput.scans[0], secondScan],
 			};
 
-			// Validation loop runs once per scan, so mock inspector + two farmers.
+			// Validation loop runs once per scan
 			mockPrisma.user.findUnique.mockReset();
-			mockPrisma.user.findUnique
-				.mockResolvedValueOnce(inspectorRecord)
-				.mockResolvedValueOnce(farmerRecord)
-				.mockResolvedValueOnce(farmerRecord);
+			mockPrisma.user.findUnique.mockResolvedValueOnce(inspectorRecord);
 
 			// Only the first scan already exists, and the stored scan was captured
 			// later, so it wins last-write-wins. The second scan is new.
@@ -768,10 +764,7 @@ describe("ScanBatchesService", () => {
 			};
 
 			mockPrisma.user.findUnique.mockReset();
-			mockPrisma.user.findUnique
-				.mockResolvedValueOnce(inspectorRecord)
-				.mockResolvedValueOnce(farmerRecord)
-				.mockResolvedValueOnce(farmerRecord);
+			mockPrisma.user.findUnique.mockResolvedValueOnce(inspectorRecord);
 
 			mockPrisma.treeScan.findMany.mockResolvedValue([storedScan]);
 			mockPrisma.treeScan.update.mockResolvedValue(storedScan);
@@ -885,9 +878,7 @@ describe("ScanBatchesService", () => {
 		// Tests inspector project assignment validation
 		it("should throw forbidden when inspector is not assigned to project", async () => {
 			mockPrisma.user.findUnique.mockReset();
-			mockPrisma.user.findUnique
-				.mockResolvedValueOnce(inspectorRecord)
-				.mockResolvedValueOnce(farmerRecord);
+			mockPrisma.user.findUnique.mockResolvedValueOnce(inspectorRecord);
 
 			mockPrisma.userProject.findFirst.mockReset();
 			mockPrisma.userProject.findFirst.mockResolvedValueOnce(null);
@@ -901,12 +892,10 @@ describe("ScanBatchesService", () => {
 			});
 		});
 
-		// Tests missing farmer validation
-		it("should throw not found when farmer does not exist", async () => {
+		// Tests missing farm validation
+		it("should throw not found when farm does not exist", async () => {
 			mockPrisma.user.findUnique.mockReset();
-			mockPrisma.user.findUnique
-				.mockResolvedValueOnce(inspectorRecord)
-				.mockResolvedValueOnce(null);
+			mockPrisma.user.findUnique.mockResolvedValueOnce(inspectorRecord);
 
 			mockPrisma.userProject.findFirst.mockReset();
 			mockPrisma.userProject.findFirst.mockResolvedValueOnce({
@@ -914,50 +903,63 @@ describe("ScanBatchesService", () => {
 				projectId: 1,
 			});
 
+			mockPrisma.farm.findUnique.mockReset();
+			mockPrisma.farm.findUnique.mockResolvedValue(null);
+
 			const err = customError("DATA_001");
 			await expect(createScanBatch(validCreateInput)).rejects.toMatchObject({
 				statusCode: 404,
-				detail: SCAN_BATCHES_MESSAGES.FARMER_NOT_FOUND,
+				detail: SCAN_BATCHES_MESSAGES.FARM_NOT_FOUND,
 				code: err.code,
 				message: err.message,
 			});
 		});
 
-		// Tests farmer role validation
-		it("should throw invalid role when farmer_id does not belong to Farmer role", async () => {
+		// Tests farm active validation
+		it("should throw when farm is not active", async () => {
 			mockPrisma.user.findUnique.mockReset();
-			mockPrisma.user.findUnique
-				.mockResolvedValueOnce(inspectorRecord)
-				.mockResolvedValueOnce({
-					...farmerRecord,
-					primaryRole: {
-						id: 2,
-						name: SCAN_BATCHES_DB_ROLES.MANAGER,
-					},
-				});
+			mockPrisma.user.findUnique.mockResolvedValueOnce(inspectorRecord);
 
-			const err = customError("DATA_001");
+			mockPrisma.userProject.findFirst.mockReset();
+			mockPrisma.userProject.findFirst.mockResolvedValueOnce({
+				userId: inspectorUser.id,
+				projectId: 1,
+			});
+
+			mockPrisma.farm.findUnique.mockReset();
+			mockPrisma.farm.findUnique.mockResolvedValue({
+				id: 16,
+				status: "inactive",
+				projectId: 1,
+			});
+
+			const err = customError("VAL_002");
 			await expect(createScanBatch(validCreateInput)).rejects.toMatchObject({
-				statusCode: 403,
-				detail: SCAN_BATCHES_MESSAGES.INVALID_FARMER_ROLE,
+				statusCode: 400,
+				detail: SCAN_BATCHES_MESSAGES.FARM_NOT_ACTIVE,
 				code: err.code,
 				message: err.message,
 			});
 		});
 
-		// Tests farmer project assignment validation
-		it("should throw forbidden when farmer is not assigned to project", async () => {
-			mockPrisma.userProject.findFirst
-				.mockResolvedValueOnce({
-					userId: inspectorUser.id,
-					projectId: 1,
-				})
-				.mockResolvedValueOnce(null);
+		// Tests farm project assignment validation
+		it("should throw forbidden when farm is not assigned to project", async () => {
+			mockPrisma.userProject.findFirst.mockResolvedValueOnce({
+				userId: inspectorUser.id,
+				projectId: 1,
+			});
+
+			mockPrisma.farm.findUnique.mockReset();
+			mockPrisma.farm.findUnique.mockResolvedValue({
+				id: 16,
+				status: "active",
+				projectId: 99,
+			});
 
 			const err = customError("DATA_001");
 			await expect(createScanBatch(validCreateInput)).rejects.toMatchObject({
 				statusCode: 403,
-				detail: SCAN_BATCHES_MESSAGES.FARMER_NOT_ASSIGNED,
+				detail: SCAN_BATCHES_MESSAGES.FARM_NOT_ASSIGNED,
 				code: err.code,
 				message: err.message,
 			});
@@ -997,7 +999,7 @@ describe("ScanBatchesService", () => {
 					{
 						...validCreateInput.scans[0],
 						fob_id: "SWAGGER-002",
-						farmer_id: 999,
+						farm_id: 999,
 					},
 				],
 			};
@@ -1005,13 +1007,15 @@ describe("ScanBatchesService", () => {
 			mockPrisma.user.findUnique.mockReset();
 			mockPrisma.user.findUnique
 				.mockResolvedValueOnce(inspectorRecord)
-				.mockResolvedValueOnce(farmerRecord)
 				.mockResolvedValueOnce(null);
+
+			mockPrisma.farm.findUnique.mockReset();
+			mockPrisma.farm.findUnique.mockResolvedValue(null);
 
 			const err = customError("DATA_001");
 			await expect(createScanBatch(multiScanInput)).rejects.toMatchObject({
 				statusCode: 404,
-				detail: SCAN_BATCHES_MESSAGES.FARMER_NOT_FOUND,
+				detail: SCAN_BATCHES_MESSAGES.FARM_NOT_FOUND,
 				code: err.code,
 				message: err.message,
 			});
@@ -1029,7 +1033,7 @@ describe("ScanBatchesService", () => {
 			scans: [
 				{
 					fob_id: "SWAGGER-001",
-					farmer_id: 16,
+					farm_id: 16,
 					species_id: 1,
 					estimated_planted_year: 2024,
 					estimated_planted_month: 5,
