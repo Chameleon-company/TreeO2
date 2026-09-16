@@ -1,7 +1,9 @@
+#!/bin/bash
+
 # Task: CLD07
 # Purpose: To create a TreeO2 report queue with a dead-letter queue
 # Region: ap-southeast-2
-# Creates: 2 SQS queues (treeo2-reports, treeo2-reports-dlq
+# Creates: 2 SQS queues (treeo2-reports, treeo2-reports-dlq)
 # Re-runnable: yes, checks for existing queues first
 
 
