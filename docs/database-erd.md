@@ -1,28 +1,55 @@
-# TreeO2 ERD Generation Guide
+# TreeO2 Database ERD Generation Guide
 
 ## Purpose
 
-This document explains how to generate and maintain an **Entity Relationship Diagram (ERD)** for the TreeO2 project using Prisma.
+This document explains how to generate and maintain the **Entity Relationship Diagram (ERD)** for the TreeO2 database.
 
-A separate temporary local copy of the TreeO2 repository is used for ERD generation. This allows the required ERD tools and configuration to be added without affecting the primary local TreeO2 development repository.
+The ERD is generated directly from the Prisma schema in the main TreeO2 repository.
 
-The temporary repository can later be updated from the latest TreeO2 GitHub `master` branch whenever database changes are merged.
+A separate temporary repository is not required.
+
+The generated ERD is saved to:
+
+```text
+docs/database-erd.svg
+```
+
+---
+
+## How ERD Generation Works
+
+TreeO2 uses the following tools:
+
+- `prisma-erd-generator`
+- `@mermaid-js/mermaid-cli`
+
+The generation process is:
+
+```text
+prisma/schema.prisma
+        ↓
+prisma-erd-generator
+        ↓
+Mermaid CLI
+        ↓
+docs/database-erd.svg
+```
+
+`prisma-erd-generator` reads the models and relationships defined in the Prisma schema.
+
+Mermaid CLI (`mmdc`) renders the generated diagram as an SVG file.
 
 ---
 
 ## Requirements
 
-Before generating the ERD, ensure the following are available:
+Before generating the ERD, ensure the following are installed:
 
-- Access to the **TreeO2 GitHub repository**
-- **Git** installed
-- **Node.js** installed
-- **npm** installed
-- **Visual Studio Code** or another code editor
-- Prisma project files
-- Internet connection for installing npm packages
+- Git
+- Node.js
+- npm
 
-Check that Git, Node.js, and npm are installed:
+Check that they are available:
 
 ```bash
 git --version
@@ -30,321 +57,458 @@ node --version
 npm --version
 ```
 
-If version numbers are returned, the required tools are installed correctly.
-
 ---
 
-## Step 1 – Create a Temporary TreeO2 Repository
+## Install Project Dependencies
 
-To avoid modifying the primary local TreeO2 repository, create a separate copy specifically for ERD generation.
-
-Clone the TreeO2 repository:
-
-```bash
-git clone <TreeO2-repository-URL> TreeO2-ERD
-```
-
-Navigate into the temporary repository:
-
-```bash
-cd TreeO2-ERD
-```
-
-This repository will be used specifically for ERD generation and related configuration.
-
-> **Note:** Changes made inside this temporary repository will not automatically affect the primary local TreeO2 repository.
-
----
-
-## Step 2 – Create an ERD Working Branch
-
-Create a separate branch for the ERD generation configuration:
-
-```bash
-git switch -c erd-generation
-```
-
-Confirm the current branch:
-
-```bash
-git branch
-```
-
-The output should show:
-
-```text
-* erd-generation
-  master
-```
-
-Using a separate branch keeps the ERD-specific configuration separate from the temporary repository's local `master` branch.
-
----
-
-## Step 3 – Locate the Prisma Schema
-
-Locate the Prisma schema used by the TreeO2 project.
-
-The schema is generally located within the Prisma directory:
-
-```text
-prisma/schema.prisma
-```
-
-The Prisma schema defines the database structure, including:
-
-- Models
-- Primary keys
-- Foreign keys
-- Relationships
-- Data types
-- Constraints
-- Database mappings
-
-The ERD is generated using the information contained within the Prisma schema.
-
----
-
-## Step 4 – Install Required Dependencies
-
-Install the existing project dependencies:
+From the root of the TreeO2 repository, run:
 
 ```bash
 npm install
 ```
 
-Then install the Prisma ERD generator:
+This installs the dependencies defined in `package.json`.
 
-```bash
-npm install prisma-erd-generator
+The ERD generation tools are stored as development dependencies:
+
+```json
+"@mermaid-js/mermaid-cli": "^11.17.0",
+"prisma-erd-generator": "^3.2.1"
 ```
 
-The `prisma-erd-generator` package allows an ERD to be automatically generated from the Prisma database schema.
+Once these dependencies have been committed to the repository, other developers do not need to install them individually.
+
+They only need to run:
+
+```bash
+npm install
+```
+
+### Adding the ERD Dependencies
+
+If the ERD dependencies are not yet present in `package.json`, they can be added with:
+
+```bash
+npm install -D prisma-erd-generator @mermaid-js/mermaid-cli
+```
+
+The `-D` option adds the packages to `devDependencies`.
+
+This automatically updates:
+
+```text
+package.json
+package-lock.json
+```
 
 ---
 
-## Step 5 – Configure the ERD Generator
+## Prisma ERD Generator Configuration
 
-Open the Prisma schema and add the ERD generator configuration if it is not already present.
+The ERD generator is configured in:
 
-For example:
+```text
+prisma/schema.prisma
+```
+
+The Prisma schema should contain:
 
 ```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
 generator erd {
   provider = "prisma-erd-generator"
-  output   = "../docs/erd.svg"
+  output   = "../docs/database-erd.svg"
 }
 ```
 
-The `provider` specifies which ERD generator Prisma should use.
+The `client` generator is used by the TreeO2 backend.
 
-The `output` specifies where the generated ERD should be saved.
-
-If the required documentation directory does not exist, create it before generating the ERD.
+The `erd` generator is used to create the database ERD.
 
 ---
 
-## Step 6 – Generate the ERD
+## ERD npm Script
 
-Run:
+The ERD generation command is defined in `package.json`.
 
-```bash
-npx prisma generate
+Add the following script inside the existing `"scripts"` section:
+
+```json
+"erd:generate": "prisma generate --schema prisma --generator erd"
 ```
 
-Prisma will process the database schema and generate the ERD.
+The normal Prisma Client generation script can remain separate:
 
-After generation, check the configured output location.
+```json
+"prisma:generate": "prisma generate --schema prisma --generator client"
+```
 
-For example:
+This keeps the two generation processes separate.
+
+### Prisma Client
+
+```bash
+npm run prisma:generate
+```
+
+Generates the Prisma Client used by the backend.
+
+### Database ERD
+
+```bash
+npm run erd:generate
+```
+
+Generates only the database ERD.
+
+---
+
+## Generate the ERD
+
+From the root of the TreeO2 repository, run:
+
+```bash
+npm run erd:generate
+```
+
+The generator reads:
 
 ```text
-docs/erd.svg
+prisma/schema.prisma
 ```
 
-Open the SVG file using Visual Studio Code or a web browser to review the generated diagram.
+and creates:
+
+```text
+docs/database-erd.svg
+```
+
+Open the SVG in Visual Studio Code, GitHub, or a web browser to review the generated diagram.
 
 ---
 
+# Updating the ERD After Database Changes
 
-# Updating the Temporary ERD Repository
+The ERD should be regenerated when database-related changes are merged into the TreeO2 `master` branch.
 
-The TreeO2 project will continue to change as new Pull Requests are merged into the GitHub `master` branch.
+Examples include:
 
-The temporary ERD repository should therefore be updated before generating a new version of the ERD.
+- New Prisma models
+- Removed Prisma models
+- New relationships
+- Modified relationships
+- New or changed foreign keys
+- Primary key changes
+- New database fields
+- Database restructuring
+- Other significant Prisma schema changes
 
-> **Important:** The primary local TreeO2 repository does not need to be updated first. The temporary ERD repository can retrieve the latest changes directly from GitHub.
+Before regenerating the ERD, update the working branch with the latest changes from `master`.
 
-Navigate to the temporary repository:
+---
 
-```bash
-cd TreeO2-ERD
-```
+## Step 1 – Check the Current Branch
 
-Confirm that you are using the ERD branch:
+Check which branch you are currently using:
 
 ```bash
 git branch
 ```
 
-The output should show:
+Also check whether there are any uncommitted changes:
 
-```text
-* erd-generation
+```bash
+git status
+```
+
+If there are important uncommitted changes, commit or stash them before rebasing.
+
+---
+
+## Step 2 – Fetch the Latest Repository Changes
+
+Retrieve the latest changes from GitHub:
+
+```bash
+git fetch origin
+```
+
+This updates your local knowledge of the remote branches without changing your current working files.
+
+---
+
+## Step 3 – Rebase onto the Latest Master Branch
+
+Update the current ERD working branch with the latest changes from `master`:
+
+```bash
+git rebase origin/master
+```
+
+This brings the latest TreeO2 changes into the current branch while keeping the branch history clean.
+
+If there are merge conflicts, Git will stop the rebase and identify the affected files.
+
+Resolve the conflicts, then run:
+
+```bash
+git add <resolved-file>
+git rebase --continue
+```
+
+Repeat until the rebase completes.
+
+If the rebase needs to be cancelled:
+
+```bash
+git rebase --abort
 ```
 
 ---
 
-# Standard ERD Update Process
+## Step 4 – Install Any Updated Dependencies
 
-When a significant database-related Pull Request is merged into TreeO2, the standard update process is:
+If `package.json` or `package-lock.json` changed after updating the branch, run:
 
 ```bash
-cd TreeO2-ERD
-
-git status
-
-git fetch origin
-
-git rebase origin/master
-
-npx prisma generate
+npm install
 ```
 
-If there are uncommitted changes:
+This ensures the local project has the dependencies required by the latest version of TreeO2.
+
+---
+
+## Step 5 – Regenerate the ERD
+
+Run:
+
+```bash
+npm run erd:generate
+```
+
+The ERD will be regenerated from the latest local Prisma schema.
+
+The updated file will be:
+
+```text
+docs/database-erd.svg
+```
+
+---
+
+## Step 6 – Review the Updated ERD
+
+Open:
+
+```text
+docs/database-erd.svg
+```
+
+Check that the diagram contains the expected:
+
+- Models
+- Fields
+- Primary keys
+- Foreign keys
+- Relationships
+
+The ERD should reflect the current contents of:
+
+```text
+prisma/schema.prisma
+```
+
+---
+
+## Updating When You Have Uncommitted Changes
+
+If changes need to be temporarily stored before rebasing, use:
 
 ```bash
 git stash -u
-
-git fetch origin
-
-git rebase origin/master
-
-git stash pop
-
-npx prisma generate
 ```
 
----
-
-# Do I Need to Create a New Temporary Repository Every Time?
-
-**No.**
-
-The existing `TreeO2-ERD` repository can be reused.
-
-Whenever TreeO2 changes, the temporary repository can retrieve the latest project changes using:
+Then update the branch:
 
 ```bash
 git fetch origin
 git rebase origin/master
 ```
 
-This means the ERD generator and its configuration do not need to be installed again every time the database changes.
+Restore the saved changes:
 
-A completely new temporary repository should generally only be required if:
-
-- The temporary repository becomes corrupted
-- Major TreeO2 restructuring breaks the existing ERD setup
-- A completely clean environment is required for testing
-
----
-
-# Recommended Repository Structure
-
-The local development environment can contain two separate TreeO2 repositories:
-
-```text
-Computer
-│
-├── TreeO2
-│   └── Primary local development repository
-│
-└── TreeO2-ERD
-    └── Temporary repository used for ERD generation
+```bash
+git stash pop
 ```
 
-Both repositories connect independently to the TreeO2 GitHub repository.
+Then regenerate the ERD:
 
-The primary `TreeO2` repository is used for normal development.
-
-The `TreeO2-ERD` repository is used for:
-
-- ERD generation
-- ERD configuration
-- ERD testing
-- Database documentation
-
-Changes inside `TreeO2-ERD` do not automatically modify the primary TreeO2 development repository.
+```bash
+npm run erd:generate
+```
 
 ---
 
-# When Should the ERD Be Updated?
+# Files Used for ERD Generation
 
-The ERD should be regenerated after significant database changes, including:
+The main files involved are:
 
-- New Prisma models
-- Removed Prisma models
-- New database relationships
-- Modified relationships
-- New foreign keys
-- Changes to primary keys
-- Changes to user or role relationships
-- Database restructuring
-- Major Prisma schema changes
+```text
+TreeO2/
+├── package.json
+├── package-lock.json
+├── prisma/
+│   └── schema.prisma
+└── docs/
+    ├── database-erd.md
+    └── database-erd.svg
+```
 
-Before regenerating the ERD, update the temporary repository from the latest TreeO2 `master` branch.
+### `package.json`
+
+Contains:
+
+- ERD development dependencies
+- `erd:generate` npm script
+
+### `package-lock.json`
+
+Records the exact versions of the installed npm dependencies.
+
+### `prisma/schema.prisma`
+
+Contains:
+
+- Database models
+- Database relationships
+- Prisma Client generator
+- ERD generator
+
+### `docs/database-erd.svg`
+
+Contains the generated TreeO2 database ERD.
+
+### `docs/database-erd.md`
+
+Contains this guide.
 
 ---
 
 # Troubleshooting
 
-## Prisma Command Is Not Recognised
+## ERD Generator Cannot Be Found
 
-Use:
+First install the project dependencies:
 
 ```bash
-npx prisma generate
+npm install
 ```
 
-Using `npx` runs the locally installed Prisma version.
+If `prisma-erd-generator` is not present in `package.json`, install it with:
+
+```bash
+npm install -D prisma-erd-generator
+```
+
+Then retry:
+
+```bash
+npm run erd:generate
+```
 
 ---
 
-## ERD Is Not Generated
+## Mermaid CLI or `mmdc` Cannot Be Found
 
-Confirm that `prisma-erd-generator` is installed:
+The ERD generator requires Mermaid CLI to render the SVG.
+
+First run:
 
 ```bash
-npm install prisma-erd-generator
+npm install
 ```
 
-Also confirm that the ERD generator configuration exists in the Prisma schema.
+If `@mermaid-js/mermaid-cli` is not present in `package.json`, install it with:
 
-Example:
+```bash
+npm install -D @mermaid-js/mermaid-cli
+```
+
+Then retry:
+
+```bash
+npm run erd:generate
+```
+
+---
+
+## ERD File Is Not Generated
+
+Confirm that `prisma/schema.prisma` contains:
 
 ```prisma
 generator erd {
   provider = "prisma-erd-generator"
-  output   = "../docs/erd.svg"
+  output   = "../docs/database-erd.svg"
 }
+```
+
+Also confirm that `package.json` contains:
+
+```json
+"erd:generate": "prisma generate --schema prisma --generator erd"
+```
+
+Then run:
+
+```bash
+npm run erd:generate
 ```
 
 ---
 
 ## ERD Appears Outdated
 
-The temporary repository may not contain the latest TreeO2 database changes.
-
-Run:
+Fetch and apply the latest changes from `master`:
 
 ```bash
 git fetch origin
 git rebase origin/master
 ```
 
-Then regenerate the ERD:
+Then regenerate the diagram:
 
 ```bash
-npx prisma generate
+npm run erd:generate
+```
+
+The resulting ERD will reflect the Prisma schema currently available on the branch.
+
+---
+
+# Quick Reference
+
+### First-time setup
+
+```bash
+npm install
+npm run erd:generate
+```
+
+### Update the ERD after changes are merged into master
+
+```bash
+git fetch origin
+git rebase origin/master
+npm install
+npm run erd:generate
+```
+
+### Generated ERD location
+
+```text
+docs/database-erd.svg
 ```

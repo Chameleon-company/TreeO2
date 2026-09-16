@@ -18,7 +18,8 @@
     "prisma:format:check": "prisma format --check",
     "prisma:format": "prisma format",
     "prisma:validate": "prisma validate",
-    "prisma:generate": "prisma generate --schema prisma",
+    "prisma:generate": "prisma generate --schema prisma --generator client",
+    "erd:generate": "prisma generate --schema prisma --generator erd",
     "prisma:push": "prisma db push --schema prisma",
     "prisma:migrate:dev": "prisma migrate dev --schema prisma",
     "prisma:migrate:deploy": "prisma migrate deploy --schema prisma",
@@ -49,6 +50,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.17.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/compression": "^1.7.5",
     "@types/cors": "^2.8.17",
@@ -69,6 +71,7 @@
     "lint-staged": "^15.2.7",
     "prettier": "^3.3.3",
     "prisma": "^6.19.2",
+    "prisma-erd-generator": "^3.2.1",
     "supertest": "^7.2.2",
     "ts-jest": "^29.2.2",
     "ts-node": "^10.9.2",
