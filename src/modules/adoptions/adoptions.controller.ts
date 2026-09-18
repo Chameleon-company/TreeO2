@@ -43,7 +43,7 @@ export class AdoptionsController {
 
 			const result = await adoptionsService.listAdoptions(filters);
 
-			return res.status(200).json({ success: true, data: result });
+			return res.status(200).json(result);
 		} catch (error) {
 			return next(error);
 		}
