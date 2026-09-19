@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 jest.mock("bcryptjs", () => ({ compare: jest.fn() }));
 import { createHash } from "crypto";
 import type { User } from "@prisma/client";
@@ -47,19 +48,18 @@ describe("AuthService", () => {
 
 	describe("login", () => {
 		it("throws 401 AUTH_001 if user does not exist", async () => {
-			(mockRepo.findUserWithRolesByEmail).mockResolvedValue(null);
+			mockRepo.findUserWithRolesByEmail.mockResolvedValue(null);
 			await expect(
 				service.login({ email: "test@tree.com", password: "pw" }),
 			).rejects.toMatchObject({ statusCode: 401, code: "AUTH_001" });
 		});
 
 		it("throws 401 AUTH_001 if password fails bcrypt compare", async () => {
-			(mockRepo.findUserWithRolesByEmail).mockResolvedValue({
+			mockRepo.findUserWithRolesByEmail.mockResolvedValue({
 				accountActive: true,
 				canSignIn: true,
 				passwordHash: "hash",
 			});
-			const bcrypt = require("bcryptjs");
 			(bcrypt.compare as jest.Mock).mockResolvedValue(false);
 			await expect(
 				service.login({ email: "test@tree.com", password: "wrong" }),
@@ -78,15 +78,12 @@ describe("AuthService", () => {
 					{ organisationId: 10, roles: [{ role: { name: "Member" } }] },
 				],
 			};
-			(mockRepo.findUserWithRolesByEmail).mockResolvedValue(
-				mockUser,
-			);
-			const bcrypt = require("bcryptjs");
+			mockRepo.findUserWithRolesByEmail.mockResolvedValue(mockUser);
 			(bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
 			// Mock prisma create
 			const createMock = jest.fn().mockResolvedValue({});
-			(mockRepo.getPrismaClient).mockReturnValue({
+			mockRepo.getPrismaClient.mockReturnValue({
 				refreshToken: { create: createMock },
 			});
 
@@ -103,13 +100,11 @@ describe("AuthService", () => {
 
 	describe("refresh", () => {
 		it("throws 401 AUTH_002 if token is revoked", async () => {
-			const findMock = jest
-				.fn()
-				.mockResolvedValue({
-					revoked: true,
-					expiresAt: new Date(Date.now() + 10000),
-				});
-			(mockRepo.getPrismaClient).mockReturnValue({
+			const findMock = jest.fn().mockResolvedValue({
+				revoked: true,
+				expiresAt: new Date(Date.now() + 10000),
+			});
+			mockRepo.getPrismaClient.mockReturnValue({
 				refreshToken: { findFirst: findMock },
 			});
 
@@ -120,18 +115,16 @@ describe("AuthService", () => {
 		});
 
 		it("revokes old token and issues new ones on valid refresh", async () => {
-			const findMock = jest
-				.fn()
-				.mockResolvedValue({
-					id: 99,
-					userId: 1,
-					revoked: false,
-					expiresAt: new Date(Date.now() + 10000),
-				});
+			const findMock = jest.fn().mockResolvedValue({
+				id: 99,
+				userId: 1,
+				revoked: false,
+				expiresAt: new Date(Date.now() + 10000),
+			});
 			const updateMock = jest.fn().mockResolvedValue({});
 			const createMock = jest.fn().mockResolvedValue({});
 
-			(mockRepo.getPrismaClient).mockReturnValue({
+			mockRepo.getPrismaClient.mockReturnValue({
 				refreshToken: {
 					findFirst: findMock,
 					update: updateMock,
@@ -147,7 +140,7 @@ describe("AuthService", () => {
 				systemRole: { name: "SystemAdmin" },
 				userOrganisations: [],
 			};
-			(mockRepo.findUserWithRolesById).mockResolvedValue(mockUser);
+			mockRepo.findUserWithRolesById.mockResolvedValue(mockUser);
 
 			const result = await service.refresh("valid-token");
 

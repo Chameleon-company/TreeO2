@@ -96,5 +96,4 @@ describe("authMiddleware - Comprehensive Unit Tests", () => {
 			statusCode: 401,
 		});
 	});
-
-	});
+});

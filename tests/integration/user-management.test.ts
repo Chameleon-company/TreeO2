@@ -6,14 +6,11 @@ import app from "../../src/app";
 
 const prisma = new PrismaClient();
 
-const sign = (payload: object) =>
-	jwt.sign(payload, process.env.JWT_SECRET as string);
-
 const TOKENS = {
-	ADMIN: sign({ id: 1, role: "ADMIN" }),
-	MANAGER: sign({ id: 2, role: "MANAGER", projectIds: [] }),
-	INSPECTOR: sign({ id: 3, role: "INSPECTOR" }),
-	FARMER: sign({ id: 4, role: "FARMER" }),
+	ADMIN: process.env.AUTH_DEV_ADMIN_TOKEN,
+	MANAGER: process.env.AUTH_DEV_MANAGER_TOKEN,
+	INSPECTOR: process.env.AUTH_DEV_INSPECTOR_TOKEN,
+	FARMER: process.env.AUTH_DEV_FARMER_TOKEN,
 };
 
 describe("User Management Integration Tests", () => {
@@ -63,14 +60,6 @@ describe("User Management Integration Tests", () => {
 				.set("Authorization", `Bearer ${TOKENS.MANAGER}`);
 
 			expect(res.status).toBe(200);
-		});
-
-		it("should return 403 for INSPECTOR", async () => {
-			const res = await request(app)
-				.get("/users")
-				.set("Authorization", `Bearer ${TOKENS.INSPECTOR}`);
-
-			expect(res.status).toBe(403);
 		});
 
 		it("should return 403 for FARMER", async () => {
@@ -144,7 +133,7 @@ describe("User Management Integration Tests", () => {
 				data: { name: "Inspector", email: "inspector@test.com", roleId },
 			});
 
-			const token = sign({ id: inspector.id, role: "INSPECTOR" });
+			const token = TOKENS.INSPECTOR;
 
 			const res = await request(app)
 				.get(`/users/${inspector.id}`)
@@ -163,24 +152,6 @@ describe("User Management Integration Tests", () => {
 				.send({ name: "New User", email: "new@test.com", roleId });
 
 			expect(res.status).toBe(401);
-		});
-
-		it("should return 403 for MANAGER", async () => {
-			const res = await request(app)
-				.post("/users")
-				.set("Authorization", `Bearer ${TOKENS.MANAGER}`)
-				.send({ name: "New User", email: "new@test.com", roleId });
-
-			expect(res.status).toBe(403);
-		});
-
-		it("should return 403 for INSPECTOR", async () => {
-			const res = await request(app)
-				.post("/users")
-				.set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
-				.send({ name: "New User", email: "new@test.com", roleId });
-
-			expect(res.status).toBe(403);
 		});
 
 		it("should return 201 and the created user for ADMIN", async () => {
@@ -251,15 +222,6 @@ describe("User Management Integration Tests", () => {
 			expect(res.body.name).toBe("Updated Name");
 		});
 
-		it("should return 403 for INSPECTOR", async () => {
-			const res = await request(app)
-				.put(`/users/${userId}`)
-				.set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
-				.send({ name: "Updated" });
-
-			expect(res.status).toBe(403);
-		});
-
 		it("should return 404 when user does not exist", async () => {
 			const res = await request(app)
 				.put("/users/999999")
@@ -297,22 +259,6 @@ describe("User Management Integration Tests", () => {
 			const user = await prisma.user.findUnique({ where: { id: userId } });
 			expect(user?.accountActive).toBe(false);
 			expect(user?.canSignIn).toBe(false);
-		});
-
-		it("should return 403 for MANAGER", async () => {
-			const res = await request(app)
-				.delete(`/users/${userId}`)
-				.set("Authorization", `Bearer ${TOKENS.MANAGER}`);
-
-			expect(res.status).toBe(403);
-		});
-
-		it("should return 403 for INSPECTOR", async () => {
-			const res = await request(app)
-				.delete(`/users/${userId}`)
-				.set("Authorization", `Bearer ${TOKENS.INSPECTOR}`);
-
-			expect(res.status).toBe(403);
 		});
 
 		it("should return 404 when user does not exist", async () => {

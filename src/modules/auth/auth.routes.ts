@@ -7,7 +7,7 @@ import {
 } from "../../middleware/authRateLimit.middleware";
 import { authMiddleware } from "../../middleware/auth.middleware";
 import { projectScopeMiddleware } from "../../middleware/projectScope.middleware";
-import { roleMiddleware } from "../../middleware/role.middleware";
+import { requirePermission } from "../../middleware/capability.middleware";
 import { validateMiddleware } from "../../middleware/validate.middleware";
 import { AuthController } from "./auth.controller";
 import "./auth.docs";
@@ -67,7 +67,7 @@ if (env.NODE_ENV === "development" && env.AUTH_DEV_MODE) {
 	router.get(
 		"/test/admin",
 		authMiddleware,
-		roleMiddleware(["ADMIN"]),
+		requirePermission("auth:create"),
 		(req, res) => {
 			authController.getAdminTest(req, res);
 		},

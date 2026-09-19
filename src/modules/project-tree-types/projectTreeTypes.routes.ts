@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authMiddleware } from "../../middleware/auth.middleware";
-import { roleMiddleware } from "../../middleware/role.middleware";
+import { requirePermission } from "../../middleware/capability.middleware";
 import { validateMiddleware } from "../../middleware/validate.middleware";
 import { ProjectTreeTypesController } from "./projectTreeTypes.controller";
 import "./projectTreeTypes.docs";
@@ -16,7 +16,7 @@ const projectTreeTypesController = new ProjectTreeTypesController();
 router.get(
 	"/",
 	authMiddleware,
-	roleMiddleware(["ADMIN", "MANAGER"]),
+	requirePermission("project_tree_types:read"),
 	validateMiddleware(listProjectTreeTypesSchema),
 	(req, res, next) => {
 		void projectTreeTypesController.listProjectTreeTypes(req, res).catch(next);
@@ -26,7 +26,7 @@ router.get(
 router.post(
 	"/",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
+	requirePermission("project_tree_types:create"),
 	validateMiddleware(createProjectTreeTypeSchema),
 	(req, res, next) => {
 		void projectTreeTypesController.addProjectTreeType(req, res).catch(next);
@@ -36,7 +36,7 @@ router.post(
 router.delete(
 	"/:project_id/:tree_type_id",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
+	requirePermission("project_tree_types:delete"),
 	validateMiddleware(deleteProjectTreeTypeSchema),
 	(req, res, next) => {
 		void projectTreeTypesController.removeProjectTreeType(req, res).catch(next);

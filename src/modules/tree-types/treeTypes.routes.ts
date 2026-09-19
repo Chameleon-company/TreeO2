@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authMiddleware } from "../../middleware/auth.middleware";
-import { roleMiddleware } from "../../middleware/role.middleware";
+import { requirePermission } from "../../middleware/capability.middleware";
 import { validateMiddleware } from "../../middleware/validate.middleware";
 import { TreeTypesController } from "./treeTypes.controller";
 import "./treeTypes.docs";
@@ -30,7 +30,7 @@ router.get(
 router.post(
 	"/",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
+	requirePermission("tree_types:read"),
 	validateMiddleware(createTreeTypeSchema),
 	(req, res, next) => {
 		void treeTypesController.createTreeType(req, res).catch(next);
@@ -40,7 +40,7 @@ router.post(
 router.put(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
+	requirePermission("tree_types:update"),
 	validateMiddleware(updateTreeTypeSchema),
 	(req, res, next) => {
 		void treeTypesController.updateTreeType(req, res).catch(next);
@@ -50,7 +50,7 @@ router.put(
 router.delete(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
+	requirePermission("tree_types:delete"),
 	validateMiddleware(deleteTreeTypeSchema),
 	(req, res, next) => {
 		void treeTypesController.deleteTreeType(req, res).catch(next);

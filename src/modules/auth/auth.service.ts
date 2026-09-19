@@ -35,7 +35,9 @@ export class AuthService {
 
 		// Verify password using bcrypt
 		const isValid = await bcrypt.compare(payload.password, user.passwordHash);
-		if (!isValid) {throw new AppError(401, customError("AUTH_001"));}
+		if (!isValid) {
+			throw new AppError(401, customError("AUTH_001"));
+		}
 
 		// Map organisation roles
 		const organisations = user.userOrganisations.map((org) => {

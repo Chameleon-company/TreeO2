@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { adoptionsController } from "./adoptions.controller";
 import { authMiddleware } from "../../middleware/auth.middleware";
-import { roleMiddleware } from "../../middleware/role.middleware";
+import { requirePermission } from "../../middleware/capability.middleware";
 
 const router = Router();
 
@@ -11,7 +11,7 @@ const router = Router();
 router.post(
 	"/",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
+	requirePermission("adoptions:create"),
 	(req, res, next) => void adoptionsController.createAdoption(req, res, next),
 );
 
@@ -21,7 +21,7 @@ router.post(
 router.get(
 	"/",
 	authMiddleware,
-	roleMiddleware(["ADMIN", "MANAGER"]),
+	requirePermission("adoptions:read"),
 	(req, res, next) => {
 		void adoptionsController.listAdoptions(req, res, next);
 	},
@@ -33,7 +33,7 @@ router.get(
 router.get(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN", "MANAGER"]),
+	requirePermission("adoptions:read"),
 	(req, res, next) => {
 		void adoptionsController.getAdoptionById(req, res, next);
 	},
@@ -45,7 +45,7 @@ router.get(
 router.put(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
+	requirePermission("adoptions:update"),
 	(req, res, next) => {
 		void adoptionsController.updateAdoption(req, res, next);
 	},
@@ -57,7 +57,7 @@ router.put(
 router.delete(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
+	requirePermission("adoptions:delete"),
 	(req, res, next) => {
 		void adoptionsController.deleteAdoption(req, res, next);
 	},

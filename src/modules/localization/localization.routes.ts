@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authMiddleware } from "../../middleware/auth.middleware";
-import { roleMiddleware } from "../../middleware/role.middleware";
+import { requirePermission } from "../../middleware/capability.middleware";
 import { LocalizationController } from "./localization.controller";
 import "./localization.docs";
 
@@ -10,7 +10,7 @@ const localizationController = new LocalizationController();
 router.get(
 	"/",
 	authMiddleware,
-	roleMiddleware(["FARMER", "INSPECTOR", "MANAGER", "ADMIN", "DEVELOPER"]),
+	requirePermission("localized_strings:read"),
 	(req, res, next) => {
 		void localizationController.listLocalizedStrings(req, res).catch(next);
 	},
@@ -19,7 +19,7 @@ router.get(
 router.post(
 	"/",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
+	requirePermission("localized_strings:create"),
 	(req, res, next) => {
 		void localizationController.createLocalizedString(req, res).catch(next);
 	},
@@ -28,7 +28,7 @@ router.post(
 router.put(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
+	requirePermission("localized_strings:update"),
 	(req, res, next) => {
 		void localizationController.updateLocalizedString(req, res).catch(next);
 	},
@@ -37,7 +37,7 @@ router.put(
 router.delete(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
+	requirePermission("localized_strings:delete"),
 	(req, res, next) => {
 		void localizationController.deleteLocalizedString(req, res).catch(next);
 	},

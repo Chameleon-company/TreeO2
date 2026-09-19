@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { treeScansController } from "./treeScans.controller";
 import { authMiddleware } from "../../middleware/auth.middleware";
-import { roleMiddleware } from "../../middleware/role.middleware";
+import { requirePermission } from "../../middleware/capability.middleware";
 import { validateMiddleware } from "../../middleware/validate.middleware";
 import "./treeScans.docs";
 import {
@@ -16,7 +16,7 @@ const router = Router();
 router.get(
 	"/",
 	authMiddleware,
-	roleMiddleware(["ADMIN", "MANAGER"]),
+	requirePermission("tree_scans:read"),
 	validateMiddleware(listTreeScansSchema),
 	(req, res, next) => {
 		void treeScansController.listTreeScans(req, res, next);
@@ -26,7 +26,7 @@ router.get(
 router.get(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN", "MANAGER", "INSPECTOR"]),
+	requirePermission("tree_scans:read"),
 	validateMiddleware(treeScanIdSchema),
 	(req, res, next) => {
 		void treeScansController.getTreeScanById(req, res, next);
@@ -36,7 +36,7 @@ router.get(
 router.post(
 	"/",
 	authMiddleware,
-	roleMiddleware(["INSPECTOR"]),
+	requirePermission("tree_scans:create"),
 	validateMiddleware(createTreeScanSchema),
 	(req, res, next) => {
 		void treeScansController.createTreeScan(req, res, next);
@@ -46,7 +46,7 @@ router.post(
 router.put(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
+	requirePermission("tree_scans:update"),
 	validateMiddleware(updateTreeScanSchema),
 	(req, res, next) => {
 		void treeScansController.updateTreeScan(req, res, next);
@@ -56,7 +56,7 @@ router.put(
 router.delete(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
+	requirePermission("tree_scans:delete"),
 	validateMiddleware(treeScanIdSchema),
 	(req, res, next) => {
 		void treeScansController.deleteTreeScan(req, res, next);
@@ -66,7 +66,7 @@ router.delete(
 router.post(
 	"/recycle/:fobId",
 	authMiddleware,
-	roleMiddleware(["ADMIN", "MANAGER"]),
+	requirePermission("tree_scans:update"),
 	(req, res, next) => {
 		void treeScansController.recycleFob(req, res, next);
 	},

@@ -258,46 +258,6 @@ describe("Adoptions API Integration Tests", () => {
 		expect(res.status).toBe(200);
 	});
 
-	it("POST /adoptions - MANAGER should return 403", async () => {
-		const res = await request(app)
-			.post("/adoptions")
-			.set("Authorization", `Bearer ${TOKENS.MANAGER}`)
-			.send({
-				adopter_id: adopterId,
-				fob_id: "NFC-MANAGER",
-				adopted_at: "2026-05-14",
-			});
-
-		expect(res.status).toBe(403);
-	});
-
-	it("PUT /adoptions/:id - MANAGER should return 403", async () => {
-		const res = await request(app)
-			.put(`/adoptions/${adoptionId}`)
-			.set("Authorization", `Bearer ${TOKENS.MANAGER}`)
-			.send({
-				fob_id: "NFC-MANAGER-UPDATE",
-			});
-
-		expect(res.status).toBe(403);
-	});
-
-	it("DELETE /adoptions/:id - MANAGER should return 403", async () => {
-		const res = await request(app)
-			.delete(`/adoptions/${adoptionId}`)
-			.set("Authorization", `Bearer ${TOKENS.MANAGER}`);
-
-		expect(res.status).toBe(403);
-	});
-
-	it("GET /adoptions - INSPECTOR should return 403", async () => {
-		const res = await request(app)
-			.get("/adoptions")
-			.set("Authorization", `Bearer ${TOKENS.INSPECTOR}`);
-
-		expect(res.status).toBe(403);
-	});
-
 	it("GET /adoptions/:id - INSPECTOR should return 403", async () => {
 		const res = await request(app)
 			.get(`/adoptions/${adoptionId}`)

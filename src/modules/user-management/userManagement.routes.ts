@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { UserManagementController } from "./userManagement.controller";
 import { authMiddleware } from "../../middleware/auth.middleware";
-import { roleMiddleware } from "../../middleware/role.middleware";
+import { requirePermission } from "../../middleware/capability.middleware";
 import "./userManagement.docs";
 
 type AsyncFn = (
@@ -21,7 +21,7 @@ const router = Router();
 router.get(
 	"/",
 	authMiddleware,
-	roleMiddleware(["ADMIN", "MANAGER"]),
+	requirePermission("users:read"),
 	asyncHandler(UserManagementController.getUsers),
 );
 
@@ -34,21 +34,21 @@ router.get(
 router.post(
 	"/",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
+	requirePermission("users:read"),
 	asyncHandler(UserManagementController.createUser),
 );
 
 router.put(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN", "MANAGER"]),
+	requirePermission("users:update"),
 	asyncHandler(UserManagementController.updateUser),
 );
 
 router.delete(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
+	requirePermission("users:delete"),
 	asyncHandler(UserManagementController.deleteUser),
 );
 

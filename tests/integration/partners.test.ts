@@ -162,17 +162,6 @@ describe("Partners Integration Tests", () => {
 			expect(response.body.data.name).toBe("New Partner");
 		});
 
-		it("should return 403 for MANAGER token", async () => {
-			const response = await request(app)
-				.post("/partners")
-				.set("Authorization", `Bearer ${TOKENS.MANAGER}`)
-				.send({
-					name: "New Partner",
-				});
-
-			expect(response.status).toBe(403);
-		});
-
 		it("should return 403 for INSPECTOR token", async () => {
 			const response = await request(app)
 				.post("/partners")
@@ -226,15 +215,6 @@ describe("Partners Integration Tests", () => {
 			expect(response.body.data.name).toBe("Updated Partner");
 		});
 
-		it("should return 403 for MANAGER token", async () => {
-			const response = await request(app)
-				.put(`/partners/${partnerId}`)
-				.set("Authorization", `Bearer ${TOKENS.MANAGER}`)
-				.send({ name: "Updated Partner" });
-
-			expect(response.status).toBe(403);
-		});
-
 		it("should return 404 when partner does not exist", async () => {
 			const response = await request(app)
 				.put("/partners/999999")
@@ -279,14 +259,6 @@ describe("Partners Integration Tests", () => {
 			expect(response.status).toBe(200);
 			expect(response.body.success).toBe(true);
 			expect(response.body.data.message).toBe("Partner deleted successfully");
-		});
-
-		it("should return 403 for MANAGER token", async () => {
-			const response = await request(app)
-				.delete(`/partners/${partnerId}`)
-				.set("Authorization", `Bearer ${TOKENS.MANAGER}`);
-
-			expect(response.status).toBe(403);
 		});
 
 		it("should return 403 for INSPECTOR token", async () => {

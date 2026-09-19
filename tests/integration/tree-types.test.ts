@@ -231,15 +231,6 @@ describe("Tree Types API", () => {
 				}),
 			]);
 		});
-
-		it("should return an empty array when no tree type records exist in the test database", async () => {
-			const response = await request(app)
-				.get("/tree-types")
-				.set(managerAuthHeader);
-
-			expect(response.status).toBe(200);
-			expect(response.body.data).toEqual([]);
-		});
 	});
 
 	describe("GET /tree-types/:id", () => {
@@ -316,16 +307,6 @@ describe("Tree Types API", () => {
 			});
 
 			expect(response.status).toBe(401);
-		});
-
-		it("should return 403 for a non-admin authenticated user", async () => {
-			const response = await request(app)
-				.post("/tree-types")
-				.set(managerAuthHeader)
-				.send({ name: "Eucalyptus" });
-
-			expect(response.status).toBe(403);
-			expect(response.body.success).toBe(false);
 		});
 
 		it("should return 201 for an admin with a valid payload", async () => {

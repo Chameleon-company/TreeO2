@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { partnersController } from "./partners.controller";
 import { authMiddleware } from "../../middleware/auth.middleware";
-import { roleMiddleware } from "../../middleware/role.middleware";
+import { requirePermission } from "../../middleware/capability.middleware";
 import "./partners.docs";
 
 const router = Router();
@@ -10,7 +10,7 @@ const router = Router();
 router.get(
 	"/",
 	authMiddleware,
-	roleMiddleware(["ADMIN", "MANAGER"]),
+	requirePermission("partners:read"),
 	(req, res, next) => {
 		void partnersController.getAllPartners(req, res, next);
 	},
@@ -20,7 +20,7 @@ router.get(
 router.get(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN", "MANAGER"]),
+	requirePermission("partners:read"),
 	(req, res, next) => {
 		void partnersController.getPartnerById(req, res, next);
 	},
@@ -30,7 +30,7 @@ router.get(
 router.post(
 	"/",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
+	requirePermission("partners:create"),
 	(req, res, next) => {
 		void partnersController.createPartner(req, res, next);
 	},
@@ -40,7 +40,7 @@ router.post(
 router.put(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
+	requirePermission("partners:update"),
 	(req, res, next) => {
 		void partnersController.updatePartner(req, res, next);
 	},
@@ -50,7 +50,7 @@ router.put(
 router.delete(
 	"/:id",
 	authMiddleware,
-	roleMiddleware(["ADMIN"]),
+	requirePermission("partners:delete"),
 	(req, res, next) => {
 		void partnersController.deletePartner(req, res, next);
 	},

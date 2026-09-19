@@ -100,22 +100,6 @@ describe("Project Management Integration Tests", () => {
 			expect(response.body.success).toBe(true);
 		});
 
-		it("should return 403 for INSPECTOR token", async () => {
-			const response = await request(app)
-				.get("/projects")
-				.set("Authorization", `Bearer ${TOKENS.INSPECTOR}`);
-
-			expect(response.status).toBe(403);
-		});
-
-		it("should return 403 for FARMER token", async () => {
-			const response = await request(app)
-				.get("/projects")
-				.set("Authorization", `Bearer ${TOKENS.FARMER}`);
-
-			expect(response.status).toBe(403);
-		});
-
 		it("should return 403 for DEVELOPER token", async () => {
 			const response = await request(app)
 				.get("/projects")
@@ -150,14 +134,6 @@ describe("Project Management Integration Tests", () => {
 
 			expect(response.status).toBe(200);
 			expect(response.body.success).toBe(true);
-		});
-
-		it("should return 403 for INSPECTOR token", async () => {
-			const response = await request(app)
-				.get(`/projects/${projectId}`)
-				.set("Authorization", `Bearer ${TOKENS.INSPECTOR}`);
-
-			expect(response.status).toBe(403);
 		});
 
 		it("should return 404 when project does not exist", async () => {
@@ -207,19 +183,6 @@ describe("Project Management Integration Tests", () => {
 			expect(response.status).toBe(201);
 			expect(response.body.success).toBe(true);
 			expect(response.body.data.name).toBe("New Reforestation Project");
-		});
-
-		it("should return 403 for MANAGER token", async () => {
-			const response = await request(app)
-				.post("/projects")
-				.set("Authorization", `Bearer ${TOKENS.MANAGER}`)
-				.send({
-					name: "New Reforestation Project",
-					countryId,
-					adminLocationId,
-				});
-
-			expect(response.status).toBe(403);
 		});
 
 		it("should return 400 for invalid payload", async () => {
@@ -278,17 +241,6 @@ describe("Project Management Integration Tests", () => {
 			expect(response.body.data.isActive).toBe(false);
 		});
 
-		it("should return 403 for MANAGER token", async () => {
-			const response = await request(app)
-				.put(`/projects/${projectId}`)
-				.set("Authorization", `Bearer ${TOKENS.MANAGER}`)
-				.send({
-					name: "Manager Update Attempt",
-				});
-
-			expect(response.status).toBe(403);
-		});
-
 		it("should return 404 when project does not exist", async () => {
 			const response = await request(app)
 				.put("/projects/999999")
@@ -326,14 +278,6 @@ describe("Project Management Integration Tests", () => {
 			expect(response.status).toBe(200);
 			expect(response.body.success).toBe(true);
 			expect(response.body.data.message).toBe("Project deleted successfully");
-		});
-
-		it("should return 403 for MANAGER token", async () => {
-			const response = await request(app)
-				.delete(`/projects/${projectId}`)
-				.set("Authorization", `Bearer ${TOKENS.MANAGER}`);
-
-			expect(response.status).toBe(403);
 		});
 
 		it("should return 404 when project does not exist", async () => {

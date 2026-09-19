@@ -1,14 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
-import { env } from "../config/env";
 import { verifyJwt } from "../lib/jwt";
-import type { JwtPayload } from "../modules/auth/auth.types";
 import { AppError } from "../middleware/errorHandler";
 import { customError } from "../utils/errorCodes";
 
 /**
  * Lazy-cached Development Bypass Token Map (AUTH_DEV_MODE=true)
  */
-
 
 /**
  * Specification v1.3 Section 14 Authentication Middleware
@@ -28,8 +25,6 @@ export const authMiddleware = (
 	}
 
 	const token = authHeader.slice("Bearer ".length).trim();
-
-
 
 	// 3. Production Cryptographic JWT Signature Verification
 	try {
