@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authMiddleware } from "../../middleware/auth.middleware";
+import { requirePermission } from "../../middleware/capability.middleware";
 import { userOrganisationRolesController } from "./userOrganisationRoles.controller";
 import "./userOrganisationRoles.docs";
 import { validateMiddleware } from "../../middleware/validate.middleware";
@@ -10,10 +11,10 @@ import {
 
 const router = Router();
 
-// TODO: (T2 2026 API12) add capability-based permission middleware
 router.post(
 	"/",
 	authMiddleware,
+	requirePermission("user_organisation_roles:assign"),
 	validateMiddleware(AddUserOrganisationRoleReq),
 	(req, res, next) => {
 		void userOrganisationRolesController.addUserOrganisationRole(

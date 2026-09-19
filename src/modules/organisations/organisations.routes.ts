@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authMiddleware } from "../../middleware/auth.middleware";
+import { requirePermission } from "../../middleware/capability.middleware";
 import { validateMiddleware } from "../../middleware/validate.middleware";
 import { organisationsController } from "./organisations.controller";
 import "./organisations.docs";
@@ -12,10 +13,10 @@ import {
 
 const router = Router();
 
-// TODO: add capability-based permission middleware once the sec/auth stream lands it
 router.get(
 	"/",
 	authMiddleware,
+	requirePermission("organisations:read"),
 	validateMiddleware(ListOrganisationsReq),
 	(req, res, next) => {
 		// casting req as ListOrganisationsReq because validateMiddleware will ensure it is, and error is handled by next()
@@ -25,10 +26,10 @@ router.get(
 	},
 );
 
-// TODO: add capability-based permission middleware once the sec/auth stream lands it
 router.get(
 	"/:id",
 	authMiddleware,
+	requirePermission("organisations:read"),
 	validateMiddleware(OrganisationIdReq),
 	(req, res, next) => {
 		void organisationsController
@@ -37,10 +38,10 @@ router.get(
 	},
 );
 
-// TODO: add capability-based permission middleware once the sec/auth stream lands it
 router.post(
 	"/",
 	authMiddleware,
+	requirePermission("organisations:create"),
 	validateMiddleware(CreateOrganisationReq),
 	(req, res, next) => {
 		void organisationsController
@@ -49,10 +50,10 @@ router.post(
 	},
 );
 
-// TODO: add capability-based permission middleware once the sec/auth stream lands it
 router.put(
 	"/:id",
 	authMiddleware,
+	requirePermission("organisations:update"),
 	validateMiddleware(UpdateOrganisationReq),
 	(req, res, next) => {
 		void organisationsController
@@ -61,10 +62,10 @@ router.put(
 	},
 );
 
-// TODO: add capability-based permission middleware once the sec/auth stream lands it
 router.delete(
 	"/:id",
 	authMiddleware,
+	requirePermission("organisations:delete"),
 	validateMiddleware(OrganisationIdReq),
 	(req, res, next) => {
 		void organisationsController

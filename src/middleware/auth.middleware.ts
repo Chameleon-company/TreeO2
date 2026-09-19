@@ -3,7 +3,6 @@ import { verifyJwt } from "../lib/jwt";
 import { AppError } from "../middleware/errorHandler";
 import { customError } from "../utils/errorCodes";
 
-
 /**
  * Specification v1.3 Section 14 Authentication Middleware
  * Enforces Bearer token presence and production JWT signature validation.

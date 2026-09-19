@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authMiddleware } from "../../middleware/auth.middleware";
+import { requirePermission } from "../../middleware/capability.middleware";
 import { userOrganisationsController } from "./userOrganisations.controller";
 import "./userOrganisations.docs";
 import {
@@ -27,10 +28,10 @@ router.get(
 	},
 );
 
-// TODO: (T2 2026 API12) add capability-based permission middleware
 router.post(
 	"/",
 	authMiddleware,
+	requirePermission("user_organisations:create"),
 	validateMiddleware(AddUserOrganisationReq),
 	(req, res, next) => {
 		void userOrganisationsController.addUserOrganisation(
@@ -41,10 +42,10 @@ router.post(
 	},
 );
 
-// TODO: (T2 2026 API12) add capability-based permission middleware
 router.put(
 	"/:userId/:organisationId",
 	authMiddleware,
+	requirePermission("user_organisations:update"),
 	validateMiddleware(UpdateUserOrganisationReq),
 	(req, res, next) => {
 		void userOrganisationsController.updateUserOrganisation(
@@ -55,10 +56,10 @@ router.put(
 	},
 );
 
-// TODO: (T2 2026 API12) add capability-based permission middleware
 router.delete(
 	"/:userId/:organisationId",
 	authMiddleware,
+	requirePermission("user_organisations:delete"),
 	validateMiddleware(DeleteUserOrganisationReq),
 	(req, res, next) => {
 		void userOrganisationsController.deleteUserOrganisation(
