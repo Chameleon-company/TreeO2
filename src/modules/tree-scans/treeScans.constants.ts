@@ -24,6 +24,7 @@ export const TREE_SCAN_MESSAGES = {
 	SCAN_NOT_FOUND: "Tree scan not found",
 	PROJECT_NOT_FOUND: "Project not found",
 	PROJECT_INACTIVE: "Project is inactive",
+	PROJECT_DISABLED_SCANS: "Project has scans disabled",
 	FARMER_NOT_FOUND: "Farmer not found",
 	INSPECTOR_NOT_FOUND: "Inspector not found",
 	SPECIES_NOT_FOUND: "Tree type not found",

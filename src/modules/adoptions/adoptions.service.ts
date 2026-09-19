@@ -4,26 +4,32 @@ import { AppError } from "../../middleware/errorHandler";
 import { customError } from "../../utils/errorCodes";
 import type { PaginatedResponse } from "../../types";
 
-interface CreateAdoptionInput {
+type CreateAdoptionInput = {
 	adopter_id: number;
 	fob_id: string;
+	project_id?: number;
 	adopted_at: string;
-}
+};
 
-interface UpdateAdoptionInput {
+type UpdateAdoptionInput = {
 	adopter_id?: number;
 	fob_id?: string;
+	project_id?: number;
 	adopted_at?: string;
-}
+};
 
-interface ListAdoptionsFilters {
+type DeleteAdoptionInput = {
+	cancellationReason?: string;
+};
+
+type ListAdoptionsFilters = {
 	page?: number;
 	limit?: number;
 	fob_id?: string;
 	adopter_id?: number;
 	adopter?: string;
 	year?: number;
-}
+};
 
 const assertValidId = (id: number) => {
 	if (!Number.isInteger(id) || id <= 0) {
@@ -107,11 +113,29 @@ const assertCreatePayload = (data: CreateAdoptionInput) => {
 
 	assertValidId(Number(data.adopter_id));
 
+	if (data.project_id !== undefined) {
+		assertValidId(Number(data.project_id));
+	}
+
 	if (!data.fob_id?.trim()) {
 		throw new AppError(400, customError("VAL_003"), "fob_id is required");
 	}
 
 	parseStrictDate(data.adopted_at);
+};
+
+const assertUpdatableAdoption = async (id: number) => {
+	const adoption = await prisma.adoption.findUnique({
+		where: { id },
+	});
+
+	if (!adoption) {
+		throw new AppError(404, customError("DATA_001"), "Adoption not found");
+	}
+
+	if (adoption.cancelledAt !== null && adoption.cancelledAt < new Date()) {
+		throw new AppError(409, customError("DATA_005"), "Adoption is cancelled");
+	}
 };
 
 const assertUpdatePayload = (data: UpdateAdoptionInput) => {
@@ -125,6 +149,10 @@ const assertUpdatePayload = (data: UpdateAdoptionInput) => {
 
 	if (data.adopter_id !== undefined) {
 		assertValidId(Number(data.adopter_id));
+	}
+
+	if (data.project_id !== undefined) {
+		assertValidId(Number(data.project_id));
 	}
 
 	if (data.fob_id !== undefined && !data.fob_id.trim()) {
@@ -236,11 +264,29 @@ export class AdoptionsService {
 			throw new AppError(404, customError("DATA_001"), "Adopter not found");
 		}
 
+		if (data.project_id !== undefined) {
+			const project = await prisma.project.findUnique({
+				where: { id: Number(data.project_id) },
+			});
+
+			if (!project) {
+				throw new AppError(404, customError("DATA_001"), "Project not found");
+			}
+
+			if (!project.isActive) {
+				throw new AppError(409, customError("DATA_005"), "Project is archived");
+			}
+
+			// TODO: enforce project access
+		}
+
 		return prisma.adoption.create({
 			data: {
 				adopterId: Number(data.adopter_id),
 				fobId: data.fob_id.trim(),
 				adoptedAt: parseStrictDate(data.adopted_at),
+				projectId:
+					data.project_id !== undefined ? Number(data.project_id) : undefined,
 			},
 		});
 	}
@@ -264,10 +310,9 @@ export class AdoptionsService {
 
 	async updateAdoption(id: number, data: UpdateAdoptionInput) {
 		assertValidId(id);
+		await assertUpdatableAdoption(id);
 
 		assertUpdatePayload(data);
-
-		await this.getAdoptionById(id);
 
 		if (data.adopter_id !== undefined) {
 			const adopter = await prisma.adopter.findUnique({
@@ -277,6 +322,22 @@ export class AdoptionsService {
 			if (!adopter) {
 				throw new AppError(404, customError("DATA_001"), "Adopter not found");
 			}
+		}
+
+		if (data.project_id !== undefined) {
+			const project = await prisma.project.findUnique({
+				where: { id: Number(data.project_id) },
+			});
+
+			if (!project) {
+				throw new AppError(404, customError("DATA_001"), "Project not found");
+			}
+
+			if (!project.isActive) {
+				throw new AppError(409, customError("DATA_005"), "Project is archived");
+			}
+
+			// TODO: enforce project access
 		}
 
 		return prisma.adoption.update({
@@ -292,17 +353,26 @@ export class AdoptionsService {
 				...(data.adopted_at !== undefined
 					? { adoptedAt: parseStrictDate(data.adopted_at) }
 					: {}),
+
+				...(data.project_id !== undefined
+					? { projectId: Number(data.project_id) }
+					: {}),
 			},
 		});
 	}
 
-	async deleteAdoption(id: number) {
+	async deleteAdoption(id: number, data: DeleteAdoptionInput) {
 		assertValidId(id);
+		await assertUpdatableAdoption(id);
 
-		await this.getAdoptionById(id);
+		// TODO: enforce project access if it has project_id field
 
-		await prisma.adoption.delete({
+		await prisma.adoption.update({
 			where: { id },
+			data: {
+				cancelledAt: new Date(),
+				cancellationReason: data.cancellationReason ?? null,
+			},
 		});
 
 		return {
@@ -313,4 +383,9 @@ export class AdoptionsService {
 
 export const adoptionsService = new AdoptionsService();
 
-export type { CreateAdoptionInput, UpdateAdoptionInput, ListAdoptionsFilters };
+export type {
+	CreateAdoptionInput,
+	UpdateAdoptionInput,
+	ListAdoptionsFilters,
+	DeleteAdoptionInput,
+};

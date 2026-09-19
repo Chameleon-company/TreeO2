@@ -1,9 +1,11 @@
 model LocalizedString {
-  id          Int    @id @default(autoincrement())
-  cultureCode String @map("culture_code") @db.VarChar(10)
-  stringKey   String @map("string_key") @db.VarChar(255)
-  value       String @db.Text
-  context     String @map("context") @db.VarChar(50)
+  id          Int      @id @default(autoincrement())
+  cultureCode String   @map("culture_code") @db.VarChar(10)
+  stringKey   String   @map("string_key") @db.VarChar(255)
+  value       String   @db.Text
+  context     String   @map("context") @db.VarChar(50)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   culture Culture @relation(fields: [cultureCode], references: [code], onDelete: Restrict)
 
