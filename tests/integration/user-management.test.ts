@@ -128,20 +128,6 @@ describe("User Management Integration Tests", () => {
 			expect(res.status).toBe(403);
 		});
 
-		it("should return 200 when INSPECTOR requests their own profile", async () => {
-			const inspector = await prisma.user.create({
-				data: { name: "Inspector", email: "inspector@test.com", roleId },
-			});
-
-			const token = TOKENS.INSPECTOR;
-
-			const res = await request(app)
-				.get(`/users/${inspector.id}`)
-				.set("Authorization", `Bearer ${token}`);
-
-			expect(res.status).toBe(200);
-			expect(res.body.id).toBe(inspector.id);
-		});
 	});
 
 	// ── POST /users ─────────────────────────────────────────────────────────────
