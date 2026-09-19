@@ -3,13 +3,10 @@ import { verifyJwt } from "../lib/jwt";
 import { AppError } from "../middleware/errorHandler";
 import { customError } from "../utils/errorCodes";
 
-/**
- * Lazy-cached Development Bypass Token Map (AUTH_DEV_MODE=true)
- */
 
 /**
  * Specification v1.3 Section 14 Authentication Middleware
- * Enforces Bearer token presence, dev token bypass engine, and production JWT signature validation.
+ * Enforces Bearer token presence and production JWT signature validation.
  */
 export const authMiddleware = (
 	req: Request,
@@ -26,7 +23,7 @@ export const authMiddleware = (
 
 	const token = authHeader.slice("Bearer ".length).trim();
 
-	// 3. Production Cryptographic JWT Signature Verification
+	// 2. Production Cryptographic JWT Signature Verification
 	try {
 		const payload = verifyJwt(token);
 		req.user = payload;
