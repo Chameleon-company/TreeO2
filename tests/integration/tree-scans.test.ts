@@ -26,10 +26,11 @@ describe("Tree Scans Integration Tests", () => {
 	let adminLocationId: number;
 	let projectId: number;
 	let inactiveProjectId: number;
+	let farmId: number;
+	let unassignedFarmId: number;
 	let farmerId: number;
 	let managerId: number;
 	let inspectorId: number;
-	let unassignedFarmerId: number;
 	let unassignedInspectorId: number;
 	let speciesId: number;
 	let unassignedSpeciesId: number;
@@ -38,7 +39,7 @@ describe("Tree Scans Integration Tests", () => {
 	const validPayload = () => ({
 		fobId: `FOB-${Date.now()}-${Math.random()}`,
 		projectId,
-		farmerId,
+		farmId,
 		speciesId,
 		estimatedPlantedYear: 2020,
 		estimatedPlantedMonth: 6,
@@ -59,6 +60,7 @@ describe("Tree Scans Integration Tests", () => {
 		await prisma.treeScan.deleteMany();
 		await prisma.projectTreeType.deleteMany();
 		await prisma.userProject.deleteMany();
+		await prisma.farm.deleteMany();
 
 		await prisma.user.deleteMany({
 			where: {
@@ -328,24 +330,37 @@ describe("Tree Scans Integration Tests", () => {
 
 		farmerId = farmer.id;
 
-		const unassignedFarmer = await prisma.user.upsert({
-			where: { email: "tree-scan-unassigned-farmer@test.com" },
+		const farm = await prisma.farm.upsert({
+			where: { id: 1 },
 			update: {
-				name: "Tree Scan Unassigned Farmer",
-				roleId: farmerRole.id,
-				accountActive: true,
-				canSignIn: true,
+				farmCode: "Farm Code",
+				farmerId: farmer.id,
+				projectId: projectId,
 			},
 			create: {
-				name: "Tree Scan Unassigned Farmer",
-				email: "tree-scan-unassigned-farmer@test.com",
-				roleId: farmerRole.id,
-				accountActive: true,
-				canSignIn: true,
+				farmCode: "Farm Code",
+				farmerId: farmer.id,
+				projectId: projectId,
 			},
 		});
 
-		unassignedFarmerId = unassignedFarmer.id;
+		farmId = farm.id;
+
+		const unassignedFarm = await prisma.farm.upsert({
+			where: { id: 2 },
+			update: {
+				farmCode: "Farm Code",
+				farmerId: farmer.id,
+				projectId: inactiveProjectId,
+			},
+			create: {
+				farmCode: "Farm Code",
+				farmerId: farmer.id,
+				projectId: inactiveProjectId,
+			},
+		});
+
+		unassignedFarmId = unassignedFarm.id;
 
 		const unassignedInspector = await prisma.user.upsert({
 			where: { email: "tree-scan-unassigned-inspector@test.com" },
@@ -391,7 +406,7 @@ describe("Tree Scans Integration Tests", () => {
 		await prisma.userProject.createMany({
 			data: [
 				{
-					userId: farmerId,
+					userId: farm.farmerId,
 					projectId,
 				},
 				{
@@ -422,7 +437,7 @@ describe("Tree Scans Integration Tests", () => {
 			data: {
 				fobId: "FOB-BASE",
 				projectId,
-				farmerId,
+				farmId,
 				inspectorId,
 				speciesId,
 				estimatedPlantedYear: 2020,
@@ -459,6 +474,8 @@ describe("Tree Scans Integration Tests", () => {
 			},
 		});
 
+		await prisma.farm.deleteMany();
+
 		await prisma.project.deleteMany({
 			where: {
 				id: {
@@ -479,7 +496,6 @@ describe("Tree Scans Integration Tests", () => {
 						DEV_USER_IDS.INSPECTOR,
 						DEV_USER_IDS.DEVELOPER,
 						farmerId,
-						unassignedFarmerId,
 						unassignedInspectorId,
 					].filter((id): id is number => id !== undefined),
 				},
@@ -708,13 +724,13 @@ describe("Tree Scans Integration Tests", () => {
 			expect(response.status).toBe(400);
 		});
 
-		it("should return 403 when farmer is not assigned to project", async () => {
+		it("should return 403 when farm is not assigned to project", async () => {
 			const response = await request(app)
 				.post("/tree-scans")
 				.set("Authorization", `Bearer ${TOKENS.INSPECTOR}`)
 				.send({
 					...validPayload(),
-					farmerId: unassignedFarmerId,
+					farmId: unassignedFarmId,
 				});
 
 			expect(response.status).toBe(403);

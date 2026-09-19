@@ -15,6 +15,9 @@ jest.mock("../../src/lib/prisma", () => ({
 		treeScan: {
 			findFirst: jest.fn(),
 		},
+		farm: {
+			findFirst: jest.fn(),
+		},
 	},
 }));
 
@@ -205,6 +208,7 @@ describe("UserManagementService - UNIT TESTS (FIXED)", () => {
 		it("should soft-delete user", async () => {
 			mockPrisma.user.findUnique.mockResolvedValue({ id: 1 });
 			mockPrisma.treeScan.findFirst.mockResolvedValue(null);
+			mockPrisma.farm.findFirst.mockResolvedValue(null);
 			mockPrisma.user.update.mockResolvedValue({ id: 1 });
 
 			const result = await UserManagementService.deleteUser("1");
@@ -235,6 +239,20 @@ describe("UserManagementService - UNIT TESTS (FIXED)", () => {
 		it("should block delete when user has linked tree scans", async () => {
 			mockPrisma.user.findUnique.mockResolvedValue({ id: 1 });
 			mockPrisma.treeScan.findFirst.mockResolvedValue({ id: 99 });
+			mockPrisma.farm.findFirst.mockResolvedValue(null);
+
+			await expect(UserManagementService.deleteUser("1")).rejects.toMatchObject(
+				{
+					statusCode: 409,
+					code: expect.stringContaining("VAL_001"),
+				},
+			);
+		});
+
+		it("should block delete when user has linked farms", async () => {
+			mockPrisma.user.findUnique.mockResolvedValue({ id: 1 });
+			mockPrisma.treeScan.findFirst.mockResolvedValue(null);
+			mockPrisma.farm.findFirst.mockResolvedValue({ id: 99 });
 
 			await expect(UserManagementService.deleteUser("1")).rejects.toMatchObject(
 				{

@@ -63,6 +63,27 @@ const ensureUserExists = async (userId: number, message: string) => {
 	return user;
 };
 
+// Ensure farm exists and status is active
+const ensureFarmExists = async (farmId: number, message: string) => {
+	const farm = await prisma.farm.findUnique({
+		where: { id: farmId },
+		select: {
+			id: true,
+			status: true,
+		},
+	});
+
+	if (!farm) {
+		throw new AppError(404, customError("DATA_001"), message);
+	}
+
+	if (farm.status !== "active") {
+		throw new AppError(400, customError("VAL_002"), "Farm is not active");
+	}
+
+	return farm;
+};
+
 // Ensure user is assigned to the project
 const ensureUserAssignedToProject = async (
 	userId: number,
@@ -79,6 +100,24 @@ const ensureUserAssignedToProject = async (
 	});
 
 	if (!assignment) {
+		throw new AppError(403, customError("AUTH_007"), message);
+	}
+};
+
+// Ensure farm is assigned to the project
+const ensureFarmAssignedToProject = async (
+	farmId: number,
+	projectId: number,
+	message: string,
+) => {
+	const farm = await prisma.farm.findUnique({
+		where: {
+			id: farmId,
+			projectId: projectId,
+		},
+	});
+
+	if (!farm) {
 		throw new AppError(403, customError("AUTH_007"), message);
 	}
 };
@@ -216,7 +255,7 @@ export class TreeScansService {
 
 		const baseWhere: Prisma.TreeScanWhereInput = {
 			...(query.projectId !== undefined ? { projectId: query.projectId } : {}),
-			...(query.farmerId !== undefined ? { farmerId: query.farmerId } : {}),
+			...(query.farmId !== undefined ? { farmId: query.farmId } : {}),
 			...(query.inspectorId !== undefined
 				? { inspectorId: query.inspectorId }
 				: {}),
@@ -280,20 +319,17 @@ export class TreeScansService {
 
 			await ensureProjectExists(data.projectId);
 
-			await ensureUserExists(
-				data.farmerId,
-				TREE_SCAN_MESSAGES.FARMER_NOT_FOUND,
-			);
+			await ensureFarmExists(data.farmId, TREE_SCAN_MESSAGES.FARM_NOT_FOUND);
 
 			await ensureUserExists(
 				inspectorId,
 				TREE_SCAN_MESSAGES.INSPECTOR_NOT_FOUND,
 			);
 
-			await ensureUserAssignedToProject(
-				data.farmerId,
+			await ensureFarmAssignedToProject(
+				data.farmId,
 				data.projectId,
-				TREE_SCAN_MESSAGES.FARMER_NOT_ASSIGNED,
+				TREE_SCAN_MESSAGES.FARM_NOT_ASSIGNED,
 			);
 
 			await ensureUserAssignedToProject(
@@ -308,7 +344,7 @@ export class TreeScansService {
 				data: {
 					fobId: data.fobId,
 					projectId: data.projectId,
-					farmerId: data.farmerId,
+					farmId: data.farmId,
 					inspectorId,
 					speciesId: data.speciesId,
 					estimatedPlantedYear: data.estimatedPlantedYear,
@@ -354,28 +390,25 @@ export class TreeScansService {
 
 			if (
 				data.projectId !== undefined ||
-				data.farmerId !== undefined ||
+				data.farmId !== undefined ||
 				data.inspectorId !== undefined ||
 				data.speciesId !== undefined
 			) {
 				const nextProjectId = data.projectId ?? existingScan.projectId;
-				const nextFarmerId = data.farmerId ?? existingScan.farmerId;
+				const nextFarmId = data.farmId ?? existingScan.farmId;
 				const nextInspectorId = data.inspectorId ?? existingScan.inspectorId;
 				const nextSpeciesId = data.speciesId ?? existingScan.speciesId;
 
 				await ensureProjectExists(nextProjectId);
-				await ensureUserExists(
-					nextFarmerId,
-					TREE_SCAN_MESSAGES.FARMER_NOT_FOUND,
-				);
+				await ensureFarmExists(nextFarmId, TREE_SCAN_MESSAGES.FARM_NOT_FOUND);
 				await ensureUserExists(
 					nextInspectorId,
 					TREE_SCAN_MESSAGES.INSPECTOR_NOT_FOUND,
 				);
-				await ensureUserAssignedToProject(
-					nextFarmerId,
+				await ensureFarmAssignedToProject(
+					nextFarmId,
 					nextProjectId,
-					TREE_SCAN_MESSAGES.FARMER_NOT_ASSIGNED,
+					TREE_SCAN_MESSAGES.FARM_NOT_ASSIGNED,
 				);
 				await ensureUserAssignedToProject(
 					nextInspectorId,
