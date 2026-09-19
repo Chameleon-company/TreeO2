@@ -35,8 +35,8 @@ router.post("/logout", authMiddleware, (req, res, next) => {
 
 router.post(
 	"/forgot-password",
-	validateMiddleware(ForgotPasswordReq),
 	forgotPasswordRateLimit,
+	validateMiddleware(ForgotPasswordReq),
 	(req, res, next) => {
 		void authController
 			.forgotPassword(req as unknown as ForgotPasswordReq, res)
@@ -46,8 +46,8 @@ router.post(
 
 router.post(
 	"/reset-password",
-	validateMiddleware(ResetPasswordReq),
 	resetPasswordRateLimit,
+	validateMiddleware(ResetPasswordReq),
 	(req, res, next) => {
 		void authController
 			.resetPassword(req as unknown as ResetPasswordReq, res)
